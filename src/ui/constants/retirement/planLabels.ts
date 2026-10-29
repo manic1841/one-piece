@@ -1,11 +1,13 @@
 /** Plan list and read-only view chrome (#346). */
 
 export const PLAN_LIST_LABELS = {
+  CRUMB: 'RETIREMENT',
+  BACK_LABEL: 'Back to projections',
   TITLE: 'Retirement plans',
   DESCRIPTION: 'Reusable assumption, rule and event templates.',
   CREATE_ACTION: 'NEW PLAN',
   EMPTY_TITLE: 'NO PLANS',
-  EMPTY_DESCRIPTION: 'No plans have been saved yet. Build a projection and save it as a plan.',
+  EMPTY_DESCRIPTION: 'No plans yet. Create one directly, or save a setup as a plan from a projection.',
   EMPTY_ACTION: 'NEW PLAN',
   LOADING_LABEL: 'Loading plans…',
   LOAD_ERROR: 'Could not load plans.',

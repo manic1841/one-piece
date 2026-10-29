@@ -25,10 +25,13 @@ export default function RetirementPlanListPage() {
   return (
     <div className="space-y-8">
       <PageHeader
+        crumb={PLAN_LIST_LABELS.CRUMB}
+        onBack={() => navigate('/retirement')}
+        backLabel={PLAN_LIST_LABELS.BACK_LABEL}
         title={PLAN_LIST_LABELS.TITLE}
         description={PLAN_LIST_LABELS.DESCRIPTION}
         actions={
-          <Button onClick={() => navigate('/retirement/new')} className="gap-2">
+          <Button onClick={() => navigate('/retirement/plans/new')} className="gap-2">
             <Plus size={18} aria-hidden="true" />
             {PLAN_LIST_LABELS.CREATE_ACTION}
           </Button>
@@ -45,7 +48,7 @@ export default function RetirementPlanListPage() {
         emptyTitle={PLAN_LIST_LABELS.EMPTY_TITLE}
         emptyDescription={PLAN_LIST_LABELS.EMPTY_DESCRIPTION}
         emptyAction={
-          <Button onClick={() => navigate('/retirement/new')} className="gap-2">
+          <Button onClick={() => navigate('/retirement/plans/new')} className="gap-2">
             <Plus size={16} aria-hidden="true" />
             {PLAN_LIST_LABELS.EMPTY_ACTION}
           </Button>

@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { Skeleton } from '@/ui/components/Skeleton';
 import { eyebrowClass } from '@/ui/components/eyebrow';
@@ -74,7 +75,12 @@ export function ProjectionStartDialog({
     <div className="grid gap-6">
       {!showEmpty && (
         <section className="grid gap-2">
-          <h2 className={eyebrowClass}>{START_PROJECTION_LABELS.PLAN_SECTION}</h2>
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className={eyebrowClass}>{START_PROJECTION_LABELS.PLAN_SECTION}</h2>
+            <Button asChild variant="text" size="sm" className="h-auto px-0 py-0 text-xs">
+              <Link to="/retirement/plans">{START_PROJECTION_LABELS.MANAGE_PLANS}</Link>
+            </Button>
+          </div>
 
           {library.loading && (
             <div role="status" className="grid gap-2" data-testid="plan-options-loading">
@@ -119,7 +125,12 @@ export function ProjectionStartDialog({
       {showEmpty ? (
         <section className="grid justify-items-start gap-4">
           <p className="text-sm text-muted-foreground">{START_PROJECTION_LABELS.EMPTY}</p>
-          <Button onClick={onSelectBlank}>{START_PROJECTION_LABELS.START_BLANK}</Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={onSelectBlank}>{START_PROJECTION_LABELS.START_BLANK}</Button>
+            <Button asChild variant="text" size="sm">
+              <Link to="/retirement/plans">{START_PROJECTION_LABELS.MANAGE_PLANS}</Link>
+            </Button>
+          </div>
         </section>
       ) : (
         <div className="-mx-2 border-t border-border pt-2">

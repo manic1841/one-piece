@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { PageHeader } from '@/ui/components/PageHeader';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
@@ -60,10 +60,15 @@ export default function ProjectionListPage() {
         title={PROJECTION_LIST_LABELS.TITLE}
         description={PROJECTION_LIST_LABELS.DESCRIPTION}
         actions={
-          <Button onClick={() => setStartOpen(true)} className="gap-2">
-            <Plus size={16} aria-hidden="true" />
-            {PROJECTION_LIST_LABELS.NEW_PROJECTION}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/retirement/plans">{PROJECTION_LIST_LABELS.PLANS_LINK}</Link>
+            </Button>
+            <Button onClick={() => setStartOpen(true)} className="gap-2">
+              <Plus size={16} aria-hidden="true" />
+              {PROJECTION_LIST_LABELS.NEW_PROJECTION}
+            </Button>
+          </div>
         }
       />
 

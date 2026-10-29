@@ -11,6 +11,7 @@ export const PROJECTION_LIST_LABELS = {
   EMPTY_TITLE: 'NO PROJECTIONS',
   EMPTY_DESCRIPTION: 'No projections have been calculated yet.',
   EMPTY_ACTION: 'NEW PROJECTION',
+  PLANS_LINK: 'PLANS',
   COLUMN_NAME: 'Name',
   COLUMN_CREATED_AT: 'Created',
   COLUMN_RETIREMENT_NET_WORTH: 'Net worth at retirement',

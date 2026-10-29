@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ProjectionStartDialog } from './ProjectionStartDialog';
@@ -43,11 +44,13 @@ function renderDialog() {
   const onSelectPlan = vi.fn();
   const onCancel = vi.fn();
   render(
-    <ProjectionStartDialog
-      onSelectBlank={onSelectBlank}
-      onSelectPlan={onSelectPlan}
-      onCancel={onCancel}
-    />,
+    <MemoryRouter>
+      <ProjectionStartDialog
+        onSelectBlank={onSelectBlank}
+        onSelectPlan={onSelectPlan}
+        onCancel={onCancel}
+      />
+    </MemoryRouter>,
   );
   return { onSelectBlank, onSelectPlan, onCancel };
 }

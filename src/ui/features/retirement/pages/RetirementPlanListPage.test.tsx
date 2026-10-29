@@ -106,7 +106,9 @@ describe('RetirementPlanListPage', () => {
     renderPage();
 
     expect(
-      screen.getByText('No plans have been saved yet. Build a projection and save it as a plan.'),
+      screen.getByText(
+        'No plans yet. Create one directly, or save a setup as a plan from a projection.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /NEW PLAN/ })).toHaveLength(2);
   });
@@ -132,7 +134,18 @@ describe('RetirementPlanListPage', () => {
     expect(reload).toHaveBeenCalled();
   });
 
-  it('navigates to the workspace from the header create action', () => {
+  it('navigates back to the projection list from the header back button', () => {
+    const navigate = vi.fn();
+    mockNavigate.mockReturnValue(navigate);
+    mockUseList.mockReturnValue(list());
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to projections' }));
+    expect(navigate).toHaveBeenCalledWith('/retirement');
+  });
+
+  it('navigates to the plan form from the header create action', () => {
     const navigate = vi.fn();
     mockNavigate.mockReturnValue(navigate);
     mockUseList.mockReturnValue(list());
@@ -140,6 +153,6 @@ describe('RetirementPlanListPage', () => {
     renderPage();
 
     fireEvent.click(screen.getAllByRole('button', { name: /NEW PLAN/ })[0]);
-    expect(navigate).toHaveBeenCalledWith('/retirement/new');
+    expect(navigate).toHaveBeenCalledWith('/retirement/plans/new');
   });
 });

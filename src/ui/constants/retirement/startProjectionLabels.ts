@@ -10,6 +10,7 @@ export const START_PROJECTION_LABELS = {
   LOAD_ERROR: 'Could not load plans.',
   RETRY: 'RETRY',
   EMPTY: 'No saved plans yet.',
+  MANAGE_PLANS: 'Manage plans',
   UPDATED_PREFIX: 'Updated',
   RETIREMENT_AGE_PREFIX: 'Retires at',
   LIFE_EXPECTANCY_PREFIX: 'Lives to',

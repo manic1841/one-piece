@@ -129,6 +129,14 @@ UI 只對以成長率、比例或固定金額計算的 Method 顯示勾選框。
 `/retirement/new` 是空白工作區。選擇投影起點是純 state 的 dialog，掛在投影清單的
 NEW PROJECTION 與工作區的 CHANGE PLAN 兩處，不進 URL；選定才導航——空白留在無 query 的路徑。
 
+計畫清單（`/retirement/plans`）的入口是投影清單 header 的 PLANS 與起點 dialog 的
+「Manage plans」，不進全域導覽：計畫是投影的模板，附屬於同一個任務。
+
+計畫可直接在
+`/retirement/plans/new` 建立——只有名稱與三組輸入，沒有期初、起算年與預覽，因為計畫不快取
+結果；建立成功後導向該計畫的唯讀檢視頁。另一條寫入路徑仍是從工作區或投影的 SAVE AS PLAN，
+它不必離開當下的情境。
+
 工作區在單一路由內走 setup → preview 兩階段，換階段不換路由，草稿共用同一份記憶體。
 計算**不**落地；只有儲存 dialog 的 SAVE 才寫 Firestore。預覽保留設定摘要，一般編輯返回
 setup（只丟棄結果，不動草稿）；退休年齡是唯一可在預覽中比較並套用的設定。
