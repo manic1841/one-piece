@@ -1,6 +1,7 @@
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';
+import { RULE_SENTENCE } from '@/ui/features/retirement/viewmodels/retirementPlanRows.vm';
 import { type RuleDraftVM } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
@@ -20,39 +21,39 @@ function parameterSummary(rule: RuleDraftVM, sourceLabel: string): string {
   const source = sourceLabel || RULE_LABELS.NO_SOURCE;
   const endCondition =
     rule.endConditionType === 'specificAge' && rule.endAge.trim() !== ''
-      ? RULE_LABELS.SUMMARY_THROUGH_AGE.replace('{age}', rule.endAge)
+      ? RULE_SENTENCE.THROUGH_AGE(rule.endAge)
       : rule.endConditionType === 'specificYear' && rule.endYear.trim() !== ''
-        ? RULE_LABELS.SUMMARY_THROUGH_YEAR.replace('{year}', rule.endYear)
+        ? RULE_SENTENCE.THROUGH_YEAR(rule.endYear)
         : rule.endConditionType === 'lifelong'
-          ? RULE_LABELS.SUMMARY_LIFELONG
-          : RULE_LABELS.SUMMARY_UNTIL_RETIREMENT;
+          ? RULE_SENTENCE.LIFELONG
+          : RULE_SENTENCE.UNTIL_RETIREMENT;
 
   switch (rule.method) {
     case 'fixedAmount':
       return [
         rule.amountText.trim() === '' || !Number.isFinite(amount)
           ? PROJECTION_COMMON_LABELS.DASH
-          : `${formatCurrency(amount)} ${RULE_LABELS.SUMMARY_PER_YEAR}`,
-        ...(rule.keepsPace ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION] : []),
+          : `${formatCurrency(amount)} ${RULE_SENTENCE.PER_YEAR}`,
+        ...(rule.keepsPace ? [RULE_SENTENCE.FOLLOWS_INFLATION] : []),
         endCondition,
       ].join(' · ');
     case 'percentage':
       return [
-        `${rule.ratioText.trim() === '' ? PROJECTION_COMMON_LABELS.DASH : `${rule.ratioText}%`} ${RULE_LABELS.SUMMARY_OF} ${source}`,
-        ...(rule.keepsPace ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION] : []),
+        `${rule.ratioText.trim() === '' ? PROJECTION_COMMON_LABELS.DASH : `${rule.ratioText}%`} ${RULE_SENTENCE.OF} ${source}`,
+        ...(rule.keepsPace ? [RULE_SENTENCE.FOLLOWS_INFLATION] : []),
         endCondition,
       ].join(' · ');
     case 'growthRate':
       return [
-        `${rule.rateText.trim() === '' ? PROJECTION_COMMON_LABELS.DASH : `${rule.rateText}%`} ${RULE_LABELS.SUMMARY_ANNUAL_GROWTH}`,
+        `${rule.rateText.trim() === '' ? PROJECTION_COMMON_LABELS.DASH : `${rule.rateText}%`} ${RULE_SENTENCE.ANNUAL_GROWTH}`,
         source,
-        ...(rule.keepsPace ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION] : []),
+        ...(rule.keepsPace ? [RULE_SENTENCE.FOLLOWS_INFLATION] : []),
         endCondition,
       ].join(' · ');
     case 'debtAmortization':
-      return `${source} · ${RULE_LABELS.SUMMARY_LOAN_SCHEDULE}`;
+      return `${source} · ${RULE_SENTENCE.LOAN_SCHEDULE}`;
     case 'inflation':
-      return [source, RULE_LABELS.SUMMARY_FOLLOWS_INFLATION, endCondition].join(' · ');
+      return [source, RULE_SENTENCE.FOLLOWS_INFLATION, endCondition].join(' · ');
   }
 }
 

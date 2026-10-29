@@ -62,14 +62,14 @@ export function RetirementPlanDetail({ plan, canDelete, onDelete }: RetirementPl
 
   return (
     <div className="space-y-8 pb-20">
-      <PageSection spacing="compact" ariaLabel={PLAN_DETAIL_LABELS.SCENARIO_SECTION}>
-        <p className={eyebrowClass}>{PLAN_DETAIL_LABELS.SCENARIO_SECTION}</p>
+      <PageSection spacing="compact" ariaLabel={PLAN_DETAIL_LABELS.NARRATIVE_SECTION}>
+        <p className={eyebrowClass}>{PLAN_DETAIL_LABELS.NARRATIVE_SECTION}</p>
         <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <FinancialNumber value={plan.scenario.retirementYearText} size="hero" />
-          <span className="text-sm text-muted-foreground">{plan.scenario.distanceText}</span>
+          <FinancialNumber value={plan.narrative.retirementYearText} size="hero" />
+          <span className="text-sm text-muted-foreground">{plan.narrative.distanceText}</span>
         </div>
         <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">
-          {plan.scenario.spanText}
+          {plan.narrative.spanText}
         </p>
       </PageSection>
 

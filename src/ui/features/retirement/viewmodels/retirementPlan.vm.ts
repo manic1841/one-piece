@@ -1,20 +1,18 @@
-import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { type DefinitionItem } from '@/ui/components/DefinitionRows';
-import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
+import { ASSUMPTION_LABELS, RULE_LABELS, RULE_TYPE_LABELS } from '@/ui/constants/retirement/setupLabels';
+import { percentText } from '@/ui/features/retirement/viewmodels/projectionRows.vm';
 import {
-  ASSUMPTION_LABELS,
-  RULE_LABELS,
-  RULE_TYPE_LABELS,
-} from '@/ui/constants/retirement/setupLabels';
-import {
-  endConditionText,
-  percentText,
-} from '@/ui/features/retirement/viewmodels/projectionRows.vm';
-import { type SnapshotEventVM } from '@/ui/features/retirement/viewmodels/projectionSnapshot.vm';
-import { formatCurrency, formatDate } from '@/ui/utils';
+  type EventAxis,
+  type EventVocabulary,
+  type SourceResolver,
+  type SnapshotEventVM,
+  buildEventRows,
+  buildRuleSentence,
+} from '@/ui/features/retirement/viewmodels/retirementPlanRows.vm';
+import { formatDate } from '@/ui/utils';
 
 export type { SnapshotEventVM };
 
@@ -32,28 +30,25 @@ export interface PlanRuleGroupVM {
   rows: PlanRuleVM[];
 }
 
-export interface PlanScenarioVM {
+export interface PlanNarrativeVM {
   /** Retirement year, the hero number. */
   retirementYearText: string;
   /** Distance from this year to retirement, or the retired marker. */
   distanceText: string;
   /** Period the plan spans: retirement year to life expectancy. */
   spanText: string;
-  /** One line naming the scenario: born / retires / life expectancy. */
+  /** One line naming the plan: born / retires / life expectancy. */
   descriptionText: string;
 }
 
-export interface PlanTimelineVM {
-  startYear: number;
-  endYear: number;
-  retirementYear: number | null;
-}
+/** The plan timeline is the event axis: same window, same markers. */
+export type PlanTimelineVM = EventAxis;
 
 export interface RetirementPlanVM {
   id: string;
   name: string;
   updatedAtText: string;
-  scenario: PlanScenarioVM;
+  narrative: PlanNarrativeVM;
   assumptions: DefinitionItem[];
   ruleGroups: PlanRuleGroupVM[];
   ruleCount: number;
@@ -67,83 +62,14 @@ export interface PlanSourceNames {
   debt: ReadonlyMap<string, string>;
 }
 
-const lowerFirst = (text: string): string =>
-  text.length === 0 ? text : text[0].toLowerCase() + text.slice(1);
-
-/** Age and year conditions need a boundary word; the other conditions already carry one. */
-function endOfSentence(rule: ProjectionRule): string {
-  const text = endConditionText(rule);
-  return rule.endCondition !== undefined &&
-    (rule.endCondition.type === 'specificAge' || rule.endCondition.type === 'specificYear')
-    ? `${PLAN_DETAIL_LABELS.UNTIL} ${lowerFirst(text)}`
-    : lowerFirst(text);
-}
-
-function sourceName(rule: ProjectionRule, names: PlanSourceNames): string {
-  const source = rule.source;
-  if (source === undefined) return RULE_LABELS.NO_SOURCE;
-  switch (source.type) {
-    case 'ledgerCode':
-      return names.ledger.get(source.id) ?? source.id;
-    case 'debtAccount':
-      return names.debt.get(source.id) ?? source.id;
-    case 'rule':
-      return source.id;
-  }
-}
-
-/** The rule as a sentence: how it grows, from where, and until when. */
-function ruleSummary(
-  rule: ProjectionRule,
-  names: PlanSourceNames,
-  ruleNames: ReadonlyMap<string, string>,
-): string {
-  const source =
-    rule.source?.type === 'rule'
-      ? (ruleNames.get(rule.source.id) ?? RULE_LABELS.NO_SOURCE)
-      : sourceName(rule, names);
-
-  // A source that repeats the rule's own name adds nothing to the sentence.
-  const namedSource = source === rule.name ? null : source;
-  const behavior = (() => {
-    switch (rule.method) {
-      case 'inflation':
-        return [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION, namedSource]
-          .filter((part) => part !== null)
-          .join(' · ');
-      case 'growthRate':
-        return 'rate' in rule.parameters
-          ? [
-              `${percentText(rule.parameters.rate)} ${RULE_LABELS.SUMMARY_ANNUAL_GROWTH}`,
-              namedSource,
-            ]
-              .filter((part) => part !== null)
-              .join(' · ')
-          : source;
-      case 'percentage':
-        return 'ratio' in rule.parameters
-          ? `${percentText(rule.parameters.ratio)} ${RULE_LABELS.SUMMARY_OF} ${source}`
-          : source;
-      case 'fixedAmount':
-        return 'amount' in rule.parameters
-          ? `${formatCurrency(rule.parameters.amount)} ${RULE_LABELS.SUMMARY_PER_YEAR}`
-          : PROJECTION_COMMON_LABELS.DASH;
-      case 'debtAmortization':
-        return `${source} · ${RULE_LABELS.SUMMARY_LOAN_SCHEDULE}`;
-    }
-  })();
-
-  return [
-    behavior,
-    // An inflation method already says it; only the other methods need the flag spelled out.
-    ...(rule.keepsPaceWithInflation === true && rule.method !== 'inflation'
-      ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION]
-      : []),
-    endOfSentence(rule),
-  ]
-    .filter((part) => part !== PROJECTION_COMMON_LABELS.DASH)
-    .join(' · ');
-}
+/** The plan narrative's wording; the shared builder owns the grammar. */
+const NARRATIVE_VOCABULARY: EventVocabulary = {
+  retiring: PLAN_DETAIL_LABELS.EVENT_DURING_RETIREMENT,
+  before: PLAN_DETAIL_LABELS.EVENT_BEFORE_RETIREMENT,
+  after: PLAN_DETAIL_LABELS.EVENT_AFTER_RETIREMENT,
+  income: RULE_TYPE_LABELS.income,
+  expense: RULE_TYPE_LABELS.expense,
+};
 
 /**
  * Groups by side so the type stops repeating per row and income reads before
@@ -151,6 +77,10 @@ function ruleSummary(
  */
 function buildRuleGroups(rules: ProjectionRule[], names: PlanSourceNames): PlanRuleGroupVM[] {
   const ruleNames = new Map(rules.map((rule) => [rule.id, rule.name] as const));
+  const resolveSource: SourceResolver = (source) =>
+    source.type === 'rule'
+      ? (ruleNames.get(source.id) ?? RULE_LABELS.NO_SOURCE)
+      : (names.ledger.get(source.id) ?? names.debt.get(source.id) ?? source.id);
 
   return (['income', 'expense'] as const).flatMap((side) => {
     const rows = rules
@@ -159,68 +89,9 @@ function buildRuleGroups(rules: ProjectionRule[], names: PlanSourceNames): PlanR
         id: rule.id,
         name: rule.name,
         isDisabled: !rule.enabled,
-        summary: ruleSummary(rule, names, ruleNames),
+        summary: buildRuleSentence(rule, resolveSource),
       }));
     return rows.length === 0 ? [] : [{ key: side, title: RULE_TYPE_LABELS[side], rows }];
-  });
-}
-
-const spanText = (start: number | undefined, end: number | undefined): string => {
-  if (start === undefined || end === undefined) return PROJECTION_COMMON_LABELS.DASH;
-  return start === end ? String(start) : `${start}–${end}`;
-};
-
-function timingText(
-  firstStart: number | undefined,
-  lastEnd: number | undefined,
-  retirementYear: number | null,
-): string {
-  if (firstStart === undefined || lastEnd === undefined || retirementYear === null) {
-    return PROJECTION_COMMON_LABELS.DASH;
-  }
-  if (firstStart <= retirementYear && retirementYear <= lastEnd) {
-    return PLAN_DETAIL_LABELS.EVENT_DURING_RETIREMENT;
-  }
-  return lastEnd < retirementYear
-    ? PLAN_DETAIL_LABELS.EVENT_BEFORE_RETIREMENT
-    : PLAN_DETAIL_LABELS.EVENT_AFTER_RETIREMENT;
-}
-
-function buildEvents(events: LifeEvent[], timeline: PlanTimelineVM): SnapshotEventVM[] {
-  return events.map((event) => {
-    const starts = event.phases.map((phase) => phase.startYear);
-    const ends = event.phases.map((phase) => phase.endYear);
-    const firstStart = starts.length === 0 ? undefined : Math.min(...starts);
-    const lastEnd = ends.length === 0 ? undefined : Math.max(...ends);
-    const isOutside =
-      firstStart !== undefined &&
-      lastEnd !== undefined &&
-      (lastEnd < timeline.startYear || firstStart > timeline.endYear);
-    const isClipped =
-      !isOutside &&
-      event.phases.some(
-        (phase) => phase.startYear < timeline.startYear || phase.endYear > timeline.endYear,
-      );
-
-    return {
-      id: event.id,
-      name: event.name,
-      typeText: RULE_TYPE_LABELS[event.type],
-      rangeText: spanText(firstStart, lastEnd),
-      timingText: timingText(firstStart, lastEnd, timeline.retirementYear),
-      isDisabled: !event.enabled,
-      isClipped,
-      isOutside,
-      phases: event.phases.map((phase) => ({
-        rangeText: spanText(phase.startYear, phase.endYear),
-        amountText: formatCurrency(phase.amount),
-        ...(phase.growthRate === undefined
-          ? {}
-          : { growthRateText: percentText(phase.growthRate) }),
-        clippedStartYear: Math.min(Math.max(phase.startYear, timeline.startYear), timeline.endYear),
-        clippedEndYear: Math.min(Math.max(phase.endYear, timeline.startYear), timeline.endYear),
-      })),
-    };
   });
 }
 
@@ -232,8 +103,14 @@ export function mapRetirementPlanToVM(
   const { birthYear, retirementAge, lifeExpectancy } = plan.assumptions;
   const retirementYear = birthYear + retirementAge;
   const planEndYear = birthYear + lifeExpectancy;
+  // The axis starts where the plan's own content starts, not at "today": a plan
+  // carries no timeline (ADR-0083), so borrowing the clock would make the same
+  // plan look different in another year.
+  const firstPhaseYear = Math.min(
+    ...plan.lifeEvents.flatMap((event) => event.phases.map((phase) => phase.startYear)),
+  );
   const timeline: PlanTimelineVM = {
-    startYear: Math.min(currentYear, planEndYear),
+    startYear: Math.min(Number.isFinite(firstPhaseYear) ? firstPhaseYear : currentYear, planEndYear),
     endYear: planEndYear,
     retirementYear,
   };
@@ -243,7 +120,7 @@ export function mapRetirementPlanToVM(
     id: plan.id,
     name: plan.name,
     updatedAtText: formatDate(plan.updatedAt),
-    scenario: {
+    narrative: {
       retirementYearText: String(retirementYear),
       distanceText:
         yearsToRetirement > 0
@@ -272,7 +149,7 @@ export function mapRetirementPlanToVM(
     ],
     ruleGroups: buildRuleGroups(plan.projectionRules, names),
     ruleCount: plan.projectionRules.length,
-    events: buildEvents(plan.lifeEvents, timeline),
+    events: buildEventRows(plan.lifeEvents, timeline, NARRATIVE_VOCABULARY),
     timeline,
   };
 }

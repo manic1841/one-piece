@@ -56,7 +56,7 @@ export default function RetirementPlanViewPage() {
             title={
               <InlineEditableTitle value={vm.name} onSave={handleRename} disabled={!canManage} />
             }
-            description={vm.scenario.descriptionText}
+            description={vm.narrative.descriptionText}
             onBack={backToList}
             backLabel={PLAN_DETAIL_LABELS.BACK_LABEL}
             meta={

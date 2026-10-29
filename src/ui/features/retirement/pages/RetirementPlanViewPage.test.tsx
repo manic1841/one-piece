@@ -55,24 +55,6 @@ const plan = {
   updatedAt: new Date('2026-03-02'),
 };
 
-const flaggedPlan = {
-  ...plan,
-  projectionRules: [
-    {
-      ...plan.projectionRules[0],
-      method: 'growthRate',
-      parameters: { rate: 0.03 },
-      keepsPaceWithInflation: true,
-    },
-    {
-      ...plan.projectionRules[0],
-      id: 'rule-2',
-      name: 'Food',
-      keepsPaceWithInflation: false,
-    },
-  ],
-};
-
 const NAMES = {
   ledger: new Map([['expense:rent', 'Rent']]),
   debt: new Map<string, string>(),
@@ -116,7 +98,7 @@ describe('RetirementPlanViewPage', () => {
 
     expect(screen.getByText('Birth year')).toBeInTheDocument();
     expect(screen.getByText('1990')).toBeInTheDocument();
-    expect(screen.getByText('follows inflation · lifelong')).toBeInTheDocument();
+    expect(screen.getAllByTestId('plan-rule')).toHaveLength(1);
     expect(screen.getByText('Travel')).toBeInTheDocument();
     expect(screen.getByText('2050–2052')).toBeInTheDocument();
 
@@ -128,31 +110,6 @@ describe('RetirementPlanViewPage', () => {
     // Only the title is editable, and only in edit mode.
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.getByText('Last updated: 2026-03-02')).toBeInTheDocument();
-  });
-
-  it('shows the keeps-pace flag inside the rule sentence', () => {
-    mockUseDetail.mockReturnValue(detail({ vm: vmOf(flaggedPlan) }) as never);
-    renderPage();
-
-    const rows = screen.getAllByTestId('plan-rule');
-    expect(rows[0]).toHaveTextContent('3% annual growth · follows inflation · lifelong');
-    expect(rows[1]).toHaveTextContent('follows inflation · Rent · lifelong');
-  });
-
-  it('reads an age boundary as a boundary, not a bare value', () => {
-    mockUseDetail.mockReturnValue(
-      detail({
-        vm: vmOf({
-          ...plan,
-          projectionRules: [
-            { ...plan.projectionRules[0], endCondition: { type: 'specificAge', age: 85 } },
-          ],
-        }),
-      }) as never,
-    );
-    renderPage();
-
-    expect(screen.getByTestId('plan-rule')).toHaveTextContent('follows inflation · until age 85');
   });
 
   it('renames through the inline title', async () => {

@@ -13,9 +13,24 @@ import {
   parameterText,
   percentText,
 } from '@/ui/features/retirement/viewmodels/projectionRows.vm';
+import {
+  type EventVocabulary,
+  type SnapshotEventPhaseVM,
+  type SnapshotEventVM,
+  buildEventRows,
+} from '@/ui/features/retirement/viewmodels/retirementPlanRows.vm';
 import { formatCurrency } from '@/ui/utils';
 
-export type { DefinitionItem };
+export type { DefinitionItem, SnapshotEventPhaseVM, SnapshotEventVM };
+
+/** The snapshot reads with the other Chinese report tables, not the English page chrome. */
+const SNAPSHOT_VOCABULARY: EventVocabulary = {
+  retiring: PROJECTION_VIEW_LABELS.EVENT_RETIRING,
+  before: PROJECTION_VIEW_LABELS.EVENT_BEFORE_RETIREMENT,
+  after: PROJECTION_VIEW_LABELS.EVENT_AFTER_RETIREMENT,
+  income: PROJECTION_VIEW_LABELS.RULE_TYPE_INCOME,
+  expense: PROJECTION_VIEW_LABELS.RULE_TYPE_EXPENSE,
+};
 
 export interface SnapshotOpeningVM {
   amountText: string;
@@ -54,29 +69,6 @@ export interface SnapshotSourceRowVM {
   sourceText: string;
   baselineYearText: string;
   baselineAmountText: string;
-}
-
-export interface SnapshotEventPhaseVM {
-  rangeText: string;
-  amountText: string;
-  growthRateText?: string;
-  /** Phase span clamped to the projection period, for the timeline bar. */
-  clippedStartYear: number;
-  clippedEndYear: number;
-}
-
-export interface SnapshotEventVM {
-  id: string;
-  name: string;
-  typeText: string;
-  /** Single year prints as `2028`, a span as `2028–2030`. */
-  rangeText: string;
-  /** Where the event sits relative to the retirement year. */
-  timingText: string;
-  isDisabled: boolean;
-  phases: SnapshotEventPhaseVM[];
-  isClipped: boolean;
-  isOutside: boolean;
 }
 
 export interface ProjectionSnapshotVM {
@@ -209,65 +201,6 @@ const buildRuleGroups = (
   });
 };
 
-const spanText = (start: number | undefined, end: number | undefined): string => {
-  if (start === undefined || end === undefined) return PROJECTION_COMMON_LABELS.DASH;
-  return start === end ? String(start) : `${start}–${end}`;
-};
-
-const timingText = (
-  firstStart: number | undefined,
-  lastEnd: number | undefined,
-  retirementYear: number | null,
-): string => {
-  if (firstStart === undefined || lastEnd === undefined || retirementYear === null) {
-    return PROJECTION_COMMON_LABELS.DASH;
-  }
-  if (firstStart <= retirementYear && retirementYear <= lastEnd) {
-    return PROJECTION_VIEW_LABELS.EVENT_RETIRING;
-  }
-  return lastEnd < retirementYear
-    ? PROJECTION_VIEW_LABELS.EVENT_BEFORE_RETIREMENT
-    : PROJECTION_VIEW_LABELS.EVENT_AFTER_RETIREMENT;
-};
-
-const buildEvents = (
-  config: ProjectionConfig | null,
-  axisStart: number,
-  planEndYear: number,
-  retirementYear: number | null,
-): SnapshotEventVM[] =>
-  (config?.lifeEvents ?? []).map((event) => {
-    const starts = event.phases.map((phase) => phase.startYear);
-    const ends = event.phases.map((phase) => phase.endYear);
-    const firstStart = starts.length === 0 ? undefined : Math.min(...starts);
-    const lastEnd = ends.length === 0 ? undefined : Math.max(...ends);
-    const isOutside =
-      firstStart !== undefined &&
-      lastEnd !== undefined &&
-      (lastEnd < axisStart || firstStart > planEndYear);
-    const isClipped =
-      !isOutside &&
-      event.phases.some((phase) => phase.startYear < axisStart || phase.endYear > planEndYear);
-
-    return {
-      id: event.id,
-      name: event.name,
-      typeText: ruleTypeLabel(event.type),
-      rangeText: spanText(firstStart, lastEnd),
-      timingText: timingText(firstStart, lastEnd, retirementYear),
-      isDisabled: !event.enabled,
-      isClipped,
-      isOutside,
-      phases: event.phases.map((phase) => ({
-        rangeText: spanText(phase.startYear, phase.endYear),
-        amountText: formatCurrency(phase.amount),
-        ...(phase.growthRate === undefined ? {} : { growthRateText: percent(phase.growthRate) }),
-        clippedStartYear: Math.min(Math.max(phase.startYear, axisStart), planEndYear),
-        clippedEndYear: Math.min(Math.max(phase.endYear, axisStart), planEndYear),
-      })),
-    };
-  });
-
 const eventRangeText = (events: SnapshotEventVM[]): string => {
   if (events.length === 0) return '';
   const span = events.flatMap((event) => event.phases);
@@ -286,7 +219,11 @@ export function mapProjectionSnapshotToVM(
   const axisStart = config?.startYear ?? 0;
   const retirementYear =
     config === null ? null : config.assumptions.birthYear + config.assumptions.retirementAge;
-  const events = buildEvents(config, axisStart, planEndYear, retirementYear);
+  const events = buildEventRows(
+    config?.lifeEvents ?? [],
+    { startYear: axisStart, endYear: planEndYear, retirementYear },
+    SNAPSHOT_VOCABULARY,
+  );
   const sources = buildSourceRows(config, source);
 
   return {

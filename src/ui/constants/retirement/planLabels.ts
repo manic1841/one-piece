@@ -29,7 +29,7 @@ export const PLAN_DETAIL_LABELS = {
   NOT_FOUND_ACTION: 'Back to plans',
   USE_ACTION: 'USE THIS PLAN',
   EDIT_ACTION: 'Edit',
-  SCENARIO_SECTION: 'SCENARIO',
+  NARRATIVE_SECTION: 'SCENARIO',
   ASSUMPTIONS_SECTION: 'ASSUMPTIONS',
   RULES_SECTION: 'PROJECTION RULES',
   EVENTS_SECTION: 'LIFE EVENTS',
@@ -54,8 +54,6 @@ export const PLAN_DETAIL_LABELS = {
     `Born ${birthYear} · retires at ${retirementAge} (${retirementYear}) · life expectancy ${lifeExpectancy}`,
   RULES_TRAILING: (count: number) => `${count}`,
   EVENTS_TRAILING: (count: number) => `${count}`,
-  /** Turns an age / year end condition into a date boundary inside a sentence. */
-  UNTIL: 'until',
   EVENT_DURING_RETIREMENT: 'During retirement',
   EVENT_BEFORE_RETIREMENT: 'Before retirement',
   EVENT_AFTER_RETIREMENT: 'After retirement',
