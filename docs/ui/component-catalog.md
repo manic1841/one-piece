@@ -13,94 +13,94 @@
 
 ## 索引
 
-| 檔案                                                    | 條目                              |
-| ------------------------------------------------------- | --------------------------------- |
-| `src/ui/components/AccessDenied.tsx`                    | AccessDenied                      |
-| `src/ui/components/AppFallback.tsx`                     | AppFallback                       |
-| `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow        |
-| `src/ui/components/Avatar.tsx`                          | Avatar                            |
-| `src/ui/components/charts/BarChart.tsx`                 | charts / BarChart                 |
-| `src/ui/components/charts/ChartLegend.tsx`              | charts / ChartLegend              |
-| `src/ui/components/charts/ChartScrubber.tsx`            | charts / ChartScrubber            |
-| `src/ui/components/charts/ChartTooltip.tsx`             | charts / ChartTooltip             |
-| `src/ui/components/charts/ComposedChart.tsx`            | charts / ComposedChart            |
-| `src/ui/components/charts/DonutChart.tsx`               | charts / DonutChart               |
-| `src/ui/components/charts/InteractiveBarChart.tsx`      | charts / InteractiveBarChart      |
-| `src/ui/components/charts/InteractiveComposedChart.tsx` | charts / InteractiveComposedChart |
-| `src/ui/components/charts/InteractiveLineChart.tsx`     | charts / InteractiveLineChart     |
-| `src/ui/components/charts/LineChart.tsx`                | charts / LineChart                |
-| `src/ui/components/CliProgress.tsx`                     | CliProgress                       |
-| `src/ui/components/DangerZone.tsx`                      | DangerZone                        |
-| `src/ui/components/DefinitionRows.tsx`                  | DefinitionRows                    |
-| `src/ui/components/Divider.tsx`                         | Divider                           |
-| `src/ui/components/EmptyState.tsx`                      | EmptyState                        |
-| `src/ui/components/ErrorBoundary.tsx`                   | ErrorBoundary                     |
-| `src/ui/components/FilterStrip.tsx`                     | FilterStrip                       |
-| `src/ui/components/FinancialNumber.tsx`                 | FinancialNumber                   |
-| `src/ui/components/GateSurface.tsx`                     | GateSurface                       |
-| `src/ui/components/InlineEditableTitle.tsx`             | InlineEditableTitle               |
-| `src/ui/components/ListSectionHeader.tsx`               | ListSectionHeader                 |
-| `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric              |
-| `src/ui/components/Module.tsx`                          | Module                            |
-| `src/ui/components/NumberInput.tsx`                     | NumberInput                       |
-| `src/ui/components/PageHeader.tsx`                      | PageHeader                        |
-| `src/ui/components/PageSection.tsx`                     | PageSection                       |
-| `src/ui/components/PeriodBadge.tsx`                     | PeriodBadge                       |
-| `src/ui/components/RadioGroup.tsx`                      | RadioGroup / Radio                |
-| `src/ui/components/RowActions.tsx`                      | RowActions                        |
-| `src/ui/components/SearchField.tsx`                     | SearchField                       |
-| `src/ui/components/Skeleton.tsx`                        | Skeleton                          |
-| `src/ui/components/StatusGlyph.tsx`                     | StatusGlyph                       |
-| `src/ui/components/Toast.tsx`                           | Toast                             |
-| `src/ui/components/Toolbar.tsx`                         | Toolbar                           |
-| `src/ui/components/YearMonthPicker.tsx`                 | YearMonthPicker                   |
-| `src/ui/components/confirm/ConfirmDialog.tsx`           | confirm / ConfirmDialogProvider   |
-| `src/ui/components/confirm/ConfirmDialogBody.tsx`       | confirm / ConfirmDialogBody       |
-| `src/ui/components/drawer/DrawerPanel.tsx`              | drawer / DrawerPanel              |
-| `src/ui/components/LoadingLine.tsx`                     | LoadingLine                       |
-| `src/ui/components/data-table/DataTable.tsx`            | data-table / DataTable            |
-| `src/ui/components/data-table/DataTableCell.tsx`        | data-table / DataTableCell        |
-| `src/ui/components/data-table/DataTableColGroup.tsx`    | data-table / DataTableColGroup    |
-| `src/ui/components/data-table/DataTableHeadCell.tsx`    | data-table / DataTableHeadCell    |
-| `src/ui/components/data-table/DataTableRow.tsx`         | data-table / DataTableRow         |
-| `src/ui/components/data-table/MobileDataRow.tsx`        | data-table / MobileDataRow        |
-| `src/ui/components/data-table/NumberCell.tsx`           | data-table / NumberCell           |
-| `src/ui/components/form/AdvancedDisclosure.tsx`         | form / AdvancedDisclosure         |
-| `src/ui/components/form/DateInput.tsx`                  | form / DateInput                  |
-| `src/ui/components/form/Form.tsx`                       | form / Form                       |
-| `src/ui/components/form/FormControl.tsx`                | form / FormControl                |
-| `src/ui/components/form/FormDescription.tsx`            | form / FormDescription            |
-| `src/ui/components/form/FormField.tsx`                  | form / FormField                  |
-| `src/ui/components/form/FormItem.tsx`                   | form / FormItem                   |
-| `src/ui/components/form/FormLabel.tsx`                  | form / FormLabel                  |
-| `src/ui/components/form/FormMessage.tsx`                | form / FormMessage                |
-| `src/ui/components/form/ReadoutField.tsx`               | form / ReadoutField               |
-| `src/ui/components/form/Select.tsx`                     | form / Select                     |
-| `src/ui/components/form/Combobox.tsx`                   | form / Combobox                   |
-| `src/ui/components/form/TextArea.tsx`                   | form / TextArea                   |
-| `src/ui/components/form/TextInput.tsx`                  | form / TextInput                  |
-| `src/ui/components/sortable/SortableListScope.tsx`      | sortable / SortableListScope      |
-| `src/ui/components/statement/StatementPanel.tsx`        | statement / StatementPanel        |
-| `src/ui/components/statement/StatementTable.tsx`        | statement / StatementTable        |
-| `src/ui/components/ui/accordion.tsx`                    | ui/ 群組                          |
-| `src/ui/components/ui/alert.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/badge.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/button.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/card.tsx`                         | ui/ 群組                          |
-| `src/ui/components/ui/checkbox.tsx`                     | ui/ 群組                          |
-| `src/ui/components/ui/command.tsx`                      | ui/ 群組                          |
-| `src/ui/components/ui/dialog.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/dropdown-menu.tsx`                | ui/ 群組                          |
-| `src/ui/components/ui/input.tsx`                        | ui/ 群組                          |
+| 檔案                                                    | 條目                                                           |
+| ------------------------------------------------------- | -------------------------------------------------------------- |
+| `src/ui/components/AccessDenied.tsx`                    | AccessDenied                                                   |
+| `src/ui/components/AppFallback.tsx`                     | AppFallback                                                    |
+| `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow                                     |
+| `src/ui/components/Avatar.tsx`                          | Avatar                                                         |
+| `src/ui/components/charts/BarChart.tsx`                 | charts / BarChart                                              |
+| `src/ui/components/charts/ChartLegend.tsx`              | charts / ChartLegend                                           |
+| `src/ui/components/charts/ChartScrubber.tsx`            | charts / ChartScrubber                                         |
+| `src/ui/components/charts/ChartTooltip.tsx`             | charts / ChartTooltip                                          |
+| `src/ui/components/charts/ComposedChart.tsx`            | charts / ComposedChart                                         |
+| `src/ui/components/charts/DonutChart.tsx`               | charts / DonutChart                                            |
+| `src/ui/components/charts/InteractiveBarChart.tsx`      | charts / InteractiveBarChart                                   |
+| `src/ui/components/charts/InteractiveComposedChart.tsx` | charts / InteractiveComposedChart                              |
+| `src/ui/components/charts/InteractiveLineChart.tsx`     | charts / InteractiveLineChart                                  |
+| `src/ui/components/charts/LineChart.tsx`                | charts / LineChart                                             |
+| `src/ui/components/CliProgress.tsx`                     | CliProgress                                                    |
+| `src/ui/components/DangerZone.tsx`                      | DangerZone                                                     |
+| `src/ui/components/DefinitionRows.tsx`                  | DefinitionRows                                                 |
+| `src/ui/components/Divider.tsx`                         | Divider                                                        |
+| `src/ui/components/EmptyState.tsx`                      | EmptyState                                                     |
+| `src/ui/components/ErrorBoundary.tsx`                   | ErrorBoundary                                                  |
+| `src/ui/components/FilterStrip.tsx`                     | FilterStrip                                                    |
+| `src/ui/components/FinancialNumber.tsx`                 | FinancialNumber                                                |
+| `src/ui/components/GateSurface.tsx`                     | GateSurface                                                    |
+| `src/ui/components/InlineEditableTitle.tsx`             | InlineEditableTitle                                            |
+| `src/ui/components/ListSectionHeader.tsx`               | ListSectionHeader                                              |
+| `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric                                           |
+| `src/ui/components/Module.tsx`                          | Module                                                         |
+| `src/ui/components/NumberInput.tsx`                     | NumberInput                                                    |
+| `src/ui/components/PageHeader.tsx`                      | PageHeader                                                     |
+| `src/ui/components/PageSection.tsx`                     | PageSection                                                    |
+| `src/ui/components/PeriodBadge.tsx`                     | PeriodBadge                                                    |
+| `src/ui/components/RadioGroup.tsx`                      | RadioGroup / Radio                                             |
+| `src/ui/components/RowActions.tsx`                      | RowActions                                                     |
+| `src/ui/components/SearchField.tsx`                     | SearchField                                                    |
+| `src/ui/components/Skeleton.tsx`                        | Skeleton                                                       |
+| `src/ui/components/StatusGlyph.tsx`                     | StatusGlyph                                                    |
+| `src/ui/components/Toast.tsx`                           | Toast                                                          |
+| `src/ui/components/Toolbar.tsx`                         | Toolbar                                                        |
+| `src/ui/components/YearMonthPicker.tsx`                 | YearMonthPicker                                                |
+| `src/ui/components/confirm/ConfirmDialog.tsx`           | confirm / ConfirmDialogProvider                                |
+| `src/ui/components/confirm/ConfirmDialogBody.tsx`       | confirm / ConfirmDialogBody                                    |
+| `src/ui/components/drawer/DrawerPanel.tsx`              | drawer / DrawerPanel                                           |
+| `src/ui/components/LoadingLine.tsx`                     | LoadingLine                                                    |
+| `src/ui/components/data-table/DataTable.tsx`            | data-table / DataTable                                         |
+| `src/ui/components/data-table/DataTableCell.tsx`        | data-table / DataTableCell                                     |
+| `src/ui/components/data-table/DataTableColGroup.tsx`    | data-table / DataTableColGroup                                 |
+| `src/ui/components/data-table/DataTableHeadCell.tsx`    | data-table / DataTableHeadCell                                 |
+| `src/ui/components/data-table/DataTableRow.tsx`         | data-table / DataTableRow                                      |
+| `src/ui/components/data-table/MobileDataRow.tsx`        | data-table / MobileDataRow                                     |
+| `src/ui/components/data-table/NumberCell.tsx`           | data-table / NumberCell                                        |
+| `src/ui/components/form/AdvancedDisclosure.tsx`         | form / AdvancedDisclosure                                      |
+| `src/ui/components/form/DateInput.tsx`                  | form / DateInput                                               |
+| `src/ui/components/form/Form.tsx`                       | form / Form                                                    |
+| `src/ui/components/form/FormControl.tsx`                | form / FormControl                                             |
+| `src/ui/components/form/FormDescription.tsx`            | form / FormDescription                                         |
+| `src/ui/components/form/FormField.tsx`                  | form / FormField                                               |
+| `src/ui/components/form/FormItem.tsx`                   | form / FormItem                                                |
+| `src/ui/components/form/FormLabel.tsx`                  | form / FormLabel                                               |
+| `src/ui/components/form/FormMessage.tsx`                | form / FormMessage                                             |
+| `src/ui/components/form/ReadoutField.tsx`               | form / ReadoutField                                            |
+| `src/ui/components/form/Select.tsx`                     | form / Select                                                  |
+| `src/ui/components/form/Combobox.tsx`                   | form / Combobox                                                |
+| `src/ui/components/form/TextArea.tsx`                   | form / TextArea                                                |
+| `src/ui/components/form/TextInput.tsx`                  | form / TextInput                                               |
+| `src/ui/components/sortable/SortableListScope.tsx`      | sortable / SortableListScope                                   |
+| `src/ui/components/statement/StatementPanel.tsx`        | statement / StatementPanel                                     |
+| `src/ui/components/statement/StatementTable.tsx`        | statement / StatementTable                                     |
+| `src/ui/components/ui/accordion.tsx`                    | ui/ 群組                                                       |
+| `src/ui/components/ui/alert.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/badge.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/button.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/card.tsx`                         | ui/ 群組                                                       |
+| `src/ui/components/ui/checkbox.tsx`                     | ui/ 群組                                                       |
+| `src/ui/components/ui/command.tsx`                      | ui/ 群組                                                       |
+| `src/ui/components/ui/dialog.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/dropdown-menu.tsx`                | ui/ 群組                                                       |
+| `src/ui/components/ui/input.tsx`                        | ui/ 群組                                                       |
 | `src/ui/components/ui/label.tsx`                        | ui/ 群組（`labelVariants` 帶 `size` 軸：`default`／`compact`） |
-| `src/ui/components/ui/popover.tsx`                      | ui/ 群組                          |
-| `src/ui/components/ui/select.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/sheet.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/switch.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/table.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/tabs.tsx`                         | ui/ 群組                          |
-| `src/ui/components/ui/textarea.tsx`                     | ui/ 群組                          |
-| `src/ui/components/ui/tooltip.tsx`                      | ui/ 群組                          |
+| `src/ui/components/ui/popover.tsx`                      | ui/ 群組                                                       |
+| `src/ui/components/ui/select.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/sheet.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/switch.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/table.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/tabs.tsx`                         | ui/ 群組                                                       |
+| `src/ui/components/ui/textarea.tsx`                     | ui/ 群組                                                       |
+| `src/ui/components/ui/tooltip.tsx`                      | ui/ 群組                                                       |
 
 ## 非元件模組（不在本目錄的元件索引）
 

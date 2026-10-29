@@ -93,7 +93,11 @@ describe('usePlanDrafts', () => {
     });
 
     expect(parsed).not.toBeNull();
-    expect(Object.keys(parsed ?? {}).sort()).toEqual(['assumptions', 'lifeEvents', 'projectionRules']);
+    expect(Object.keys(parsed ?? {}).sort()).toEqual([
+      'assumptions',
+      'lifeEvents',
+      'projectionRules',
+    ]);
     expect(parsed?.projectionRules).toEqual([]);
   });
 
@@ -105,14 +109,29 @@ describe('usePlanDrafts', () => {
   });
 
   it('replaces the whole draft without marking dirty and hides the revealed errors', () => {
+    let parsed: ReturnType<typeof latest.takeValidated> = null;
+    act(() => {
+      parsed = latest.takeValidated();
+    });
+    expect(parsed).not.toBeNull();
+    expect(latest.dirty).toBe(false);
+
+    act(() => latest.replaceAll(invalidPlan));
+
+    // Replacement is never an edit.
+    expect(latest.dirty).toBe(false);
+    expect(latest.rules.errors['rule-1']).toBeUndefined();
+  });
+
+  it('hides what the gate revealed when the draft is replaced', () => {
     breakAssumptions();
     act(() => void latest.takeValidated());
     expect(latest.assumptions.errors.retirementAge).toBeDefined();
 
-    act(() => latest.replaceAll(invalidPlan));
+    act(() => latest.replaceAll(validPlan));
 
     expect(latest.dirty).toBe(true);
-    expect(latest.rules.errors['rule-1']).toBeUndefined();
+    expect(latest.assumptions.errors.retirementAge).toBeUndefined();
   });
 
   it('resets dirty to false only through an explicit reset', () => {

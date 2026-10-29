@@ -81,6 +81,9 @@ export function useProjectionCalculate({
 
     const plan = takeValidatedPlan();
     if (plan === null) return;
+    // The opening and the start year are the workspace's own two fields; the
+    // draft gate knows nothing about them, so they abort here.
+    if (validation.openingError !== undefined || validation.startYearError !== undefined) return;
 
     setCalculating(true);
 

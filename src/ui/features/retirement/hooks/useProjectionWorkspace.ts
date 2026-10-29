@@ -73,7 +73,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
 
   const markDirty = useCallback(() => {
     indicators.markOutdated();
-  }, [indicators]);  const drafts = useWorkspaceDrafts({ householdId, auth, markDirty, run, currentYear });
+  }, [indicators]);
+  const drafts = useWorkspaceDrafts({ householdId, auth, markDirty, run, currentYear });
   const {
     opening,
     reportValue,

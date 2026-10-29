@@ -79,7 +79,10 @@ export class UpdateRetirementPlanUseCase {
       // anchor travels with it even though the update schema omits it.
       plan: {
         ...parsed.data,
-        assumptions: { ...parsed.data.assumptions, birthYear } as RetirementPlanUpdate['assumptions'],
+        assumptions: {
+          ...parsed.data.assumptions,
+          birthYear,
+        } as RetirementPlanUpdate['assumptions'],
       },
     });
     if (!result.ok) return { ok: false, code: result.code };

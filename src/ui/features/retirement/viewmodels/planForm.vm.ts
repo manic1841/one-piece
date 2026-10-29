@@ -1,7 +1,5 @@
 import { type RetirementAssumptionBounds } from '@/domains/retirement/bounds';
-import { type useAssumptionDraft } from '@/ui/features/retirement/hooks/useAssumptionDraft';
-import { type useLifeEventDrafts } from '@/ui/features/retirement/hooks/useLifeEventDrafts';
-import { type useRuleDrafts } from '@/ui/features/retirement/hooks/useRuleDrafts';
+import { type usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 
 /** Range a numeric field may take, in the field's own unit. */
 export interface ValueRange {
@@ -10,13 +8,24 @@ export interface ValueRange {
 }
 
 /**
+ * What every draft group takes: the form's reveal switch and its edit hook. The
+ * group never owns either — one gate and one dirty flag sit above all three.
+ */
+export interface PlanDraftGroupArgs {
+  /** Read-only; revealing is the module's decision, not the group's. */
+  revealed: boolean;
+  /** Every user edit, never a replacement. */
+  onEdit: () => void;
+}
+
+/**
  * The three draft groups, as the form's contract. Declared here (type-only) so a
  * draft hook changing shape surfaces in one file instead of in every surface
  * that renders the form.
  */
-export type PlanAssumptionsDraft = ReturnType<typeof useAssumptionDraft>;
-export type PlanRulesDraft = ReturnType<typeof useRuleDrafts>;
-export type PlanEventsDraft = ReturnType<typeof useLifeEventDrafts>;
+export type PlanAssumptionsDraft = ReturnType<typeof usePlanDrafts>['assumptions'];
+export type PlanRulesDraft = ReturnType<typeof usePlanDrafts>['rules'];
+export type PlanEventsDraft = ReturnType<typeof usePlanDrafts>['events'];
 
 /**
  * Values the plan form previews while the user types. Derived, never stored:

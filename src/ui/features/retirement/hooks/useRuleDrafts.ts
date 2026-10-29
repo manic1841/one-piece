@@ -12,6 +12,7 @@ import {
   type RuleType,
 } from '@/domains/retirement/projectionRules';
 import { type ValidationOutcome } from '@/ui/features/retirement/viewmodels/formValidation';
+import { type PlanDraftGroupArgs } from '@/ui/features/retirement/viewmodels/planForm.vm';
 import {
   DEFAULT_RATE_TEXT,
   type RuleDraftVM,
@@ -36,31 +37,27 @@ export type {
 
 const DEFAULT_METHOD: RuleMethod = 'inflation';
 
-interface UseRuleDraftsArgs {
-  /** The form's one reveal switch; the group only reads it. */
-  revealed: boolean;
-  /** Every user edit, never a replacement. */
-  onEdit: () => void;
-}
+export function useRuleDrafts({ revealed, onEdit }: PlanDraftGroupArgs) {
+  const resolver = useCallback<Resolver<RulesForm>>(
+    (values): ResolverResult<RulesForm> => {
+      const parsed = RuleFormSchema.safeParse(values);
+      if (parsed.success) return { values, errors: {} };
 
-export function useRuleDrafts({ revealed, onEdit }: UseRuleDraftsArgs) {
-  const resolver = useCallback<Resolver<RulesForm>>((values): ResolverResult<RulesForm> => {
-    const parsed = RuleFormSchema.safeParse(values);
-    if (parsed.success) return { values, errors: {} };
+      const fieldErrors: Record<string, Record<string, { type: string; message: string }>> = {};
+      for (const issue of parsed.error.issues) {
+        const [index, field] = issue.path;
+        if (typeof index !== 'number' || typeof field !== 'string') continue;
+        if (!values.rules[index]?.touched && !revealed) continue;
 
-    const fieldErrors: Record<string, Record<string, { type: string; message: string }>> = {};
-    for (const issue of parsed.error.issues) {
-      const [index, field] = issue.path;
-      if (typeof index !== 'number' || typeof field !== 'string') continue;
-      if (!values.rules[index]?.touched && !revealed) continue;
+        fieldErrors[index] ??= {};
+        fieldErrors[index][field] ??= { type: 'validation', message: issue.message };
+      }
 
-      fieldErrors[index] ??= {};
-      fieldErrors[index][field] ??= { type: 'validation', message: issue.message };
-    }
-
-    if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
-    return { values, errors: { rules: fieldErrors } } as unknown as ResolverResult<RulesForm>;
-  }, [revealed]);
+      if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
+      return { values, errors: { rules: fieldErrors } } as unknown as ResolverResult<RulesForm>;
+    },
+    [revealed],
+  );
 
   const form = useForm<RulesForm>({ mode: 'onTouched', defaultValues: { rules: [] }, resolver });
   const rules = form.watch('rules');

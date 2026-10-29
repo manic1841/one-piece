@@ -32,7 +32,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/retirement/components/PercentSlider.tsx',
 ]);
 
-const SHADOW_ALLOWED = new Set([  // Floating layers only: dialog, dropdown, sheet, toast, popover, select,
+const SHADOW_ALLOWED = new Set([
+  // Floating layers only: dialog, dropdown, sheet, toast, popover, select,
   // command palette, switch knob, and the materialized app chrome (L1/L2/L3).
   'components/Toast.tsx',
   'components/charts/ChartTooltip.tsx',
@@ -131,7 +132,9 @@ describe('design system radius/shadow contract (issue #125)', () => {
   it('never goes below the 11px type floor (design-system §4)', () => {
     const violations = sourceFiles
       .filter((file) => !TYPE_FLOOR_ALLOWED.has(file))
-      .filter((file) => readFileSync(path.resolve(UI_DIR, file), 'utf8').match(/text-\[([0-9]|10)px\]/));
+      .filter((file) =>
+        readFileSync(path.resolve(UI_DIR, file), 'utf8').match(/text-\[([0-9]|10)px\]/),
+      );
     expect(violations).toEqual([]);
   });
 

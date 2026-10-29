@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 
-import { getRetirementAssumptionBounds } from '@/domains/retirement/bounds';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
+import { getRetirementAssumptionBounds } from '@/domains/retirement/bounds';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { useAssumptionDraft } from '@/ui/features/retirement/hooks/useAssumptionDraft';
@@ -124,7 +124,11 @@ export function usePlanDrafts({ onDirty }: UsePlanDraftsArgs = {}) {
       return null;
     }
 
-    return { assumptions: parsedAssumptions, projectionRules: parsedRules, lifeEvents: parsedEvents };
+    return {
+      assumptions: parsedAssumptions,
+      projectionRules: parsedRules,
+      lifeEvents: parsedEvents,
+    };
   }, [setRevealed, validate]);
 
   const replaceAll = useCallback(

@@ -24,6 +24,7 @@ import {
   mirrorEventsForm,
   sortEvents,
 } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
+import { type PlanDraftGroupArgs } from '@/ui/features/retirement/viewmodels/planForm.vm';
 
 export type {
   EventErrorField,
@@ -42,47 +43,43 @@ interface RHFError {
   message: string;
 }
 
-interface UseLifeEventDraftsArgs {
-  /** The form's one reveal switch; the group only reads it. */
-  revealed: boolean;
-  /** Every user edit, never a replacement. */
-  onEdit: () => void;
-}
-
-export function useLifeEventDrafts({ revealed, onEdit }: UseLifeEventDraftsArgs) {
+export function useLifeEventDrafts({ revealed, onEdit }: PlanDraftGroupArgs) {
   const [focusRequest, setFocusRequest] = useState<PhaseFocusRequest | null>(null);
   const sequenceRef = useRef(0);
 
-  const resolver = useCallback<Resolver<EventsForm>>((values): ResolverResult<EventsForm> => {
-    const parsed = LifeEventFormSchema.safeParse(values);
-    if (parsed.success) return { values, errors: {} };
+  const resolver = useCallback<Resolver<EventsForm>>(
+    (values): ResolverResult<EventsForm> => {
+      const parsed = LifeEventFormSchema.safeParse(values);
+      if (parsed.success) return { values, errors: {} };
 
-    const fieldErrors: Record<number, Record<string, unknown>> = {};
-    for (const issue of parsed.error.issues) {
-      const [index, kind, phaseIndex, phaseField] = issue.path;
-      if (typeof index !== 'number' || typeof kind !== 'string') continue;
+      const fieldErrors: Record<number, Record<string, unknown>> = {};
+      for (const issue of parsed.error.issues) {
+        const [index, kind, phaseIndex, phaseField] = issue.path;
+        if (typeof index !== 'number' || typeof kind !== 'string') continue;
 
-      const event = values.events[index];
-      if (event === undefined) continue;
-      const row: Record<string, unknown> = (fieldErrors[index] ??= {});
-      const rhfError: RHFError = { type: 'validation', message: issue.message };
+        const event = values.events[index];
+        if (event === undefined) continue;
+        const row: Record<string, unknown> = (fieldErrors[index] ??= {});
+        const rhfError: RHFError = { type: 'validation', message: issue.message };
 
-      if (kind === 'phases' && typeof phaseIndex === 'number' && typeof phaseField === 'string') {
-        const phase = event.phases[phaseIndex];
-        if (!phase?.touched && !revealed) continue;
-        const phaseErrors = (row.phaseErrors ??= {}) as Record<number, Record<string, RHFError>>;
-        const phaseRow: Record<string, RHFError> = (phaseErrors[phaseIndex] ??= {});
-        phaseRow[phaseField] ??= rhfError;
-        continue;
+        if (kind === 'phases' && typeof phaseIndex === 'number' && typeof phaseField === 'string') {
+          const phase = event.phases[phaseIndex];
+          if (!phase?.touched && !revealed) continue;
+          const phaseErrors = (row.phaseErrors ??= {}) as Record<number, Record<string, RHFError>>;
+          const phaseRow: Record<string, RHFError> = (phaseErrors[phaseIndex] ??= {});
+          phaseRow[phaseField] ??= rhfError;
+          continue;
+        }
+
+        if (!event.touched && !revealed) continue;
+        row[kind] ??= rhfError;
       }
 
-      if (!event.touched && !revealed) continue;
-      row[kind] ??= rhfError;
-    }
-
-    if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
-    return { values, errors: { events: fieldErrors } } as unknown as ResolverResult<EventsForm>;
-  }, [revealed]);
+      if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
+      return { values, errors: { events: fieldErrors } } as unknown as ResolverResult<EventsForm>;
+    },
+    [revealed],
+  );
 
   const form = useForm<EventsForm>({
     mode: 'onTouched',

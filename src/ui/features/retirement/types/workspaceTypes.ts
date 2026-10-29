@@ -1,8 +1,6 @@
-import { type useAssumptionDraft } from '@/ui/features/retirement/hooks/useAssumptionDraft';
-import { type useLifeEventDrafts } from '@/ui/features/retirement/hooks/useLifeEventDrafts';
 import { type useOpeningDraft } from '@/ui/features/retirement/hooks/useOpeningDraft';
+import { type usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { type useProjectionCalculate } from '@/ui/features/retirement/hooks/useProjectionCalculate';
-import { type useRuleDrafts } from '@/ui/features/retirement/hooks/useRuleDrafts';
 import { type useWorkspaceDerived } from '@/ui/features/retirement/hooks/useWorkspaceDerived';
 import { type RetirementComparisonVM } from '@/ui/features/retirement/viewmodels/retirementComparison.vm';
 import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
@@ -14,9 +12,9 @@ export type ProjectionWorkspaceStage = 'setup' | 'preview';
  * being `ReturnType<typeof useProjectionWorkspace>` at the call site, so a
  * component depends on the slice it reads and not on the whole controller.
  */
-export type WorkspaceAssumptions = ReturnType<typeof useAssumptionDraft>;
-export type WorkspaceRules = ReturnType<typeof useRuleDrafts>;
-export type WorkspaceEvents = ReturnType<typeof useLifeEventDrafts>;
+export type WorkspaceAssumptions = ReturnType<typeof usePlanDrafts>['assumptions'];
+export type WorkspaceRules = ReturnType<typeof usePlanDrafts>['rules'];
+export type WorkspaceEvents = ReturnType<typeof usePlanDrafts>['events'];
 export type WorkspaceDerived = ReturnType<typeof useWorkspaceDerived>;
 
 /** The opening net worth draft plus the load state around it. */

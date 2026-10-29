@@ -15,12 +15,9 @@ import {
   mapAssumptionsVMToDomain,
 } from '@/ui/features/retirement/viewmodels/assumptionForm.vm';
 import { type ValidationOutcome } from '@/ui/features/retirement/viewmodels/formValidation';
+import { type PlanDraftGroupArgs } from '@/ui/features/retirement/viewmodels/planForm.vm';
 
-interface UseAssumptionDraftArgs {
-  /** The form's one reveal switch; the group only reads it. */
-  revealed: boolean;
-  /** Every user edit, never a reset. */
-  onEdit: () => void;
+interface UseAssumptionDraftArgs extends PlanDraftGroupArgs {
   currentYear?: number;
 }
 

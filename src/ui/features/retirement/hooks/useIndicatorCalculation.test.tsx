@@ -29,9 +29,14 @@ const draftsOf = (overrides: DraftsOverrides = {}) =>
 const summary = { finalNetWorth: 10 } as never;
 
 const calculateOf = () =>
-  vi.fn().mockResolvedValue({ ok: true, value: { ok: true, calculation: { result: { summary } } } });
+  vi
+    .fn()
+    .mockResolvedValue({ ok: true, value: { ok: true, calculation: { result: { summary } } } });
 
-const setup = (drafts = draftsOf(), validateOpening: () => string | undefined = () => undefined) => {
+const setup = (
+  drafts = draftsOf(),
+  validateOpening: () => string | undefined = () => undefined,
+) => {
   const calculateProjection = calculateOf();
   let run: ReturnType<typeof useIndicatorCalculation>['run'];
 
