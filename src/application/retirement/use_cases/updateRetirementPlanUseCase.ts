@@ -1,7 +1,11 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { nameFailureCode } from '@/application/retirement/errors';
 import { type AuthContext } from '@/application/types';
+import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
+import { type LifeEvent } from '@/domains/retirement/lifeEvents';
+import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { createRetirementPlanUpdateSchema } from '@/domains/retirement/schemas';
+import { type RetirementPlanUpdate } from '@/domains/retirement/types';
 import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
 export interface UpdateRetirementPlanRequest {
@@ -9,6 +13,10 @@ export interface UpdateRetirementPlanRequest {
   auth: AuthContext;
   planId: string;
   name: string;
+  /** Full draft; omitted fields keep the stored value, which is what a rename does. */
+  assumptions?: RetirementAssumptions;
+  projectionRules?: ProjectionRule[];
+  lifeEvents?: LifeEvent[];
 }
 
 export type UpdateRetirementPlanOutcome =
@@ -24,13 +32,13 @@ export type UpdateRetirementPlanOutcome =
     };
 
 /**
- * Name-only update for now: `birthYear` is immutable, so the stored plan is
- * read and its birth year is excluded while every other field is carried
- * through unchanged.
+ * Plan update. `birthYear` is immutable, so the stored plan is read and its
+ * birth year is excluded from the input (the update schema takes it as an
+ * anchor). A request without a draft updates only the name.
  */
 export class UpdateRetirementPlanUseCase {
   async execute(request: UpdateRetirementPlanRequest): Promise<UpdateRetirementPlanOutcome> {
-    const { householdId, planId, name, auth } = request;
+    const { householdId, planId, name, auth, projectionRules, lifeEvents } = request;
 
     await householdPermissionService.assertWritePermission(
       householdId,
@@ -41,15 +49,16 @@ export class UpdateRetirementPlanUseCase {
     const existing = await retirementPlanRepository.getPlan(householdId, planId);
     if (existing === null) return { ok: false, code: 'PLAN_NOT_FOUND' };
 
-    const { birthYear, ...assumptions } = existing.assumptions;
+    const { birthYear } = existing.assumptions;
+    const assumptions = request.assumptions ?? existing.assumptions;
     const updatedAt = new Date();
     const userEmail = auth.email ?? auth.uid;
 
     const parsed = createRetirementPlanUpdateSchema(updatedAt.getFullYear(), birthYear).safeParse({
       name,
       assumptions,
-      projectionRules: existing.projectionRules,
-      lifeEvents: existing.lifeEvents,
+      projectionRules: projectionRules ?? existing.projectionRules,
+      lifeEvents: lifeEvents ?? existing.lifeEvents,
       createdBy: existing.createdBy,
       updatedBy: userEmail,
       createdAt: existing.createdAt,
@@ -66,7 +75,12 @@ export class UpdateRetirementPlanUseCase {
       householdId,
       planId,
       userEmail,
-      plan: parsed.data,
+      // `updateDoc` replaces the whole `assumptions` object, so the immutable
+      // anchor travels with it even though the update schema omits it.
+      plan: {
+        ...parsed.data,
+        assumptions: { ...parsed.data.assumptions, birthYear } as RetirementPlanUpdate['assumptions'],
+      },
     });
     if (!result.ok) return { ok: false, code: result.code };
 

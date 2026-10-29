@@ -103,7 +103,9 @@ export function ProjectionRuleInspector({
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField name={`${prefix}.name`}>
           <FormItem className="sm:col-span-2">
-            <FormLabel required size="compact">{RULE_LABELS.NAME}</FormLabel>
+            <FormLabel required size="compact">
+              {RULE_LABELS.NAME}
+            </FormLabel>
             <FormControl>
               {/* eslint-disable-next-line jsx-a11y/no-autofocus -- the dialog's whole job is this one field */}
               <TextInput readOnly={readOnly} autoFocus onChange={(name) => update({ name })} />
@@ -278,7 +280,9 @@ export function ProjectionRuleInspector({
         {showBaseline && needsBaselineYear(rule.baselinePolicy) && (
           <FormField name={`${prefix}.baselineYearText`}>
             <FormItem>
-              <FormLabel required size="compact">{RULE_LABELS.BASELINE_YEAR}</FormLabel>
+              <FormLabel required size="compact">
+                {RULE_LABELS.BASELINE_YEAR}
+              </FormLabel>
               <FormControl>
                 <NumberInput
                   readOnly={readOnly}

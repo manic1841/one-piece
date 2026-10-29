@@ -63,7 +63,9 @@ export function LifeEventRow({
         <div className="flex-1">
           <FormField name={`${prefix}.name`}>
             <FormItem>
-              <FormLabel required size="compact">{EVENT_LABELS.NAME}</FormLabel>
+              <FormLabel required size="compact">
+                {EVENT_LABELS.NAME}
+              </FormLabel>
               <FormControl>
                 <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
               </FormControl>

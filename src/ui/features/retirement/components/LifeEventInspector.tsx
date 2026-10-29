@@ -205,7 +205,9 @@ export function LifeEventInspector({
 
             <FormField name={`${phasePrefix}.growthRateText`}>
               <FormItem>
-                <FormLabel size="compact" className="block">{EVENT_LABELS.GROWTH_RATE}</FormLabel>
+                <FormLabel size="compact" className="block">
+                  {EVENT_LABELS.GROWTH_RATE}
+                </FormLabel>
                 <FormControl>
                   <NumberInput
                     readOnly={readOnly}

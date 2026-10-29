@@ -17,10 +17,7 @@ import {
   type SaveAsPlanOutcome,
   saveProjectionAsPlanWorkflow,
 } from '@/application/retirement/workflows/saveProjectionAsPlan';
-import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
-import { type SaveNameSubmitOutcome } from '@/ui/features/retirement/hooks/useSaveNameForm';
-import { useSaveNameForm } from '@/ui/features/retirement/hooks/useSaveNameForm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -34,7 +31,8 @@ type PersistInput = Omit<
 >;
 
 /**
- * Projection writes only. Reads live in the query hooks that compose this one.
+ * Projection writes only. Reads live in the query hooks that compose this one,
+ * and the save-name forms live in `useSaveNameForms`.
  *
  * Every method runs through `useLoadingTask.run`, so infrastructure and
  * permission failures never throw; they resolve to `kind: 'failed'`. A
@@ -44,13 +42,8 @@ type PersistInput = Omit<
  */
 export function useProjectionCmds(householdId: string | undefined) {
   const auth = useAuthIdentity();
-  const { createPlan, saveWorkspaceAsPlan, planForm, submitPlanForm } =
-    useRetirementPlanCmds(householdId);
+  const { createPlan, saveWorkspaceAsPlan } = useRetirementPlanCmds(householdId);
   const { run, errorMessage } = useLoadingTask();
-  const saveNameForm = useSaveNameForm(PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_NAME_REQUIRED);
-  const saveAsPlanNameForm = useSaveNameForm(
-    PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME_REQUIRED,
-  );
 
   const calculate = useCallback(
     (input: CalculateInput): Promise<LoadingTaskResult<CalculateProjectionOutcome>> =>
@@ -112,13 +105,5 @@ export function useProjectionCmds(householdId: string | undefined) {
     createPlan,
     saveWorkspaceAsPlan,
     errorMessage,
-    saveForm: saveNameForm.form,
-    submitSaveForm: (onSubmit: (name: string) => Promise<SaveNameSubmitOutcome>) =>
-      saveNameForm.submit(onSubmit),
-    saveAsPlanForm: saveAsPlanNameForm.form,
-    submitSaveAsPlanForm: (onSubmit: (name: string) => Promise<SaveNameSubmitOutcome>) =>
-      saveAsPlanNameForm.submit(onSubmit),
-    planForm,
-    submitPlanForm,
   };
 }

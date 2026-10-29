@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { defaultProjectionName } from '@/shared/projectionName';
 import { type useProjectionCalculate } from '@/ui/features/retirement/hooks/useProjectionCalculate';
 import { type useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
+import { type useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
 import {
   type SaveWorkspaceOutcome,
   useWorkspaceSave,
@@ -11,19 +12,14 @@ import { type useWorkspaceUndo } from '@/ui/features/retirement/hooks/useWorkspa
 import { type useWorkspaceValidation } from '@/ui/features/retirement/hooks/useWorkspaceValidation';
 
 type Commands = ReturnType<typeof useProjectionCmds>;
+type Forms = ReturnType<typeof useSaveNameForms>;
 
 interface UseWorkspaceSaveFlowArgs {
   householdId: string | undefined;
   /** Only the command fields saving needs; the rest of the command bag is unused. */
-  cmds: Pick<
-    Commands,
-    | 'persist'
-    | 'saveForm'
-    | 'submitSaveForm'
-    | 'saveWorkspaceAsPlan'
-    | 'planForm'
-    | 'submitPlanForm'
-  >;
+  cmds: Pick<Commands, 'persist' | 'saveWorkspaceAsPlan'>;
+  /** Save-name forms, owned by the caller as Controller state. */
+  forms: Pick<Forms, 'saveForm' | 'submitSaveForm' | 'planForm' | 'submitPlanForm'>;
   takeValidatedPlan: ReturnType<typeof useWorkspaceValidation>['takeValidatedPlan'];
   calculated: ReturnType<typeof useProjectionCalculate>['calculated'];
   undo: ReturnType<typeof useWorkspaceUndo>;
@@ -36,6 +32,7 @@ interface UseWorkspaceSaveFlowArgs {
 export function useWorkspaceSaveFlow({
   householdId,
   cmds,
+  forms,
   takeValidatedPlan,
   calculated,
   undo,
@@ -66,16 +63,16 @@ export function useWorkspaceSaveFlow({
     save,
     saveAsPlan,
     defaultName: defaultProjectionName,
-    saveForm: cmds.saveForm,
+    saveForm: forms.saveForm,
     submitSave: (onSuccess?: () => void) =>
-      cmds.submitSaveForm(async (name) => {
+      forms.submitSaveForm(async (name) => {
         const outcome = await save(name);
         if (outcome.ok) onSuccess?.();
         return outcome;
       }),
-    saveAsPlanForm: cmds.planForm,
+    saveAsPlanForm: forms.planForm,
     submitSaveAsPlan: (onSuccess?: () => void) =>
-      cmds.submitPlanForm(async (name) => {
+      forms.submitPlanForm(async (name) => {
         const outcome = await saveAsPlan(name);
         if (outcome.ok) onSuccess?.();
         return outcome;

@@ -53,7 +53,11 @@ export function LifeEventTimeline({
   })();
 
   return (
-    <div data-testid="life-event-timeline">
+    <div
+      data-testid="life-event-timeline"
+      role="group"
+      aria-label={PROJECTION_VIEW_LABELS.EVENTS_SECTION}
+    >
       <div>
         {events.map((event) => {
           const isOpen = openEventId === event.id;
@@ -194,8 +198,6 @@ export function LifeEventTimeline({
           );
         })}
       </div>
-
-      <p className="sr-only">{PROJECTION_VIEW_LABELS.EVENTS_SECTION}</p>
     </div>
   );
 }

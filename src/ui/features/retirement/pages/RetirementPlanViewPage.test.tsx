@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
 import { useRetirementPlanDetail } from '@/ui/features/retirement/hooks/useRetirementPlanDetail';
+import { mapRetirementPlanToVM } from '@/ui/features/retirement/viewmodels/retirementPlan.vm';
 
 import RetirementPlanViewPage from './RetirementPlanViewPage';
 
@@ -57,7 +58,12 @@ const plan = {
 const flaggedPlan = {
   ...plan,
   projectionRules: [
-    { ...plan.projectionRules[0], keepsPaceWithInflation: true },
+    {
+      ...plan.projectionRules[0],
+      method: 'growthRate',
+      parameters: { rate: 0.03 },
+      keepsPaceWithInflation: true,
+    },
     {
       ...plan.projectionRules[0],
       id: 'rule-2',
@@ -67,8 +73,14 @@ const flaggedPlan = {
   ],
 };
 
+const NAMES = {
+  ledger: new Map([['expense:rent', 'Rent']]),
+  debt: new Map<string, string>(),
+};
+const vmOf = (source: typeof plan) => mapRetirementPlanToVM(source as never, NAMES, 2026);
+
 const detail = (overrides: Record<string, unknown> = {}) => ({
-  plan,
+  vm: vmOf(plan),
   loading: false,
   errorMessage: null,
   notFound: false,
@@ -93,33 +105,54 @@ describe('RetirementPlanViewPage', () => {
     mockUseDetail.mockReturnValue(detail() as never);
   });
 
-  it('renders the three groups as read-only definition lists', () => {
+  it('renders the scenario, assumptions, rules and event timeline', () => {
     renderPage();
 
+    expect(screen.getByText('SCENARIO')).toBeInTheDocument();
+    expect(screen.getByText('2050')).toBeInTheDocument();
     expect(screen.getByText('ASSUMPTIONS')).toBeInTheDocument();
     expect(screen.getByText('PROJECTION RULES')).toBeInTheDocument();
-    expect(screen.getByText('LIFE EVENTS')).toBeInTheDocument();
+    expect(screen.getAllByText('LIFE EVENTS').length).toBeGreaterThan(0);
 
     expect(screen.getByText('Birth year')).toBeInTheDocument();
     expect(screen.getByText('1990')).toBeInTheDocument();
-    expect(screen.getByText(/Growth rate \(%\)/)).toBeInTheDocument();
-    expect(screen.getByText('Inflation')).toBeInTheDocument();
-    expect(screen.getByText('Ledger code: expense:rent')).toBeInTheDocument();
-    expect(screen.getByText('Lifelong')).toBeInTheDocument();
+    expect(screen.getByText('follows inflation · lifelong')).toBeInTheDocument();
     expect(screen.getByText('Travel')).toBeInTheDocument();
-    expect(screen.getByText('Early retirement')).toBeInTheDocument();
+    expect(screen.getByText('2050–2052')).toBeInTheDocument();
+
+    // Phase detail stays behind the event row.
+    expect(screen.queryByText(/120,000/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Travel/ }));
+    expect(screen.getByText(/120,000/)).toBeInTheDocument();
 
     // Only the title is editable, and only in edit mode.
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     expect(screen.getByText('Last updated: 2026-03-02')).toBeInTheDocument();
   });
 
-  it('shows the keeps-pace state of every rule', () => {
-    mockUseDetail.mockReturnValue(detail({ plan: flaggedPlan }) as never);
+  it('shows the keeps-pace flag inside the rule sentence', () => {
+    mockUseDetail.mockReturnValue(detail({ vm: vmOf(flaggedPlan) }) as never);
     renderPage();
 
-    expect(screen.getAllByText('維持通膨')).toHaveLength(2);
-    expect(screen.getAllByText('✓')).toHaveLength(1);
+    const rows = screen.getAllByTestId('plan-rule');
+    expect(rows[0]).toHaveTextContent('3% annual growth · follows inflation · lifelong');
+    expect(rows[1]).toHaveTextContent('follows inflation · Rent · lifelong');
+  });
+
+  it('reads an age boundary as a boundary, not a bare value', () => {
+    mockUseDetail.mockReturnValue(
+      detail({
+        vm: vmOf({
+          ...plan,
+          projectionRules: [
+            { ...plan.projectionRules[0], endCondition: { type: 'specificAge', age: 85 } },
+          ],
+        }),
+      }) as never,
+    );
+    renderPage();
+
+    expect(screen.getByTestId('plan-rule')).toHaveTextContent('follows inflation · until age 85');
   });
 
   it('renames through the inline title', async () => {
@@ -147,17 +180,19 @@ describe('RetirementPlanViewPage', () => {
     expect(remove).toHaveBeenCalled();
   });
 
-  it('disables rename and hides delete without management permission', () => {
+  it('disables rename, hides delete and edit without management permission', () => {
     mockUseAccess.mockReturnValue({ canManage: false, loading: false });
 
     renderPage();
 
     expect(screen.getByRole('button', { name: 'Edit name' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'DELETE PLAN' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /USE THIS PLAN/ })).toBeInTheDocument();
   });
 
   it('shows a loading state', () => {
-    mockUseDetail.mockReturnValue(detail({ loading: true, plan: null }) as never);
+    mockUseDetail.mockReturnValue(detail({ loading: true, vm: null }) as never);
 
     renderPage();
 
@@ -168,7 +203,7 @@ describe('RetirementPlanViewPage', () => {
   it('shows a load error with retry', () => {
     const reload = vi.fn();
     mockUseDetail.mockReturnValue(
-      detail({ plan: null, errorMessage: new Error('boom'), reload }) as never,
+      detail({ vm: null, errorMessage: new Error('boom'), reload }) as never,
     );
 
     renderPage();
@@ -179,7 +214,7 @@ describe('RetirementPlanViewPage', () => {
   });
 
   it('shows the not-found state with a way back to the list', () => {
-    mockUseDetail.mockReturnValue(detail({ plan: null, notFound: true }) as never);
+    mockUseDetail.mockReturnValue(detail({ vm: null, notFound: true }) as never);
 
     renderPage();
 

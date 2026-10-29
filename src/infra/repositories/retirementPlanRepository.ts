@@ -73,8 +73,9 @@ class RetirementPlanRepository extends BaseRepository<RetirementPlan, [string, s
     const { householdId, planId, plan, userEmail } = input;
     if (this.isTooLarge(plan)) return { ok: false, code: 'PLAN_TOO_LARGE' };
 
-    // The update payload omits the immutable `birthYear`, so it is not a full
-    // `RetirementPlan`; the stored value is left untouched by `updateDoc`.
+    // The update payload is a full plan minus the immutable `birthYear`; the
+    // use case puts the stored value back before writing because `updateDoc`
+    // replaces the nested `assumptions` object instead of merging into it.
     await this.update([householdId, planId], plan as Partial<RetirementPlan>, userEmail);
     return { ok: true };
   }

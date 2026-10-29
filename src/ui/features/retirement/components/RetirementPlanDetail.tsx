@@ -1,72 +1,51 @@
 import { DangerZone } from '@/ui/components/DangerZone';
-import { DefinitionRows } from '@/ui/components/DefinitionRows';
+import { FinancialNumber } from '@/ui/components/FinancialNumber';
+import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
 import { eyebrowClass } from '@/ui/components/eyebrow';
-import { EVENT_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
-import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';
-import {
-  type PlanEventVM,
-  type PlanRuleVM,
-  type RetirementPlanVM,
-} from '@/ui/features/retirement/viewmodels/retirementPlan.vm';
+import { LifeEventTimeline } from '@/ui/features/retirement/components/LifeEventTimeline';
+import { type RetirementPlanVM } from '@/ui/features/retirement/viewmodels/retirementPlan.vm';
 import { cn } from '@/ui/utils/cn';
 
-function RuleBlock({ rule }: { rule: PlanRuleVM }) {
-  return (
-    <div data-testid="plan-rule" className="space-y-2">
-      <h3 className="text-sm font-semibold text-foreground">{rule.name}</h3>
-      <DefinitionRows
-        divided
-        items={[
-          { label: RULE_LABELS.RULE_TYPE, value: rule.side },
-          { label: RULE_LABELS.METHOD, value: rule.method },
-          { label: RULE_LABELS.SOURCE, value: rule.source },
-          { label: RULE_LABELS.END_CONDITION, value: rule.endCondition },
-          { label: RULE_LABELS.KEEPS_PACE_DETAIL, value: rule.keepsPace },
-          { label: RULE_LABELS.BASELINE_POLICY, value: rule.baselinePolicy },
-          { label: rule.parameterLabel, value: rule.parameter },
-          { label: 'State', value: rule.enabled },
-        ]}
-      />
-    </div>
-  );
+interface PlanRuleListProps {
+  groups: RetirementPlanVM['ruleGroups'];
 }
 
-function EventBlock({ event }: { event: PlanEventVM }) {
+/** One row per rule: the name over the behaviour sentence, no per-column labels. */
+function PlanRuleList({ groups }: PlanRuleListProps) {
   return (
-    <div data-testid="plan-event" className="space-y-2">
-      <h3 className="text-sm font-semibold text-foreground">{event.name}</h3>
-      <DefinitionRows
-        divided
-        items={[
-          { label: EVENT_LABELS.TYPE, value: event.type },
-          { label: 'State', value: event.enabled },
-        ]}
-      />
-
-      <h4 className={cn(eyebrowClass, 'pt-2')}>{PLAN_DETAIL_LABELS.PHASES}</h4>
-      <dl className="grid gap-3">
-        {event.phases.map((phase) => (
-          <div key={phase.key} className="grid gap-1 border-b border-border pb-3">
-            <dt className="text-sm font-medium text-foreground">{phase.name}</dt>
-            <dd className="grid gap-1 text-sm text-muted-foreground sm:grid-cols-3">
-              <span>
-                {PLAN_DETAIL_LABELS.START_YEAR}: {phase.startYear}
-              </span>
-              <span>
-                {PLAN_DETAIL_LABELS.END_YEAR}: {phase.endYear}
-              </span>
-              <span>
-                {PLAN_DETAIL_LABELS.AMOUNT}: {phase.amount}
-              </span>
-              <span className="sm:col-span-3">
-                {PLAN_DETAIL_LABELS.GROWTH_RATE}: {phase.growthRate}
-              </span>
-            </dd>
-          </div>
-        ))}
-      </dl>
+    <div className="grid gap-5">
+      {groups.map((group) => (
+        <section key={group.key} className="grid gap-1" aria-label={group.title}>
+          <p className={cn(eyebrowClass, 'flex items-baseline gap-2')}>
+            {group.title}
+            <span className="font-mono text-muted-foreground/70">{group.rows.length}</span>
+          </p>
+          <ul>
+            {group.rows.map((rule) => (
+              <li
+                key={rule.id}
+                data-testid="plan-rule"
+                className={cn(
+                  'grid gap-0.5 border-b border-border py-2 last:border-b-0',
+                  rule.isDisabled && 'opacity-60',
+                )}
+              >
+                <span className="text-sm text-foreground">
+                  {rule.name}
+                  {rule.isDisabled && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {PLAN_DETAIL_LABELS.RULE_DISABLED}
+                    </span>
+                  )}
+                </span>
+                <span className="text-xs text-muted-foreground">{rule.summary}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }
@@ -79,33 +58,67 @@ interface RetirementPlanDetailProps {
 
 /** Read-only plan body. The header (and rename) belongs to the page. */
 export function RetirementPlanDetail({ plan, canDelete, onDelete }: RetirementPlanDetailProps) {
+  const hasEvents = plan.events.length > 0;
+
   return (
     <div className="space-y-8 pb-20">
-      <PageSection title={PLAN_DETAIL_LABELS.ASSUMPTIONS_SECTION} spacing="compact">
-        <DefinitionRows items={plan.assumptions} />
+      <PageSection spacing="compact" ariaLabel={PLAN_DETAIL_LABELS.SCENARIO_SECTION}>
+        <p className={eyebrowClass}>{PLAN_DETAIL_LABELS.SCENARIO_SECTION}</p>
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <FinancialNumber value={plan.scenario.retirementYearText} size="hero" />
+          <span className="text-sm text-muted-foreground">{plan.scenario.distanceText}</span>
+        </div>
+        <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">
+          {plan.scenario.spanText}
+        </p>
       </PageSection>
 
-      <PageSection title={PLAN_DETAIL_LABELS.RULES_SECTION} spacing="compact">
-        {plan.rules.length === 0 ? (
+      <PageSection spacing="compact" title={PLAN_DETAIL_LABELS.ASSUMPTIONS_SECTION}>
+        <MetricGroup columns={5} lastSpansFull className="-mx-3 md:-mx-5">
+          {plan.assumptions.map((item) => (
+            <Metric key={item.label} label={item.label} value={item.value} />
+          ))}
+        </MetricGroup>
+      </PageSection>
+
+      <PageSection
+        spacing="compact"
+        title={PLAN_DETAIL_LABELS.RULES_SECTION}
+        action={
+          plan.ruleCount === 0 ? undefined : (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {PLAN_DETAIL_LABELS.RULES_TRAILING(plan.ruleCount)}
+            </span>
+          )
+        }
+      >
+        {plan.ruleCount === 0 ? (
           <p className="text-sm text-muted-foreground">{PLAN_DETAIL_LABELS.RULES_EMPTY}</p>
         ) : (
-          <div className="grid gap-6">
-            {plan.rules.map((rule) => (
-              <RuleBlock key={rule.id} rule={rule} />
-            ))}
-          </div>
+          <PlanRuleList groups={plan.ruleGroups} />
         )}
       </PageSection>
 
-      <PageSection title={PLAN_DETAIL_LABELS.EVENTS_SECTION} spacing="compact">
-        {plan.events.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{PLAN_DETAIL_LABELS.EVENTS_EMPTY}</p>
+      <PageSection
+        spacing="compact"
+        title={PLAN_DETAIL_LABELS.EVENTS_SECTION}
+        action={
+          hasEvents ? (
+            <span className="font-mono text-[11px] text-muted-foreground">
+              {PLAN_DETAIL_LABELS.EVENTS_TRAILING(plan.events.length)}
+            </span>
+          ) : undefined
+        }
+      >
+        {hasEvents ? (
+          <LifeEventTimeline
+            events={plan.events}
+            startYear={plan.timeline.startYear}
+            endYear={plan.timeline.endYear}
+            retirementYear={plan.timeline.retirementYear}
+          />
         ) : (
-          <div className="grid gap-6">
-            {plan.events.map((event) => (
-              <EventBlock key={event.id} event={event} />
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground">{PLAN_DETAIL_LABELS.EVENTS_EMPTY}</p>
         )}
       </PageSection>
 

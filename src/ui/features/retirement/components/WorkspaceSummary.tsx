@@ -10,11 +10,11 @@ import {
   WORKSPACE_RAIL_LABELS,
   WORKSPACE_SECTION_LABELS,
 } from '@/ui/constants/retirement/workspaceRailLabels';
-import { cn } from '@/ui/utils/cn';
 import { type AssumptionsVM } from '@/ui/features/retirement/viewmodels/assumptionForm.vm';
 import { type LifeEventDraftVM } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
 import { type RuleDraftVM } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
 import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
+import { cn } from '@/ui/utils/cn';
 
 interface WorkspaceSummaryProps {
   startYear: number;

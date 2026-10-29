@@ -11,14 +11,13 @@ import {
   updateRetirementPlanUseCase,
 } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
 import { saveWorkspaceAsPlanWorkflow } from '@/application/retirement/workflows/saveWorkspaceAsPlan';
-import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
-import { type SaveNameSubmitOutcome } from '@/ui/features/retirement/hooks/useSaveNameForm';
-import { useSaveNameForm } from '@/ui/features/retirement/hooks/useSaveNameForm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 /**
- * Plan writes only. Reads live in the query hooks that compose this one.
+ * Plan writes only. Reads live in the query hooks that compose this one, and the
+ * save-name forms live in `useSaveNameForms` (they are Controller state, not
+ * commands).
  *
  * Like the projection commands, every method resolves through `run`: an
  * infrastructure failure is the outer `kind: 'failed'`, a validation failure is
@@ -27,9 +26,6 @@ import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTas
 export function useRetirementPlanCmds(householdId: string | undefined) {
   const auth = useAuthIdentity();
   const { run, errorMessage } = useLoadingTask();
-  const planNameForm = useSaveNameForm(
-    PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME_REQUIRED,
-  );
 
   const createPlan = useCallback(
     (draft: PlanDraft): Promise<LoadingTaskResult<CreateRetirementPlanOutcome>> =>
@@ -45,6 +41,15 @@ export function useRetirementPlanCmds(householdId: string | undefined) {
       run(async () => {
         if (!householdId) return { ok: false, code: 'PLAN_NOT_FOUND' };
         return updateRetirementPlanUseCase.execute({ householdId, planId, name, auth });
+      }),
+    [auth, householdId, run],
+  );
+
+  const updatePlan = useCallback(
+    (planId: string, draft: PlanDraft): Promise<LoadingTaskResult<UpdateRetirementPlanOutcome>> =>
+      run(async () => {
+        if (!householdId) return { ok: false, code: 'PLAN_NOT_FOUND' };
+        return updateRetirementPlanUseCase.execute({ ...draft, householdId, planId, auth });
       }),
     [auth, householdId, run],
   );
@@ -71,10 +76,8 @@ export function useRetirementPlanCmds(householdId: string | undefined) {
     createPlan,
     saveWorkspaceAsPlan,
     renamePlan,
+    updatePlan,
     deletePlan,
     errorMessage,
-    planForm: planNameForm.form,
-    submitPlanForm: (onSubmit: (name: string) => Promise<SaveNameSubmitOutcome>) =>
-      planNameForm.submit(onSubmit),
   };
 }

@@ -1,9 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useRetirementPlanCreate } from '@/ui/features/retirement/hooks/useRetirementPlanCreate';
+import {
+  draftGroup,
+  planFormController,
+  renderInRouter,
+} from '@/ui/features/retirement/testing/planFormFixture';
 
 import RetirementPlanCreatePage from './RetirementPlanCreatePage';
 
@@ -24,6 +28,7 @@ vi.mock('@/ui/components/form', () => ({
   FormLabel: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   FormControl: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   FormMessage: () => null,
+  formMessageClass: 'text-destructive',
   TextInput: (props: Record<string, unknown>) => <input {...props} />,
 }));
 vi.mock('@/ui/features/retirement/components/AssumptionsSection', () => ({
@@ -39,37 +44,18 @@ vi.mock('@/ui/features/retirement/components/LifeEventsSection', () => ({
 const mockUseAuth = vi.mocked(useAuthState);
 const mockUseCreate = vi.mocked(useRetirementPlanCreate);
 
-const draft = () => ({ values: {}, errors: {}, valid: true, setField: vi.fn() });
+const controller = (rootMessage: string | null = null) =>
+  planFormController({
+    assumptions: { ...draftGroup(), birthYearLocked: false },
+    form: {
+      formState: { errors: rootMessage === null ? {} : { root: { message: rootMessage } } },
+      clearErrors: vi.fn(),
+      reset: vi.fn(),
+      isSubmitting: false,
+    },
+  });
 
-const controller = (rootMessage: string | null = null) => ({
-  form: {
-    formState: { errors: rootMessage === null ? {} : { root: { message: rootMessage } } },
-    clearErrors: vi.fn(),
-    isSubmitting: false,
-  },
-  submit: vi.fn(),
-  assumptions: { ...draft(), birthYearLocked: false },
-  rules: { ...draft(), rules: [], add: vi.fn() },
-  events: { ...draft(), events: [], focusRequest: null },
-  derived: {
-    birthYear: 1990,
-    lifeExpectancy: 85,
-    retirementYear: 2055,
-    ageRange: { min: 36, max: 85 },
-    assumptionBounds: {},
-    projectionStartYear: 2026,
-  },
-  undo: { canUndo: false, run: vi.fn(), push: vi.fn() },
-  sectionState: {},
-  rememberEvents: vi.fn(),
-});
-
-const renderPage = () =>
-  render(
-    <MemoryRouter>
-      <RetirementPlanCreatePage />
-    </MemoryRouter>,
-  );
+const renderPage = () => renderInRouter(<RetirementPlanCreatePage />);
 
 describe('RetirementPlanCreatePage', () => {
   beforeEach(() => {

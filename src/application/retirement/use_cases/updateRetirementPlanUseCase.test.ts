@@ -66,15 +66,51 @@ describe('updateRetirementPlanUseCase', () => {
     const update = vi.mocked(retirementPlanRepository.updatePlan).mock.calls[0][0];
     expect(update.plan.name).toBe('New name');
     expect(update.plan.assumptions).toEqual({
+      birthYear: 1990,
       retirementAge: 60,
       lifeExpectancy: 85,
       inflationRate: 0.02,
       annualReturnRate: 0.05,
     });
-    expect(update.plan.assumptions).not.toHaveProperty('birthYear');
     expect(update.plan.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
     expect(update.plan.createdAt).toEqual(plan.createdAt);
     expect(update.userEmail).toBe('user@example.com');
+  });
+
+  it('writes a full draft once the birth year is locked to the stored one', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
+    vi.mocked(retirementPlanRepository.updatePlan).mockResolvedValue({ ok: true });
+
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: 'Early exit',
+      assumptions: { ...plan.assumptions, retirementAge: 55, lifeExpectancy: 90 },
+      auth,
+    });
+
+    expect(result).toEqual({ ok: true, name: 'Early exit' });
+    const update = vi.mocked(retirementPlanRepository.updatePlan).mock.calls[0][0];
+    expect(update.plan.assumptions).toMatchObject({
+      birthYear: 1990,
+      retirementAge: 55,
+      lifeExpectancy: 90,
+    });
+  });
+
+  it('rejects a draft that breaks the birth-year cross check', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
+
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: 'Broken',
+      assumptions: { ...plan.assumptions, lifeExpectancy: 40 },
+      auth,
+    });
+
+    expect(result).toEqual({ ok: false, code: 'PLAN_INVALID' });
+    expect(retirementPlanRepository.updatePlan).not.toHaveBeenCalled();
   });
 
   it('rejects a blank name before writing', async () => {

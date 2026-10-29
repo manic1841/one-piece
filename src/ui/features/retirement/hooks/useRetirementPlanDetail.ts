@@ -1,43 +1,37 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
-import { type RetirementPlan } from '@/domains/retirement/types';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
+import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
+import { PLAN_LIST_HREF, usePlanResource } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
-import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
-import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
+import { mapRetirementPlanToVM } from '@/ui/features/retirement/viewmodels/retirementPlan.vm';
 
-/** Owns the read-only plan view: load, rename and delete. */
+/** Owns the read-only plan view: load, map to the view shape, rename and delete. */
 export function useRetirementPlanDetail(householdId: string | undefined) {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const auth = useAuthIdentity();
   const { confirm } = useConfirm();
   const { renamePlan, deletePlan, errorMessage: commandError } = useRetirementPlanCmds(householdId);
+  const { plan, planId, setPlan, loading, errorMessage, notFound, reload } =
+    usePlanResource(householdId);
+  const { codes } = useLedgerCodes();
+  const { accounts } = useDebtAccountOptions(householdId);
 
-  const [plan, setPlan] = useState<RetirementPlan | null>(null);
-  const { loading, errorMessage, run } = useLoadingTask({ initiallyLoading: true });
+  const names = useMemo(
+    () => ({
+      ledger: new Map(codes.map((code) => [code.code, code.label] as const)),
+      debt: new Map(accounts.map((account) => [account.id, account.name] as const)),
+    }),
+    [accounts, codes],
+  );
 
-  const reload = useCallback(async () => {
-    await run(
-      async () =>
-        householdId && id
-          ? getRetirementPlanUseCase.execute({ householdId, planId: id, auth })
-          : null,
-      {
-        writeBack: (result) => {
-          if (result.ok) setPlan(result.value);
-        },
-      },
-    );
-  }, [auth, householdId, id, run]);
-
-  useEffect(() => {
-    void reload();
-  }, [reload]);
+  const vm = useMemo(
+    () => (plan === null ? null : mapRetirementPlanToVM(plan, names, new Date().getFullYear())),
+    [names, plan],
+  );
 
   const rename = useCallback(
     async (name: string) => {
@@ -47,7 +41,7 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
       if (task.ok && task.value.ok) setPlan({ ...plan, name: task.value.name });
       return task;
     },
-    [householdId, plan, renamePlan],
+    [householdId, plan, renamePlan, setPlan],
   );
 
   const remove = useCallback(async () => {
@@ -62,15 +56,16 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
     if (!confirmed) return null;
 
     const task = await deletePlan(plan.id);
-    if (task.ok) navigate('/retirement/plans');
+    if (task.ok) navigate(PLAN_LIST_HREF);
     return task;
   }, [confirm, deletePlan, householdId, navigate, plan]);
 
   return {
-    plan,
+    vm,
+    planId,
     loading,
     errorMessage: errorMessage ?? commandError,
-    notFound: !loading && errorMessage === null && plan === null,
+    notFound,
     reload,
     rename,
     remove,

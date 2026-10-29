@@ -54,3 +54,6 @@ export function useSaveNameForm(requiredMessage: string) {
 
   return { form, submit };
 }
+
+/** The name field's form, as the shared plan form receives it. */
+export type PlanNameForm = ReturnType<typeof useSaveNameForm>['form'];

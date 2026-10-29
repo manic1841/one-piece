@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 
-import { Button } from '@/ui/components/ui/button';
 import { sectionTitleClass } from '@/ui/components/eyebrow';
+import { Button } from '@/ui/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
 import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';

@@ -1,184 +1,278 @@
+import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { type DefinitionItem } from '@/ui/components/DefinitionRows';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
-import { EVENT_LABELS, EVENT_TYPE_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
 import {
   ASSUMPTION_LABELS,
-  BASELINE_POLICY_LABELS,
-  END_CONDITION_LABELS,
   RULE_LABELS,
-  RULE_METHOD_LABELS,
   RULE_TYPE_LABELS,
 } from '@/ui/constants/retirement/setupLabels';
+import {
+  endConditionText,
+  percentText,
+} from '@/ui/features/retirement/viewmodels/projectionRows.vm';
+import { type SnapshotEventVM } from '@/ui/features/retirement/viewmodels/projectionSnapshot.vm';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
-export type PlanDefinitionRow = DefinitionItem;
+export type { SnapshotEventVM };
 
 export interface PlanRuleVM {
   id: string;
   name: string;
-  side: string;
-  method: string;
-  parameterLabel: string;
-  parameter: string;
-  source: string;
-  endCondition: string;
-  keepsPace: string;
-  baselinePolicy: string;
-  enabled: string;
+  isDisabled: boolean;
+  /** One sentence: method, parameter, source and end condition. */
+  summary: string;
 }
 
-export interface PlanEventPhaseVM {
-  key: string;
-  name: string;
+export interface PlanRuleGroupVM {
+  key: 'income' | 'expense';
+  title: string;
+  rows: PlanRuleVM[];
+}
+
+export interface PlanScenarioVM {
+  /** Retirement year, the hero number. */
+  retirementYearText: string;
+  /** Distance from this year to retirement, or the retired marker. */
+  distanceText: string;
+  /** Period the plan spans: retirement year to life expectancy. */
+  spanText: string;
+  /** One line naming the scenario: born / retires / life expectancy. */
+  descriptionText: string;
+}
+
+export interface PlanTimelineVM {
   startYear: number;
   endYear: number;
-  amount: string;
-  growthRate: string;
-}
-
-export interface PlanEventVM {
-  id: string;
-  name: string;
-  type: string;
-  enabled: string;
-  phases: PlanEventPhaseVM[];
+  retirementYear: number | null;
 }
 
 export interface RetirementPlanVM {
   id: string;
   name: string;
   updatedAtText: string;
-  assumptions: PlanDefinitionRow[];
-  rules: PlanRuleVM[];
-  events: PlanEventVM[];
+  scenario: PlanScenarioVM;
+  assumptions: DefinitionItem[];
+  ruleGroups: PlanRuleGroupVM[];
+  ruleCount: number;
+  events: SnapshotEventVM[];
+  timeline: PlanTimelineVM;
 }
 
-const percent = (value: number): string => `${Number((value * 100).toFixed(4))}%`;
-
-function ruleParameter(rule: ProjectionRule): string {
-  switch (rule.method) {
-    case 'growthRate':
-      return 'rate' in rule.parameters
-        ? percent(rule.parameters.rate)
-        : PROJECTION_COMMON_LABELS.DASH;
-    case 'percentage':
-      return 'ratio' in rule.parameters
-        ? percent(rule.parameters.ratio)
-        : PROJECTION_COMMON_LABELS.DASH;
-    case 'fixedAmount':
-      return 'amount' in rule.parameters
-        ? formatCurrency(rule.parameters.amount)
-        : PROJECTION_COMMON_LABELS.DASH;
-    case 'inflation':
-    case 'debtAmortization':
-      return PROJECTION_COMMON_LABELS.DASH;
-  }
+/** Source names resolved by the page; unknown ids fall back to the raw id. */
+export interface PlanSourceNames {
+  ledger: ReadonlyMap<string, string>;
+  debt: ReadonlyMap<string, string>;
 }
 
-function parameterLabel(rule: ProjectionRule): string {
-  switch (rule.method) {
-    case 'growthRate':
-      return RULE_LABELS.PARAMETER_RATE;
-    case 'percentage':
-      return RULE_LABELS.PARAMETER_RATIO;
-    case 'fixedAmount':
-      return RULE_LABELS.PARAMETER_AMOUNT;
-    case 'inflation':
-    case 'debtAmortization':
-      return RULE_LABELS.METHOD;
-  }
+const lowerFirst = (text: string): string =>
+  text.length === 0 ? text : text[0].toLowerCase() + text.slice(1);
+
+/** Age and year conditions need a boundary word; the other conditions already carry one. */
+function endOfSentence(rule: ProjectionRule): string {
+  const text = endConditionText(rule);
+  return rule.endCondition !== undefined &&
+    (rule.endCondition.type === 'specificAge' || rule.endCondition.type === 'specificYear')
+    ? `${PLAN_DETAIL_LABELS.UNTIL} ${lowerFirst(text)}`
+    : lowerFirst(text);
 }
 
-function endCondition(rule: ProjectionRule): string {
-  if (rule.endCondition === undefined || rule.endCondition === null)
-    return PROJECTION_COMMON_LABELS.DASH;
-
-  switch (rule.endCondition.type) {
-    case 'specificAge':
-      return `${END_CONDITION_LABELS.specificAge} ${rule.endCondition.age}`;
-    case 'specificYear':
-      return `${END_CONDITION_LABELS.specificYear} ${rule.endCondition.year}`;
-    default:
-      return END_CONDITION_LABELS[rule.endCondition.type];
-  }
-}
-
-function baselinePolicy(rule: ProjectionRule): string {
-  const policy = rule.baselinePolicy;
-  if (policy === 'previousCompleteYear' || policy === 'specificYear') {
-    return BASELINE_POLICY_LABELS[policy];
-  }
-  return PROJECTION_COMMON_LABELS.DASH;
-}
-
-function sourceLabel(source: ProjectionRule['source'], ruleNames: Map<string, string>): string {
-  if (source === undefined || source === null) return PROJECTION_COMMON_LABELS.DASH;
-
+function sourceName(rule: ProjectionRule, names: PlanSourceNames): string {
+  const source = rule.source;
+  if (source === undefined) return RULE_LABELS.NO_SOURCE;
   switch (source.type) {
     case 'ledgerCode':
-      return `${PLAN_DETAIL_LABELS.SOURCE_LEDGER}: ${source.id}`;
+      return names.ledger.get(source.id) ?? source.id;
     case 'debtAccount':
-      return `${PLAN_DETAIL_LABELS.SOURCE_DEBT}: ${source.id}`;
+      return names.debt.get(source.id) ?? source.id;
     case 'rule':
-      return `${PLAN_DETAIL_LABELS.SOURCE_RULE}: ${ruleNames.get(source.id) ?? source.id}`;
+      return source.id;
   }
 }
 
-export function mapRetirementPlanToVM(plan: RetirementPlan): RetirementPlanVM {
-  const ruleNames = new Map(plan.projectionRules.map((rule) => [rule.id, rule.name] as const));
+/** The rule as a sentence: how it grows, from where, and until when. */
+function ruleSummary(
+  rule: ProjectionRule,
+  names: PlanSourceNames,
+  ruleNames: ReadonlyMap<string, string>,
+): string {
+  const source =
+    rule.source?.type === 'rule'
+      ? (ruleNames.get(rule.source.id) ?? RULE_LABELS.NO_SOURCE)
+      : sourceName(rule, names);
+
+  // A source that repeats the rule's own name adds nothing to the sentence.
+  const namedSource = source === rule.name ? null : source;
+  const behavior = (() => {
+    switch (rule.method) {
+      case 'inflation':
+        return [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION, namedSource]
+          .filter((part) => part !== null)
+          .join(' · ');
+      case 'growthRate':
+        return 'rate' in rule.parameters
+          ? [
+              `${percentText(rule.parameters.rate)} ${RULE_LABELS.SUMMARY_ANNUAL_GROWTH}`,
+              namedSource,
+            ]
+              .filter((part) => part !== null)
+              .join(' · ')
+          : source;
+      case 'percentage':
+        return 'ratio' in rule.parameters
+          ? `${percentText(rule.parameters.ratio)} ${RULE_LABELS.SUMMARY_OF} ${source}`
+          : source;
+      case 'fixedAmount':
+        return 'amount' in rule.parameters
+          ? `${formatCurrency(rule.parameters.amount)} ${RULE_LABELS.SUMMARY_PER_YEAR}`
+          : PROJECTION_COMMON_LABELS.DASH;
+      case 'debtAmortization':
+        return `${source} · ${RULE_LABELS.SUMMARY_LOAN_SCHEDULE}`;
+    }
+  })();
+
+  return [
+    behavior,
+    // An inflation method already says it; only the other methods need the flag spelled out.
+    ...(rule.keepsPaceWithInflation === true && rule.method !== 'inflation'
+      ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION]
+      : []),
+    endOfSentence(rule),
+  ]
+    .filter((part) => part !== PROJECTION_COMMON_LABELS.DASH)
+    .join(' · ');
+}
+
+/**
+ * Groups by side so the type stops repeating per row and income reads before
+ * expense, matching the workspace and the projection snapshot.
+ */
+function buildRuleGroups(rules: ProjectionRule[], names: PlanSourceNames): PlanRuleGroupVM[] {
+  const ruleNames = new Map(rules.map((rule) => [rule.id, rule.name] as const));
+
+  return (['income', 'expense'] as const).flatMap((side) => {
+    const rows = rules
+      .filter((rule) => rule.ruleType === side)
+      .map<PlanRuleVM>((rule) => ({
+        id: rule.id,
+        name: rule.name,
+        isDisabled: !rule.enabled,
+        summary: ruleSummary(rule, names, ruleNames),
+      }));
+    return rows.length === 0 ? [] : [{ key: side, title: RULE_TYPE_LABELS[side], rows }];
+  });
+}
+
+const spanText = (start: number | undefined, end: number | undefined): string => {
+  if (start === undefined || end === undefined) return PROJECTION_COMMON_LABELS.DASH;
+  return start === end ? String(start) : `${start}–${end}`;
+};
+
+function timingText(
+  firstStart: number | undefined,
+  lastEnd: number | undefined,
+  retirementYear: number | null,
+): string {
+  if (firstStart === undefined || lastEnd === undefined || retirementYear === null) {
+    return PROJECTION_COMMON_LABELS.DASH;
+  }
+  if (firstStart <= retirementYear && retirementYear <= lastEnd) {
+    return PLAN_DETAIL_LABELS.EVENT_DURING_RETIREMENT;
+  }
+  return lastEnd < retirementYear
+    ? PLAN_DETAIL_LABELS.EVENT_BEFORE_RETIREMENT
+    : PLAN_DETAIL_LABELS.EVENT_AFTER_RETIREMENT;
+}
+
+function buildEvents(events: LifeEvent[], timeline: PlanTimelineVM): SnapshotEventVM[] {
+  return events.map((event) => {
+    const starts = event.phases.map((phase) => phase.startYear);
+    const ends = event.phases.map((phase) => phase.endYear);
+    const firstStart = starts.length === 0 ? undefined : Math.min(...starts);
+    const lastEnd = ends.length === 0 ? undefined : Math.max(...ends);
+    const isOutside =
+      firstStart !== undefined &&
+      lastEnd !== undefined &&
+      (lastEnd < timeline.startYear || firstStart > timeline.endYear);
+    const isClipped =
+      !isOutside &&
+      event.phases.some(
+        (phase) => phase.startYear < timeline.startYear || phase.endYear > timeline.endYear,
+      );
+
+    return {
+      id: event.id,
+      name: event.name,
+      typeText: RULE_TYPE_LABELS[event.type],
+      rangeText: spanText(firstStart, lastEnd),
+      timingText: timingText(firstStart, lastEnd, timeline.retirementYear),
+      isDisabled: !event.enabled,
+      isClipped,
+      isOutside,
+      phases: event.phases.map((phase) => ({
+        rangeText: spanText(phase.startYear, phase.endYear),
+        amountText: formatCurrency(phase.amount),
+        ...(phase.growthRate === undefined
+          ? {}
+          : { growthRateText: percentText(phase.growthRate) }),
+        clippedStartYear: Math.min(Math.max(phase.startYear, timeline.startYear), timeline.endYear),
+        clippedEndYear: Math.min(Math.max(phase.endYear, timeline.startYear), timeline.endYear),
+      })),
+    };
+  });
+}
+
+export function mapRetirementPlanToVM(
+  plan: RetirementPlan,
+  names: PlanSourceNames,
+  currentYear: number,
+): RetirementPlanVM {
+  const { birthYear, retirementAge, lifeExpectancy } = plan.assumptions;
+  const retirementYear = birthYear + retirementAge;
+  const planEndYear = birthYear + lifeExpectancy;
+  const timeline: PlanTimelineVM = {
+    startYear: Math.min(currentYear, planEndYear),
+    endYear: planEndYear,
+    retirementYear,
+  };
+  const yearsToRetirement = retirementYear - currentYear;
 
   return {
     id: plan.id,
     name: plan.name,
     updatedAtText: formatDate(plan.updatedAt),
+    scenario: {
+      retirementYearText: String(retirementYear),
+      distanceText:
+        yearsToRetirement > 0
+          ? PLAN_DETAIL_LABELS.YEARS_TO_RETIREMENT(yearsToRetirement)
+          : PLAN_DETAIL_LABELS.RETIRED,
+      spanText: `${retirementYear}–${planEndYear}`,
+      descriptionText: PLAN_DETAIL_LABELS.SCENARIO_DESCRIPTION(
+        birthYear,
+        retirementAge,
+        retirementYear,
+        lifeExpectancy,
+      ),
+    },
     assumptions: [
-      { label: ASSUMPTION_LABELS.BIRTH_YEAR, value: String(plan.assumptions.birthYear) },
-      { label: ASSUMPTION_LABELS.RETIREMENT_AGE, value: String(plan.assumptions.retirementAge) },
+      { label: ASSUMPTION_LABELS.BIRTH_YEAR, value: String(birthYear) },
+      { label: ASSUMPTION_LABELS.RETIREMENT_AGE, value: String(retirementAge) },
+      { label: ASSUMPTION_LABELS.LIFE_EXPECTANCY, value: String(lifeExpectancy) },
       {
-        label: ASSUMPTION_LABELS.LIFE_EXPECTANCY,
-        value: String(plan.assumptions.lifeExpectancy),
+        label: ASSUMPTION_LABELS.INFLATION_RATE,
+        value: percentText(plan.assumptions.inflationRate),
       },
-      { label: ASSUMPTION_LABELS.INFLATION_RATE, value: percent(plan.assumptions.inflationRate) },
       {
         label: ASSUMPTION_LABELS.ANNUAL_RETURN_RATE,
-        value: percent(plan.assumptions.annualReturnRate),
+        value: percentText(plan.assumptions.annualReturnRate),
       },
     ],
-    rules: plan.projectionRules.map((rule) => ({
-      id: rule.id,
-      name: rule.name,
-      side: RULE_TYPE_LABELS[rule.ruleType],
-      method: RULE_METHOD_LABELS[rule.method],
-      parameterLabel: parameterLabel(rule),
-      parameter: ruleParameter(rule),
-      source: sourceLabel(rule.source, ruleNames),
-      endCondition: endCondition(rule),
-      keepsPace:
-        rule.keepsPaceWithInflation === true
-          ? PROJECTION_COMMON_LABELS.CHECK
-          : PROJECTION_COMMON_LABELS.DASH,
-      baselinePolicy: baselinePolicy(rule),
-      enabled: rule.enabled ? RULE_LABELS.ENABLED : RULE_LABELS.DISABLED,
-    })),
-    events: plan.lifeEvents.map((event) => ({
-      id: event.id,
-      name: event.name,
-      type: EVENT_TYPE_LABELS[event.type],
-      enabled: event.enabled ? EVENT_LABELS.ENABLED : EVENT_LABELS.DISABLED,
-      phases: event.phases.map((phase, index) => ({
-        key: `${event.id}-${index}`,
-        name: phase.name ?? PLAN_DETAIL_LABELS.UNNAMED_PHASE,
-        startYear: phase.startYear,
-        endYear: phase.endYear,
-        amount: formatCurrency(phase.amount),
-        growthRate:
-          phase.growthRate === undefined
-            ? PROJECTION_COMMON_LABELS.DASH
-            : percent(phase.growthRate),
-      })),
-    })),
+    ruleGroups: buildRuleGroups(plan.projectionRules, names),
+    ruleCount: plan.projectionRules.length,
+    events: buildEvents(plan.lifeEvents, timeline),
+    timeline,
   };
 }

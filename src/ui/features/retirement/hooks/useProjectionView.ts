@@ -6,6 +6,7 @@ import {
   SAVE_AS_PLAN_LABELS,
 } from '@/ui/constants/retirement/projectionLabels';
 import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
+import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
 import {
   type ProjectionViewVM,
   mapProjectionViewToVM,
@@ -25,14 +26,9 @@ export function useProjectionView(
   projectionId: string | undefined,
 ) {
   const auth = useAuthIdentity();
-  const {
-    renameProjection,
-    deleteProjection,
-    saveProjectionAsPlan,
-    saveAsPlanForm,
-    submitSaveAsPlanForm,
-    errorMessage,
-  } = useProjectionCmds(householdId);
+  const { renameProjection, deleteProjection, saveProjectionAsPlan, errorMessage } =
+    useProjectionCmds(householdId);
+  const { saveAsPlanForm, submitSaveAsPlanForm } = useSaveNameForms();
   const [view, setView] = useState<ProjectionViewVM | null>(null);
   const [notFound, setNotFound] = useState(false);
   const { loading, error, run } = useLoadingTask({ initiallyLoading: true });

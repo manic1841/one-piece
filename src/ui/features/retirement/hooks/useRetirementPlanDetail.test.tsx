@@ -22,6 +22,12 @@ vi.mock('@/application/retirement/use_cases/deleteRetirementPlanUseCase', () => 
 
 vi.mock('@/ui/components/confirm/useConfirm');
 vi.mock('@/ui/hooks/useAuthIdentity');
+vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
+  useLedgerCodes: () => ({ codes: [], loading: false }),
+}));
+vi.mock('@/ui/features/retirement/hooks/useDebtAccountOptions', () => ({
+  useDebtAccountOptions: () => ({ accounts: [], loading: false }),
+}));
 
 const navigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -88,7 +94,7 @@ describe('useRetirementPlanDetail', () => {
       name: 'New name',
       auth: { uid: 'u1', email: 'user@example.com' },
     });
-    expect(result.current.plan?.name).toBe('New name');
+    expect(result.current.vm?.name).toBe('New name');
   });
 
   it('does not delete when the confirm is cancelled', async () => {

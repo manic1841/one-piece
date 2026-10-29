@@ -11,6 +11,7 @@ import { useIndicatorCalculation } from '@/ui/features/retirement/hooks/useIndic
 import { useProjectionCalculate } from '@/ui/features/retirement/hooks/useProjectionCalculate';
 import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
 import { useProjectionPreload } from '@/ui/features/retirement/hooks/useProjectionPreload';
+import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
 import { useWorkspaceDerived } from '@/ui/features/retirement/hooks/useWorkspaceDerived';
 import { useWorkspaceDrafts } from '@/ui/features/retirement/hooks/useWorkspaceDrafts';
 import { useWorkspaceIndicators } from '@/ui/features/retirement/hooks/useWorkspaceIndicators';
@@ -38,12 +39,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const {
     calculate: calculateProjection,
     persist,
-    saveForm,
-    submitSaveForm,
     saveWorkspaceAsPlan,
-    planForm,
-    submitPlanForm,
   } = useProjectionCmds(householdId);
+  const { saveForm, submitSaveForm, planForm, submitPlanForm } = useSaveNameForms();
   const [searchParams, setSearchParams] = useSearchParams();
   const fromId = searchParams.get('from');
   const planId = searchParams.get('plan');
@@ -241,7 +239,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const { save, saveAsPlan, defaultName, submitSave, saveAsPlanForm, submitSaveAsPlan } =
     useWorkspaceSaveFlow({
       householdId,
-      cmds: { persist, saveForm, submitSaveForm, saveWorkspaceAsPlan, planForm, submitPlanForm },
+      cmds: { persist, saveWorkspaceAsPlan },
+      forms: { saveForm, submitSaveForm, planForm, submitPlanForm },
       takeValidatedPlan,
       calculated,
       undo,
