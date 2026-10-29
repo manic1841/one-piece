@@ -69,7 +69,6 @@ export const PLAN_FORM_LABELS = {
   DETAILS_SECTION: 'PLAN',
   NAME: 'Plan name',
   NAME_PLACEHOLDER: 'e.g., Retire at 60',
-  NAME_REQUIRED: 'Name is required.',
 } as const;
 
 /** Item edit page (`/retirement/plans/:id/edit`). */
@@ -91,6 +90,7 @@ export const PLAN_EDIT_LABELS = {
   INVALID: 'Fix the validation errors before saving the plan.',
   NAME_TOO_LONG: 'Plan name is too long.',
   INVALID_PLAN: 'The plan failed validation. Nothing was written.',
+  PLAN_TOO_LARGE: 'The plan is too large to save.',
   NOT_FOUND_CODE: 'This plan no longer exists.',
   SAVE_FAILED: 'Could not save the plan. Nothing was written.',
 } as const;

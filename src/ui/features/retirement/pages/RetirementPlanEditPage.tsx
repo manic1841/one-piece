@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
@@ -8,19 +8,34 @@ import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { PlanLoadStates } from '@/ui/features/retirement/components/PlanLoadStates';
 import { RetirementPlanForm } from '@/ui/features/retirement/components/RetirementPlanForm';
 import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
+import { usePlanForm } from '@/ui/features/retirement/hooks/usePlanForm';
 import { PLAN_LIST_HREF } from '@/ui/features/retirement/hooks/usePlanResource';
-import { useRetirementPlanEdit } from '@/ui/features/retirement/hooks/useRetirementPlanEdit';
+import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 
-/** `/retirement/plans/:id/edit`: the create form, seeded from a stored plan. */
+/** `/retirement/plans/:id/edit`: the plan form, seeded from a stored plan. */
 export default function RetirementPlanEditPage() {
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId;
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const controller = useRetirementPlanEdit(householdId);
+  const { updatePlan } = useRetirementPlanCmds(householdId);
+  const controller = usePlanForm({
+    householdId,
+    submit: (name, draft) =>
+      id === undefined
+        ? Promise.resolve({
+            ok: true as const,
+            value: { ok: false as const, code: 'PLAN_NOT_FOUND' },
+          })
+        : updatePlan(id, { name, ...draft }),
+    invalidMessage: PLAN_EDIT_LABELS.INVALID,
+    fallbackMessage: PLAN_EDIT_LABELS.SAVE_FAILED,
+    successMessage: PLAN_EDIT_LABELS.SAVED,
+  });
   const { codes } = useLedgerCodes();
   const { accounts } = useDebtAccountOptions(householdId);
   const isSubmitting = controller.form.formState.isSubmitting;
-  const readOnly = !controller.canManage;
+  const { readOnly } = controller;
 
   const backToPlan = () => void navigate(controller.back);
   const backToList = () => void navigate(PLAN_LIST_HREF);

@@ -39,8 +39,6 @@ export function usePlanResource(householdId: string | undefined) {
     plan,
     /** A write that succeeds locally can update the copy without a refetch. */
     setPlan,
-    /** Back to the thing the route belongs to; the list when there is no id. */
-    back: id === undefined ? PLAN_LIST_HREF : `${PLAN_LIST_HREF}/${id}`,
     loading,
     errorMessage,
     notFound: !loading && errorMessage === null && plan === null,
