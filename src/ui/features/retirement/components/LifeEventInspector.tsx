@@ -1,5 +1,6 @@
 import { useId } from 'react';
 
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import {
   FormControl,
   FormField,
@@ -39,9 +40,12 @@ interface LifeEventInspectorProps {
   /** Event-level messages; phase messages live in `errors`. */
   eventErrors: EventErrors;
   errors: PhaseErrors;
+  /** Every event, current one included, so the select shows the current owner. */
+  eventOptions: { value: string; label: string }[];
   updateEvent: (patch: Partial<Omit<LifeEventDraftVM, 'phases'>>) => void;
   updatePhase: (patch: Partial<PhaseDraftVM>) => void;
   setType: (type: EventType) => void;
+  onReparent: (targetEventId: string) => void;
 }
 
 /**
@@ -56,9 +60,11 @@ export function LifeEventInspector({
   focusRequest,
   eventErrors,
   errors,
+  eventOptions,
   updateEvent,
   updatePhase,
   setType,
+  onReparent,
 }: LifeEventInspectorProps) {
   const prefix = `eventsById.${event.id}`;
   // Id-keyed like the events: re-sorting never moves a field between paths.
@@ -73,9 +79,7 @@ export function LifeEventInspector({
       data-testid="life-event-inspector"
     >
       <section className="grid content-start gap-3 border-b border-border pb-4 md:border-r md:border-b-0 md:pr-5 md:pb-0">
-        <p className="font-mono text-[11px] tracking-widest text-muted-foreground">
-          {EVENT_LABELS.EVENT_SECTION}
-        </p>
+        <p className={eyebrowClass}>{EVENT_LABELS.EVENT_SECTION}</p>
         <div className="grid gap-3">
           <FormField name={`${prefix}.name`}>
             <FormItem>
@@ -113,9 +117,18 @@ export function LifeEventInspector({
       </section>
 
       <section className="grid content-start gap-3">
-        <p className="font-mono text-[11px] tracking-widest text-muted-foreground">
-          {EVENT_LABELS.PHASE_SECTION}
-        </p>
+        <p className={eyebrowClass}>{EVENT_LABELS.PHASE_SECTION}</p>
+        {!readOnly && eventOptions.length > 1 && (
+          <label className="grid gap-1.5 text-sm">
+            <span className="text-xs">{EVENT_LABELS.BELONGS_TO}</span>
+            <SelectField
+              aria-label={EVENT_LABELS.BELONGS_TO}
+              value={event.id}
+              options={eventOptions}
+              onChange={onReparent}
+            />
+          </label>
+        )}
         <div className="grid gap-3 md:grid-cols-2">
           <FormField name={`${phasePrefix}.name`}>
             <FormItem>

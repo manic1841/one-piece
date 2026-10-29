@@ -75,6 +75,7 @@ $ generate-reports --period SEP-2026
 - 表單輸入必須有**可程式化關聯**的 label：`htmlFor` + `id`，或以 `<label>` 包覆控制項。Radix 的 checkbox / switch 控制項以 `<label>` 包覆，並在 eslint 設定中登錄為控制項。
 - 浮層（popover / dialog / sheet）必須能用 **Escape** 關閉。
 - 展開／收合類的控件必須帶 `aria-expanded`。
+- **拖曳的鍵盤等價由「另一個真實欄位」承擔，不重造拖曳**：時間軸的 bar 是 `role="button"`，↑↓ 只在列間移動焦點；換事件的隸屬（拖曳跨列的等價）走 inspector 的 `Belongs to event` 選欄。反之，列內的年份拖曳（平移、改長度）由 inspector 的年份欄承擔。`aria-grabbed` 因此不必模擬，兩條路徑都指向同一份草稿。
 
 ### 使用者偏好設定
 

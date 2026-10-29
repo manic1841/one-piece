@@ -192,4 +192,5 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
   - **Disabled**：使用 native `disabled`，統一 `opacity-50` 且不可 focus（由 input primitives 的 `disabled:` 樣式承擔，不另行手寫）。
   - **單一數字輸入**：全站數字欄位是單一 `NumberInput`（`src/ui/components/NumberInput.tsx`，form 與 data-table 兩個 barrel 都 re-export），以 `surface` 表達 form／table 兩種表面。兩者**共用高度（34px）與數字處理**（右對齊 mono `tabular-nums`、移除原生 spinner）**，surface 各自保留**——form 用 `rounded-md` + `border-input` + `bg-background`（即 `ui/input` 的樣式），table 用 `rounded-none` + `border-border` + `bg-muted`；共用的只有幾何與數字處理，不是整體外觀。
   - **Mobile**：輸入框聚焦時字級須 ≥ 16px（`text-base`，桌面 `md:text-sm`），避免 iOS Safari 聚焦自動縮放。
+  - **Slider**：原生 `input[type=range]` 一律自繪——軌道 `bg-muted`、拇指 `bg-primary` 圓形、focus 走 `ring-ring`。不用瀏覽器的 `accent-color`：原生繪製在各平台長相不一，站內也無從調整。軌道高度沿用 `h-1`，拇指 `h-3 w-3`。
   - **單一貨幣符號來源**：`NumberInput` 不內建貨幣符號，`prefix` 由呼叫端提供。金額顯示一律經 `formatCurrency(amount, currency)`：本位幣（TWD）為預設，符號前置（`NT$`、`US$`、`€`、`¥`），0 位小數；非本位幣原幣金額傳入自身幣別，形狀與本位幣一致。

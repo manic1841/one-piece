@@ -20,9 +20,11 @@ interface PercentSliderProps {
 }
 
 /**
- * A percentage as a slider plus its numeric readout, mirroring
- * `RetirementAgeSlider`. The range comes from the domain bounds, so the thumb
- * can only produce values the schema accepts; four-decimal typing stays possible
+ * A percentage as a slider plus its numeric readout. The track and thumb are
+ * drawn from the design tokens (`bg-muted` track, `bg-primary` thumb) rather
+ * than the browser's `accent-color`, so the control matches `progress` and
+ * `switch`. The range comes from the domain bounds, so the thumb can only
+ * produce values the schema accepts; four-decimal typing stays possible
  * elsewhere and an off-step value still renders at its own position.
  *
  * A blank value is not snapped to `min` — it reads as a dash so "unset" and
@@ -49,7 +51,7 @@ export const PercentSlider = forwardRef<HTMLInputElement, PercentSliderProps>(
           {...props}
           ref={ref}
           type="range"
-          className="accent-primary h-1 w-full"
+          className="bg-muted focus-visible:ring-ring focus-visible:ring-offset-background h-1 w-full cursor-pointer appearance-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-primary [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary"
           min={min}
           max={max}
           step={step}
@@ -63,7 +65,7 @@ export const PercentSlider = forwardRef<HTMLInputElement, PercentSliderProps>(
             {value === '' ? PROJECTION_COMMON_LABELS.DASH : `${value}%`}
           </span>
         )}
-        {error && <span className="sr-only">invalid</span>}
+        {error && <span className="sr-only">{PROJECTION_COMMON_LABELS.INVALID}</span>}
       </span>
     );
   },

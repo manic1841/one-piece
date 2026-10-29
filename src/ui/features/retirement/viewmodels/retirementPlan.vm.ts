@@ -56,21 +56,25 @@ export interface RetirementPlanVM {
   events: PlanEventVM[];
 }
 
-const DASH = '—';
-
 const percent = (value: number): string => `${Number((value * 100).toFixed(4))}%`;
 
 function ruleParameter(rule: ProjectionRule): string {
   switch (rule.method) {
     case 'growthRate':
-      return 'rate' in rule.parameters ? percent(rule.parameters.rate) : DASH;
+      return 'rate' in rule.parameters
+        ? percent(rule.parameters.rate)
+        : PROJECTION_COMMON_LABELS.DASH;
     case 'percentage':
-      return 'ratio' in rule.parameters ? percent(rule.parameters.ratio) : DASH;
+      return 'ratio' in rule.parameters
+        ? percent(rule.parameters.ratio)
+        : PROJECTION_COMMON_LABELS.DASH;
     case 'fixedAmount':
-      return 'amount' in rule.parameters ? formatCurrency(rule.parameters.amount) : DASH;
+      return 'amount' in rule.parameters
+        ? formatCurrency(rule.parameters.amount)
+        : PROJECTION_COMMON_LABELS.DASH;
     case 'inflation':
     case 'debtAmortization':
-      return DASH;
+      return PROJECTION_COMMON_LABELS.DASH;
   }
 }
 
@@ -89,7 +93,8 @@ function parameterLabel(rule: ProjectionRule): string {
 }
 
 function endCondition(rule: ProjectionRule): string {
-  if (rule.endCondition === undefined || rule.endCondition === null) return DASH;
+  if (rule.endCondition === undefined || rule.endCondition === null)
+    return PROJECTION_COMMON_LABELS.DASH;
 
   switch (rule.endCondition.type) {
     case 'specificAge':
@@ -106,11 +111,11 @@ function baselinePolicy(rule: ProjectionRule): string {
   if (policy === 'previousCompleteYear' || policy === 'specificYear') {
     return BASELINE_POLICY_LABELS[policy];
   }
-  return DASH;
+  return PROJECTION_COMMON_LABELS.DASH;
 }
 
 function sourceLabel(source: ProjectionRule['source'], ruleNames: Map<string, string>): string {
-  if (source === undefined || source === null) return DASH;
+  if (source === undefined || source === null) return PROJECTION_COMMON_LABELS.DASH;
 
   switch (source.type) {
     case 'ledgerCode':
@@ -169,7 +174,10 @@ export function mapRetirementPlanToVM(plan: RetirementPlan): RetirementPlanVM {
         startYear: phase.startYear,
         endYear: phase.endYear,
         amount: formatCurrency(phase.amount),
-        growthRate: phase.growthRate === undefined ? DASH : percent(phase.growthRate),
+        growthRate:
+          phase.growthRate === undefined
+            ? PROJECTION_COMMON_LABELS.DASH
+            : percent(phase.growthRate),
       })),
     })),
   };

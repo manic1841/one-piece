@@ -8,20 +8,17 @@ import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PREVIEW_LABELS } from '@/ui/constants/retirement/previewLabels';
+import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useLedgerCodes } from '@/ui/features/ledger/hooks/useLedgerCodes';
-import { AssumptionsSection } from '@/ui/features/retirement/components/AssumptionsSection';
-import { LifeEventsSection } from '@/ui/features/retirement/components/LifeEventsSection';
-import { OpeningNetWorthSection } from '@/ui/features/retirement/components/OpeningNetWorthSection';
-import { ProjectionRulesSection } from '@/ui/features/retirement/components/ProjectionRulesSection';
 import { ProjectionStartDialog } from '@/ui/features/retirement/components/ProjectionStartDialog';
 import { SaveProjectionDialog } from '@/ui/features/retirement/components/SaveProjectionDialog';
 import { WorkspaceActionBar } from '@/ui/features/retirement/components/WorkspaceActionBar';
-import { WorkspaceNotices } from '@/ui/features/retirement/components/WorkspaceNotices';
 import { WorkspacePinnedBar } from '@/ui/features/retirement/components/WorkspacePinnedBar';
 import { WorkspacePreview } from '@/ui/features/retirement/components/WorkspacePreview';
 import { WorkspaceRail } from '@/ui/features/retirement/components/WorkspaceRail';
+import { WorkspaceSetupSections } from '@/ui/features/retirement/components/WorkspaceSetupSections';
 import { WorkspaceSteps } from '@/ui/features/retirement/components/WorkspaceSteps';
 import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import { useProjectionWorkspace } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
@@ -50,16 +47,7 @@ export default function ProjectionWorkspacePage() {
   const lifeEventsRef = useRef<HTMLDivElement>(null);
   const [revealYear, setRevealYear] = useState<number | null>(null);
   const isPreview = workspace.stage === 'preview';
-
-  const birthYear = Number(workspace.assumptions.values.birthYear);
-  const lifeExpectancy = Number(workspace.assumptions.values.lifeExpectancy);
-  const finalYear =
-    Number.isFinite(birthYear) &&
-    Number.isFinite(lifeExpectancy) &&
-    birthYear > 0 &&
-    lifeExpectancy > 0
-      ? birthYear + lifeExpectancy
-      : null;
+  const finalYear = workspace.derived.finalYear;
 
   const labelForSource = (sourceId: string) =>
     ledgerCodes.find((code) => code.code === sourceId)?.label ?? PROJECTION_COMMON_LABELS.DASH;
@@ -70,20 +58,16 @@ export default function ProjectionWorkspacePage() {
   };
 
   const openSave = () => {
-    workspace.saveForm.reset({
-      name: workspace.lastSavedName ?? workspace.appliedPlanName ?? workspace.defaultName(),
+    workspace.save.saveForm.reset({
+      name:
+        workspace.save.lastSavedName ?? workspace.appliedPlanName ?? workspace.save.defaultName(),
     });
     setSaveOpen(true);
   };
 
   const openSaveAsPlan = () => {
-    workspace.saveAsPlanForm.reset({ name: workspace.appliedPlanName ?? '' });
+    workspace.save.saveAsPlanForm.reset({ name: workspace.appliedPlanName ?? '' });
     setSaveAsPlanOpen(true);
-  };
-
-  const rememberEvents = () => {
-    const snapshot = workspace.events.snapshot();
-    workspace.pushUndo(() => workspace.events.replaceDrafts(snapshot));
   };
 
   /**
@@ -116,31 +100,17 @@ export default function ProjectionWorkspacePage() {
     });
   };
 
-  const changeRange = (
-    eventId: string,
-    phaseId: string,
-    targetEventId: string,
-    startYear: number,
-    endYear: number,
-  ) => {
-    if (eventId === targetEventId) {
-      workspace.events.setPhaseRange(eventId, phaseId, startYear, endYear);
-      return;
-    }
-    workspace.events.movePhase(eventId, phaseId, targetEventId, startYear, endYear);
-  };
-
   const openingAmountText = (() => {
-    const amount = Number(workspace.opening.amountText);
-    return workspace.opening.amountText.trim() === '' || !Number.isFinite(amount)
+    const amount = Number(workspace.opening.value.amountText);
+    return workspace.opening.value.amountText.trim() === '' || !Number.isFinite(amount)
       ? null
       : formatCurrency(amount);
   })();
   const showRail = !isPreview && workspace.indicators.status !== 'idle';
 
   const sectionState = buildSectionState({
-    blockers: workspace.readiness.blockers,
-    openingValidationError: workspace.openingValidationError,
+    blockers: workspace.derived.readiness.blockers,
+    openingValidationError: workspace.opening.validationError,
     assumptionsInvalid: Object.keys(workspace.assumptions.errors).length > 0,
     rulesInvalid: Object.keys(workspace.rules.errors).length > 0,
     eventsInvalid: Object.keys(workspace.events.errors).length > 0,
@@ -151,6 +121,7 @@ export default function ProjectionWorkspacePage() {
       <PageHeader
         title={PROJECTION_WORKSPACE_LABELS.TITLE}
         onBack={() => void navigate('/retirement')}
+        backLabel={PROJECTION_VIEW_LABELS.BACK_TO_LIST}
         description={
           !isPreview && workspace.appliedPlanName ? (
             <span
@@ -208,128 +179,43 @@ export default function ProjectionWorkspacePage() {
         <div className="min-w-0 [&_label]:text-xs">
           {isPreview ? (
             <WorkspacePreview
-              retirementComparisons={workspace.retirementComparisons}
-              onApplyRetirementAge={workspace.applyRetirementAge}
+              retirementComparisons={workspace.calc.retirementComparisons}
+              onApplyRetirementAge={workspace.calc.applyRetirementAge}
               appliedPlanName={workspace.appliedPlanName}
               startYear={workspace.startYear}
-              opening={workspace.opening}
+              opening={workspace.opening.value}
               openingAmount={openingAmountText}
               assumptions={workspace.assumptions.values}
               rules={workspace.rules.rules}
               events={workspace.events.events}
               labelForSource={labelForSource}
-              calculateError={workspace.calculateError}
-              warningLabels={workspace.warningLabels}
-              calculated={workspace.calculated}
-              savedAsPlan={workspace.savedAsPlan}
-              savedId={workspace.savedId}
+              calculateError={workspace.calc.calculateError}
+              warningLabels={workspace.calc.warningLabels}
+              calculated={workspace.calc.calculated}
+              savedAsPlan={workspace.save.savedAsPlan}
+              savedId={workspace.save.savedId}
             />
           ) : (
-            <div className="grid">
-              <OpeningNetWorthSection
-                opening={workspace.opening}
-                stage={workspace.stage}
-                loading={workspace.openingLoading}
-                error={workspace.openingError}
-                validationError={workspace.openingValidationError}
-                hasClosedPeriod={workspace.hasClosedPeriod}
-                hasSnapshot={workspace.hasSnapshot}
-                startYear={workspace.startYear}
-                startYearError={workspace.startYearValidationError}
-                setStartYear={workspace.setStartYear}
-                setAmount={workspace.setOpeningAmount}
-                commitAmount={workspace.commitOpeningAmount}
-                resetToSnapshot={workspace.resetToSnapshot}
-                retry={workspace.retryOpening}
-                status={
-                  workspace.openingValidationError === undefined
-                    ? sectionState.baseline?.status
-                    : 'error'
-                }
-                hint={sectionState.baseline?.hint}
-              />
-
-              <AssumptionsSection
-                form={workspace.assumptions.form}
-                errors={workspace.assumptions.errors}
-                bounds={workspace.assumptionBounds}
-                birthYearLocked={workspace.assumptions.birthYearLocked}
-                readOnly={isPreview}
-                ageRange={workspace.ageRange}
-                retirementYear={workspace.retirementYear}
-                onRetirementAgeChange={workspace.setRetirementAge}
-                onFieldChange={workspace.setAssumptionField}
-                status={sectionState.assumptions?.status}
-                hint={sectionState.assumptions?.hint}
-              />
-
-              <ProjectionRulesSection
-                form={workspace.rules.form}
-                rules={workspace.rules.rules}
-                errors={workspace.rules.errors}
-                readOnly={isPreview}
-                ledgerCodes={ledgerCodes}
-                debtAccounts={debtAccounts}
-                add={workspace.rules.add}
-                remove={workspace.rules.remove}
-                replace={workspace.rules.replace}
-                toggle={workspace.rules.toggle}
-                update={workspace.rules.update}
-                setRuleType={workspace.rules.setRuleType}
-                setMethod={workspace.rules.setMethod}
-                setSourceType={workspace.rules.setSourceType}
-                status={sectionState.rules?.status}
-                hint={sectionState.rules?.hint}
-              />
-
-              <div id="life-events" ref={lifeEventsRef} className="scroll-mt-6">
-                <LifeEventsSection
-                  form={workspace.events.form}
-                  events={workspace.events.events}
-                  errors={workspace.events.errors}
-                  readOnly={isPreview}
-                  focusRequest={workspace.events.focusRequest}
-                  projectionStartYear={workspace.startYear}
-                  birthYear={birthYear || workspace.startYear}
-                  lifeExpectancy={lifeExpectancy || 1}
-                  retirementYear={workspace.retirementYear}
-                  revealYear={revealYear}
-                  canUndo={workspace.canUndo}
-                  onUndo={workspace.undo}
-                  remove={workspace.events.remove}
-                  toggle={workspace.events.toggle}
-                  update={workspace.events.update}
-                  setType={workspace.events.setType}
-                  addPhase={workspace.events.addPhase}
-                  addPhaseAt={workspace.events.addPhaseAt}
-                  addEventWithPhase={workspace.events.addEventWithPhase}
-                  removePhase={workspace.events.removePhase}
-                  updatePhase={workspace.events.updatePhase}
-                  onGestureStart={rememberEvents}
-                  onRangeChange={changeRange}
-                  status={sectionState.events?.status}
-                  hint={sectionState.events?.hint}
-                />
-              </div>
-
-              {!workspace.calculated && workspace.errorLabels.length > 0 && (
-                <div className="space-y-1" role="alert" data-testid="projection-errors">
-                  {workspace.errorLabels.map((error, index) => (
-                    <p key={`${error}-${index}`} className="text-negative text-sm">
-                      {error}
-                    </p>
-                  ))}
-                </div>
-              )}
-
-              {workspace.calculateError !== null && (
-                <Alert variant="destructive">
-                  <AlertDescription>{workspace.calculateError}</AlertDescription>
-                </Alert>
-              )}
-
-              <WorkspaceNotices savedAsPlan={workspace.savedAsPlan} savedId={workspace.savedId} />
-            </div>
+            <WorkspaceSetupSections
+              stage={workspace.stage}
+              opening={workspace.opening}
+              assumptions={workspace.assumptions}
+              rules={workspace.rules}
+              events={workspace.events}
+              startYear={workspace.startYear}
+              setStartYear={workspace.setStartYear}
+              setRetirementAge={workspace.setRetirementAge}
+              setAssumptionField={workspace.setAssumptionField}
+              derived={workspace.derived}
+              undo={workspace.undo}
+              calc={workspace.calc}
+              save={workspace.save}
+              sectionState={sectionState}
+              ledgerCodes={ledgerCodes}
+              debtAccounts={debtAccounts}
+              lifeEventsRef={lifeEventsRef}
+              revealYear={revealYear}
+            />
           )}
         </div>
 
@@ -337,7 +223,7 @@ export default function ProjectionWorkspacePage() {
           <WorkspaceRail
             className="md:sticky md:top-6 md:self-start"
             indicators={workspace.indicators}
-            retirementYear={workspace.retirementYear}
+            retirementYear={workspace.derived.retirementYear}
             finalYear={finalYear}
             onJumpToYear={jumpToYear}
           />
@@ -349,7 +235,7 @@ export default function ProjectionWorkspacePage() {
       <div className="sticky bottom-[var(--bottom-overlay,0px)] z-10">
         {!isPreview && (
           <WorkspacePinnedBar
-            readiness={workspace.readiness}
+            readiness={workspace.derived.readiness}
             indicators={workspace.indicators}
             onJumpToYear={jumpToYear}
           />
@@ -357,10 +243,10 @@ export default function ProjectionWorkspacePage() {
 
         <WorkspaceActionBar
           preview={isPreview}
-          readiness={workspace.readiness}
-          calculating={workspace.calculating}
-          canSave={workspace.calculated !== null}
-          onCalculate={() => void workspace.calculate()}
+          readiness={workspace.derived.readiness}
+          calculating={workspace.calc.calculating}
+          canSave={workspace.calc.calculated !== null}
+          onCalculate={() => void workspace.calc.calculate()}
           onBack={workspace.backToSetup}
           onSave={openSave}
         />
@@ -377,8 +263,8 @@ export default function ProjectionWorkspacePage() {
       {saveOpen && (
         <SaveProjectionDialog
           open
-          form={workspace.saveForm}
-          submit={() => workspace.submitSave(() => setSaveOpen(false))}
+          form={workspace.save.saveForm}
+          submit={() => workspace.save.submitSave(() => setSaveOpen(false))}
           onCancel={() => setSaveOpen(false)}
         />
       )}
@@ -390,8 +276,8 @@ export default function ProjectionWorkspacePage() {
           nameLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME}
           confirmLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_CONFIRM}
           savingLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_SAVING}
-          form={workspace.saveAsPlanForm}
-          submit={() => workspace.submitSaveAsPlan(() => setSaveAsPlanOpen(false))}
+          form={workspace.save.saveAsPlanForm}
+          submit={() => workspace.save.submitSaveAsPlan(() => setSaveAsPlanOpen(false))}
           onCancel={() => setSaveAsPlanOpen(false)}
         />
       )}

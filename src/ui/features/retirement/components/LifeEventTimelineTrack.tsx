@@ -1,5 +1,7 @@
+import { TIMELINE_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { RULE_TYPE_LABELS } from '@/ui/constants/retirement/setupLabels';
 import { LifeEventTimelineBar } from '@/ui/features/retirement/components/LifeEventTimelineBar';
+import { RETIREMENT_YEAR_MARKER_CLASS } from '@/ui/features/retirement/components/timelineStyles';
 import { type TimelineGesture } from '@/ui/features/retirement/components/useTimelineGesture';
 import {
   type TimelineBar,
@@ -89,7 +91,7 @@ export function LifeEventTimelineTrack({
     <div
       ref={trackRef}
       role="toolbar"
-      aria-label="Life event timeline"
+      aria-label={TIMELINE_LABELS.TRACK}
       className={cn(
         'relative grid select-none border-y border-border py-1',
         !readOnly && 'cursor-crosshair',
@@ -112,7 +114,7 @@ export function LifeEventTimelineTrack({
             key={tick}
             className={cn(
               'border-l border-border/60',
-              tick === anchorYear && 'border-dashed border-border-strong',
+              tick === anchorYear && RETIREMENT_YEAR_MARKER_CLASS,
             )}
             style={{ gridColumn: tick - windowStart + 1 }}
           />

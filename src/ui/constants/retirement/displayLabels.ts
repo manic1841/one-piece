@@ -1,6 +1,8 @@
 export const PROJECTION_COMMON_LABELS = {
   DASH: '—',
   CHECK: '✓',
+  /** Marks a column whose trial could not be calculated. */
+  ERROR_MARK: '×',
   YES: 'Yes',
   NO: 'No',
   RETIRED: '退休',
@@ -9,6 +11,8 @@ export const PROJECTION_COMMON_LABELS = {
   RATIO_PREFIX: '比例',
   CURRENCY_PREFIX: 'NT$',
   LOADING: '載入中…',
+  /** Screen-reader wording for a field that failed its schema. */
+  INVALID: 'invalid',
 } as const;
 
 export const PROJECTION_RISK_LABELS = {

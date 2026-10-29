@@ -255,12 +255,12 @@ describe('useLifeEventDrafts', () => {
   });
 
   it('moves a phase to another event and blanks the row it left', () => {
-    const source = addEvent('Car');
+    addEvent('Car');
     const [phase] = latest.events[0].phases;
     act(() => latest.addEventWithPhase(2070, 2070));
     const target = latest.events[1];
 
-    act(() => latest.movePhase(source.id, phase.id, target.id, 2044, 2045));
+    act(() => latest.movePhase(phase.id, target.id, 2044, 2045));
 
     const [left] = latest.events[0].phases;
     expect(left.id).not.toBe(phase.id);
@@ -273,30 +273,85 @@ describe('useLifeEventDrafts', () => {
   });
 
   it('keeps moving a phase that has already left its original row', () => {
-    const source = addEvent('Car');
+    addEvent('Car');
     const [phase] = latest.events[0].phases;
     act(() => latest.addEventWithPhase(2070, 2070));
     const target = latest.events[1];
 
     // A drag commits once per pointer move, so later moves still name the row
     // the phase started in.
-    act(() => latest.movePhase(source.id, phase.id, target.id, 2044, 2045));
-    act(() => latest.movePhase(source.id, phase.id, target.id, 2048, 2049));
+    act(() => latest.movePhase(phase.id, target.id, 2044, 2045));
+    act(() => latest.movePhase(phase.id, target.id, 2048, 2049));
 
     const moved = latest.events.find((event) => event.phases.some((one) => one.id === phase.id));
     expect(moved?.id).toBe(target.id);
     expect(moved?.phases.find((one) => one.id === phase.id)?.startYearText).toBe('2048');
   });
 
-  it('renames a phase whose name is already taken in the target row', () => {
+  it('settles a range edit in place when the target row is the owner', () => {
+    const event = addEvent('Car');
+    const [phase] = latest.events[0].phases;
+
+    act(() => latest.movePhase(phase.id, event.id, 2042, 2043));
+
+    expect(latest.events[0].phases[0]).toMatchObject({
+      startYearText: '2042',
+      endYearText: '2043',
+    });
+  });
+
+  it('still moves a phase dropped back on a row it has already left', () => {
     const source = addEvent('Car');
+    const [phase] = latest.events[0].phases;
+    act(() => latest.addEventWithPhase(2070, 2070));
+    const target = latest.events[1];
+
+    act(() => latest.movePhase(phase.id, target.id, 2044, 2045));
+    // The pointer went back to the row it started in; the caller still holds the
+    // origin id, so the owner has to be looked up by phase id.
+    act(() => latest.movePhase(phase.id, source.id, 2046, 2047));
+
+    const moved = latest.events.find((event) => event.phases.some((one) => one.id === phase.id));
+    expect(moved?.id).toBe(source.id);
+    expect(moved?.phases.find((one) => one.id === phase.id)?.startYearText).toBe('2046');
+  });
+
+  it('reparents from the inspector without changing the years', () => {
+    addEvent('Car');
+    const [phase] = latest.events[0].phases;
+    act(() => latest.addEventWithPhase(2070, 2070));
+    const target = latest.events[1];
+
+    act(() => latest.reparentPhase(phase.id, target.id));
+
+    expect(latest.events[0].phases[0].id).not.toBe(phase.id);
+    expect(latest.events[1].phases.find((one) => one.id === phase.id)).toMatchObject({
+      startYearText: '2040',
+      endYearText: '2040',
+    });
+  });
+
+  it('keeps a blank year blank when reparenting', () => {
+    const source = addEvent('Car');
+    const [phase] = latest.events[0].phases;
+    fillPhase(source.id, phase.id, { endYearText: '' });
+    act(() => latest.addEventWithPhase(2070, 2070));
+    const target = latest.events[1];
+
+    act(() => latest.reparentPhase(phase.id, target.id));
+
+    expect(latest.events[1].phases.find((one) => one.id === phase.id)?.endYearText).toBe('');
+  });
+
+  it('renames a phase whose name is already taken in the target row', () => {
+    addEvent('Car');
     const [phase] = latest.events[0].phases;
     act(() => latest.addEventWithPhase(2070, 2070));
     const target = latest.events[1];
     expect(target.phases[0].name).toBe('Phase 1');
     expect(phase.name).toBe('Phase 1');
 
-    act(() => latest.movePhase(source.id, phase.id, target.id, 2044, 2044));
+    act(() => latest.movePhase(phase.id, target.id, 2044, 2044));
 
     expect(latest.events[1].phases.map((one) => one.name).sort()).toEqual(['Phase 1', 'Phase 2']);
   });

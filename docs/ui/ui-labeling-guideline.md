@@ -77,7 +77,7 @@ Free-form UI chrome (button text, error messages, subtitles, descriptive copy) i
 - `src/ui/constants/transaction/displayLabels.ts` is the only API surface UI code may import.
 - `INTENT_LABELS` in `displayLabels.ts` is a full static table for all domain intents (see ADR-0046); `src/domains/ledger/intentMapping.ts` carries no display labels, only accounting semantics.
 - `src/ui/constants/report/ledgerCodeLabels.ts` is an internal layer under `displayLabels.ts`; UI feature code must not import it directly.
-- `src/ui/constants/transaction/label.ts` does not exist (removed); references to it are historical.
+- `src/ui/constants/transaction/label.ts` does not exist (removed); references to it are historical. <!-- docs:check-ignore -->
 
 ## Ledger Code Enumeration
 

@@ -11,6 +11,7 @@ import { LineChart } from '@/ui/components/charts/LineChart';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import type { MoneyTone } from '@/ui/components/moneyTone';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 
 import { GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
@@ -89,7 +90,7 @@ const PROJECTION_POINTS = PROJECTION_LABELS.map((year, index) => ({
 }));
 
 const NET_WORTH_POINTS = [
-  { title: 'OCT 2025', value: 'NT$4,120,000', meta: '—' },
+  { title: 'OCT 2025', value: 'NT$4,120,000', meta: PROJECTION_COMMON_LABELS.DASH },
   { title: 'NOV 2025', value: 'NT$4,180,000', meta: '+1.5%' },
   { title: 'DEC 2025', value: 'NT$4,160,000', meta: '+1.0%' },
   { title: 'JAN 2026', value: 'NT$4,310,000', meta: '+4.6%' },

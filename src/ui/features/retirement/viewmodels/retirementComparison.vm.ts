@@ -22,6 +22,8 @@ export interface RetirementComparisonVM {
 const delta = (value: number | null, base: number | null): string | null => {
   if (value === null || base === null) return null;
   const difference = value - base;
+  // The contract: a difference only shows when the ages actually differ.
+  if (difference === 0) return null;
   return `${difference > 0 ? '+' : ''}${formatCurrency(difference)}`;
 };
 

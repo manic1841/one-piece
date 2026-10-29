@@ -1,3 +1,4 @@
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';
 import { type RuleDraftVM } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
 import { formatCurrency } from '@/ui/utils';
@@ -29,20 +30,20 @@ function parameterSummary(rule: RuleDraftVM, sourceLabel: string): string {
     case 'fixedAmount':
       return [
         rule.amountText.trim() === '' || !Number.isFinite(amount)
-          ? '—'
+          ? PROJECTION_COMMON_LABELS.DASH
           : `${formatCurrency(amount)} ${RULE_LABELS.SUMMARY_PER_YEAR}`,
         ...(rule.keepsPace ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION] : []),
         endCondition,
       ].join(' · ');
     case 'percentage':
       return [
-        `${rule.ratioText.trim() === '' ? '—' : `${rule.ratioText}%`} ${RULE_LABELS.SUMMARY_OF} ${source}`,
+        `${rule.ratioText.trim() === '' ? PROJECTION_COMMON_LABELS.DASH : `${rule.ratioText}%`} ${RULE_LABELS.SUMMARY_OF} ${source}`,
         ...(rule.keepsPace ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION] : []),
         endCondition,
       ].join(' · ');
     case 'growthRate':
       return [
-        `${rule.rateText.trim() === '' ? '—' : `${rule.rateText}%`} ${RULE_LABELS.SUMMARY_ANNUAL_GROWTH}`,
+        `${rule.rateText.trim() === '' ? PROJECTION_COMMON_LABELS.DASH : `${rule.rateText}%`} ${RULE_LABELS.SUMMARY_ANNUAL_GROWTH}`,
         source,
         ...(rule.keepsPace ? [RULE_LABELS.SUMMARY_FOLLOWS_INFLATION] : []),
         endCondition,

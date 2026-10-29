@@ -12,7 +12,7 @@ import { RETIREMENT_YEAR_BOUNDS } from '@/ui/constants/retirement/bounds';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { WORKSPACE_SECTION_LABELS } from '@/ui/constants/retirement/workspaceRailLabels';
-import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
+import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/types/workspaceTypes';
 import { numberOptions } from '@/ui/features/retirement/viewmodels/numberOptions.vm';
 import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 import { formatCurrency } from '@/ui/utils';

@@ -87,49 +87,18 @@ export function useLifeEventPhases({ latest, commit, requestFocus }: PhaseDraftO
     [commit, latest],
   );
 
-  /** Timeline drag/resize settlement on one phase. */
-  const setPhaseRange = useCallback(
-    (eventId: string, phaseId: string, startYear: number, endYear: number) => {
-      commit(
-        latest.current.map((event) =>
-          event.id === eventId
-            ? {
-                ...event,
-                phases: sortPhases(
-                  event.phases.map((phase) =>
-                    phase.id === phaseId
-                      ? {
-                          ...phase,
-                          startYearText: String(startYear),
-                          endYearText: String(endYear),
-                          touched: true,
-                        }
-                      : phase,
-                  ),
-                ),
-                touched: true,
-              }
-            : event,
-        ),
-      );
-    },
-    [commit, latest],
-  );
-
   /**
-   * Re-parent a phase; it adopts the target event's side. The current owner is
-   * looked up from the phase id rather than trusted from `_fromEventId`: a drag
-   * commits once per pointer move, so after the first one the caller's idea of
-   * the owner is already stale.
+   * Move a phase onto another event; it adopts the target event's side. The
+   * current owner is looked up from the phase id, never taken from the caller:
+   * a drag commits once per pointer move, so the caller's idea of the owner is
+   * stale after the first one.
+   *
+   * Omit the years to keep the span as typed (a blank year stays blank) — that
+   * is the pointer-free re-parent the inspector uses. Passing the same event id
+   * settles a range edit in place.
    */
   const movePhase = useCallback(
-    (
-      _fromEventId: string,
-      phaseId: string,
-      targetEventId: string,
-      startYear: number,
-      endYear: number,
-    ) => {
+    (phaseId: string, targetEventId: string, startYear?: number, endYear?: number) => {
       const current = latest.current;
       const owner = current.find((event) => event.phases.some((phase) => phase.id === phaseId));
       const moving = owner?.phases.find((phase) => phase.id === phaseId);
@@ -146,8 +115,12 @@ export function useLifeEventPhases({ latest, commit, requestFocus }: PhaseDraftO
           changedRows && targetNames.includes(moving.name)
             ? nextDefaultName(targetNames, EVENT_LABELS.PHASE_NAME_PREFIX)
             : moving.name,
-        startYearText: String(startYear),
-        endYearText: String(endYear),
+        startYearText:
+          startYear !== undefined && Number.isFinite(startYear)
+            ? String(startYear)
+            : moving.startYearText,
+        endYearText:
+          endYear !== undefined && Number.isFinite(endYear) ? String(endYear) : moving.endYearText,
         touched: true,
       };
       commit(
@@ -184,6 +157,12 @@ export function useLifeEventPhases({ latest, commit, requestFocus }: PhaseDraftO
       );
     },
     [commit, latest],
+  );
+
+  /** Re-parent from the inspector: the span is kept exactly as typed. */
+  const reparentPhase = useCallback(
+    (phaseId: string, targetEventId: string) => movePhase(phaseId, targetEventId),
+    [movePhase],
   );
 
   /**
@@ -251,5 +230,12 @@ export function useLifeEventPhases({ latest, commit, requestFocus }: PhaseDraftO
     [commit, latest, requestFocus],
   );
 
-  return { addPhase, addPhaseAt, setPhaseRange, movePhase, removePhase, updatePhase };
+  return {
+    addPhase,
+    addPhaseAt,
+    movePhase,
+    reparentPhase,
+    removePhase,
+    updatePhase,
+  };
 }

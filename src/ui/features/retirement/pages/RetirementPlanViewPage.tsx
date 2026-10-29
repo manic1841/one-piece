@@ -95,6 +95,7 @@ export default function RetirementPlanViewPage() {
         crumb={PLAN_DETAIL_LABELS.CRUMB}
         title={<InlineEditableTitle value={vm.name} onSave={handleRename} disabled={!canManage} />}
         onBack={backToList}
+        backLabel={PLAN_DETAIL_LABELS.BACK_LABEL}
         meta={
           <p className="mt-1 text-sm text-muted-foreground">
             {PLAN_DETAIL_LABELS.UPDATED_AT}: {vm.updatedAtText}

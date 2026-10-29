@@ -133,7 +133,7 @@
 ## 頁面骨架
 
 - **`PageHeader`** — List / Detail / Workspace 頁的 Page Header：Title、Description、Actions，另可帶 crumb、badge、meta 與返回。
-  - Props：`title`（必填）、`description?`、`crumb?`、`badge?`、`meta?`、`actions?`、`onBack?`。
+  - Props：`title`（必填）、`description?`、`crumb?`、`badge?`、`meta?`、`actions?`、`onBack?`、`backLabel?`（返回鈕的無障礙名稱，預設 `Back`）。
   - 變體：無。
   - **不要用於**：把 Header 做成 Card、塞大量 Metric；那些是 [`visual-standards.md`](visual-standards.md) Page Shell 的禁止事項。
   - 範例：`src/ui/features/debt/pages/DebtDetailPage.tsx`
@@ -213,9 +213,8 @@
 
 - **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 section 標題（14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band。
   - **band 狀態**：`status` 在標題前放 `StatusGlyph`（並補 `sr-only` 狀態字），`hint` 在標題下掛一行 muted 原因。呼叫端只在值得回報時才傳——驗證錯誤用 `status="error"`，單純「還沒填」只給 `hint`，避免每頁排版都長滿字形。
-  - **不要用於**：同一段落的第二層標題（用 `Module`）。
-  - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
-  - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
+  - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`status?`（`StatusGlyph` 狀態）、`hint?`（標題下的單行原因）、`testId?`、`ariaLabel?`（具名的 `<section>` 成為 landmark）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
+  - **不要用於**：同一段落的第二層標題（用 `Module`）；section 內的個別單元；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）、`src/ui/features/project/pages/ProjectDetailPage.tsx`、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`。
 
 - **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
@@ -336,7 +335,7 @@
   - `area` 的面積預設填到 0 基準線；`baselineValues` 逐點指定另一條線為下緣（堆疊帶，例如把投資報酬疊在收入之上）；基線逐點變動時，面積路徑的下緣會逐一描過基線取樣點，不會只收兩個角點而切過那條線。面積一律是該序列顏色的**單色資料歸屬漸層**：濃度端在該帶自己的線上，往它的基線淡出；基線在線的上方時（零基準以下的支出帶、或被堆疊在別人之下）方向整個反轉（[ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)）。
   - 一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
   - **不要用於**：需要 hover 明細——用 `InteractiveComposedChart`。
-  - 範例：`src/ui/features/retirement-redesign/components/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨資產變動線＋淨資產右軸線）。
+  - 範例：`src/ui/features/retirement/components/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨資產變動線＋淨資產右軸線）。
 
 - **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_DONUT_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
   - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
@@ -371,7 +370,7 @@
 - **`charts / InteractiveComposedChart`** — `ComposedChart` ＋ hover／鍵盤 scrubber：導線、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠移到任一欄位（以指標 x 位置命中）或鍵盤左右鍵都能選取該欄（Escape 清除）；提供 `onPointClick` 時，點擊或 Enter／Space 會啟用該欄，供選取年份等行為使用。
   - Props：`labels`、`series`、`referenceLines?`、`points`（`{ title, value, meta? }[]`）、`height?`、`showLabels?`、`ariaLabel`（必填）、`onPointClick?`、`className?`。
   - **不要用於**：只是要看趨勢、不需要明細——用 `ComposedChart`。
-  - 範例：`src/ui/features/retirement-redesign/components/CashFlowChart.tsx`、`src/ui/features/retirement-redesign/components/NetWorthChart.tsx`
+  - 範例：`src/ui/features/retirement/components/CashFlowChart.tsx`、`src/ui/features/retirement/components/NetWorthChart.tsx`
 
 ## data-table 套件
 
@@ -503,10 +502,10 @@
 
 `src/ui/components/ui/` 是 shadcn 產生的 primitive 群，包 Radix 或原生元素：`accordion`、`alert`、`badge`、`button`、`card`、`checkbox`、`command`、`dialog`、`dropdown-menu`、`input`、`label`、`popover`、`select`、`sheet`、`switch`、`table`、`tabs`、`textarea`。
 
-- 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向。
+- 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向。`switch` 沒有自己的錯誤樣式，只轉發 `FormControl` 注入的 `error` 為 `aria-invalid`。
 - **何時不要用**：表單欄位不要直接用 `input`／`select`／`textarea`，用 `form/` 的對應欄位（見下方裁決）；表格不要直接用 `table`，用 `data-table` 套件。
 - 這些元件的表面契約（尺寸、狀態、radius、shadow 允用清單）屬 [`design-system.md`](design-system.md) §7。
-- 範例：`src/ui/features/retirement-redesign/pages/ProjectionWorkspacePage.tsx`
+- 範例：`src/ui/features/retirement/pages/ProjectionWorkspacePage.tsx`
 
 ### 近重複裁決
 

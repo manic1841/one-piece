@@ -21,6 +21,8 @@ export const EVENT_LABELS = {
   ADD_PHASE: 'ADD PHASE',
   DELETE_PHASE: 'Delete phase',
   PHASE_NAME: 'Phase name',
+  /** Phase owner; the pointer path is dragging the bar to another row. */
+  BELONGS_TO: 'Belongs to event',
   PERIOD: 'Period',
   PERIOD_SEPARATOR: '–',
   START_YEAR: 'Start year',
@@ -28,6 +30,13 @@ export const EVENT_LABELS = {
   AMOUNT: 'Amount',
   GROWTH_RATE: 'Growth rate (%)',
   GROWTH_RATE_HINT: 'Leave blank to follow plan inflation.',
+} as const;
+
+/** Timeline chrome: the track's accessible name and its pan buttons. */
+export const TIMELINE_LABELS = {
+  TRACK: 'Life event timeline',
+  PAN_BACK: (step: number) => `Pan ${step} year${step === 1 ? '' : 's'} back`,
+  PAN_FORWARD: (step: number) => `Pan ${step} year${step === 1 ? '' : 's'} forward`,
 } as const;
 
 export const EVENT_TYPE_LABELS = {

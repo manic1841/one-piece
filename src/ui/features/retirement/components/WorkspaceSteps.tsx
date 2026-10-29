@@ -1,6 +1,6 @@
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
-import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
+import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/types/workspaceTypes';
 
 interface WorkspaceStepsProps {
   stage: ProjectionWorkspaceStage;

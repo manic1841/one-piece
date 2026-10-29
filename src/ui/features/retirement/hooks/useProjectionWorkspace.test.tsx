@@ -67,8 +67,8 @@ describe('useProjectionWorkspace', () => {
 
     renderWorkspace();
 
-    await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
-    expect(latestRef.current.opening).toEqual({
+    await waitFor(() => expect(latestRef.current.opening.value.amountText).toBe('380000'));
+    expect(latestRef.current.opening.value).toEqual({
       source: 'derived',
       amountText: '380000',
       anchorYearMonth: '2026-08',
@@ -83,13 +83,13 @@ describe('useProjectionWorkspace', () => {
 
     renderWorkspace();
 
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
-    expect(latestRef.current.opening).toEqual({
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
+    expect(latestRef.current.opening.value).toEqual({
       source: 'derived',
       amountText: '',
       anchorYearMonth: null,
     });
-    expect(latestRef.current.hasClosedPeriod).toBe(false);
+    expect(latestRef.current.opening.hasClosedPeriod).toBe(false);
     expect(latestRef.current.dirty).toBe(false);
   });
 
@@ -97,11 +97,11 @@ describe('useProjectionWorkspace', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
-    await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
+    await waitFor(() => expect(latestRef.current.opening.value.amountText).toBe('380000'));
 
-    act(() => latestRef.current.setOpeningAmount('380000'));
+    act(() => latestRef.current.opening.setOpeningAmount('380000'));
 
-    expect(latestRef.current.opening).toEqual({
+    expect(latestRef.current.opening.value).toEqual({
       source: 'manual',
       amountText: '380000',
       anchorYearMonth: null,
@@ -115,27 +115,27 @@ describe('useProjectionWorkspace', () => {
     });
 
     renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
 
-    expect(latestRef.current.retirementYear).toBe(2060);
+    expect(latestRef.current.derived.retirementYear).toBe(2060);
 
     act(() => {
       latestRef.current.setAssumptionField('birthYear', '1990');
       latestRef.current.setRetirementAge('60');
     });
 
-    expect(latestRef.current.retirementYear).toBe(2050);
+    expect(latestRef.current.derived.retirementYear).toBe(2050);
   });
 
   it('editing the amount marks the workspace dirty', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
 
-    act(() => latestRef.current.setOpeningAmount('-1200'));
+    act(() => latestRef.current.opening.setOpeningAmount('-1200'));
 
-    expect(latestRef.current.opening.amountText).toBe('-1200');
+    expect(latestRef.current.opening.value.amountText).toBe('-1200');
     expect(latestRef.current.dirty).toBe(true);
   });
 
@@ -143,12 +143,12 @@ describe('useProjectionWorkspace', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
-    await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
+    await waitFor(() => expect(latestRef.current.opening.value.amountText).toBe('380000'));
 
-    act(() => latestRef.current.setOpeningAmount('1'));
-    act(() => latestRef.current.resetToSnapshot());
+    act(() => latestRef.current.opening.setOpeningAmount('1'));
+    act(() => latestRef.current.opening.resetToSnapshot());
 
-    expect(latestRef.current.opening).toEqual({
+    expect(latestRef.current.opening.value).toEqual({
       source: 'derived',
       amountText: '380000',
       anchorYearMonth: '2026-08',
@@ -160,32 +160,32 @@ describe('useProjectionWorkspace', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
-    await waitFor(() => expect(latestRef.current.opening.amountText).toBe('380000'));
+    await waitFor(() => expect(latestRef.current.opening.value.amountText).toBe('380000'));
 
-    act(() => latestRef.current.setOpeningAmount('1200.6'));
-    act(() => latestRef.current.commitOpeningAmount());
+    act(() => latestRef.current.opening.setOpeningAmount('1200.6'));
+    act(() => latestRef.current.opening.commitOpeningAmount());
 
-    expect(latestRef.current.opening.amountText).toBe('1201');
-    expect(latestRef.current.opening.source).toBe('manual');
+    expect(latestRef.current.opening.value.amountText).toBe('1201');
+    expect(latestRef.current.opening.value.source).toBe('manual');
 
-    act(() => latestRef.current.resetToSnapshot());
-    act(() => latestRef.current.commitOpeningAmount());
+    act(() => latestRef.current.opening.resetToSnapshot());
+    act(() => latestRef.current.opening.commitOpeningAmount());
 
-    expect(latestRef.current.opening.source).toBe('derived');
-    expect(latestRef.current.opening.amountText).toBe('380000');
+    expect(latestRef.current.opening.value.source).toBe('derived');
+    expect(latestRef.current.opening.value.amountText).toBe('380000');
   });
 
   it('switching stages keeps the route and the draft', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     const router = renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
 
-    act(() => latestRef.current.setOpeningAmount('42'));
+    act(() => latestRef.current.opening.setOpeningAmount('42'));
     act(() => latestRef.current.goToPreview());
 
     expect(latestRef.current.stage).toBe('preview');
-    expect(latestRef.current.opening.amountText).toBe('42');
+    expect(latestRef.current.opening.value.amountText).toBe('42');
     expect(router.state.location.pathname).toBe('/retirement/new');
 
     act(() => latestRef.current.backToSetup());
@@ -196,7 +196,7 @@ describe('useProjectionWorkspace', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
 
     act(() => latestRef.current.events.addEventWithPhase(2045, 2045));
     expect(latestRef.current.valid).toBe(false);
@@ -238,13 +238,13 @@ describe('useProjectionWorkspace', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
 
     const cleanEvent = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(cleanEvent);
     expect(cleanEvent.defaultPrevented).toBe(false);
 
-    act(() => latestRef.current.setOpeningAmount('5'));
+    act(() => latestRef.current.opening.setOpeningAmount('5'));
 
     const dirtyEvent = new Event('beforeunload', { cancelable: true });
     window.dispatchEvent(dirtyEvent);
@@ -255,8 +255,8 @@ describe('useProjectionWorkspace', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     const router = renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
-    act(() => latestRef.current.setOpeningAmount('5'));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
+    act(() => latestRef.current.opening.setOpeningAmount('5'));
 
     await act(async () => {
       void router.navigate('/other');
@@ -271,8 +271,8 @@ describe('useProjectionWorkspace', () => {
     confirmMock.mockResolvedValue(true);
 
     const router = renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
-    act(() => latestRef.current.setOpeningAmount('5'));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
+    act(() => latestRef.current.opening.setOpeningAmount('5'));
 
     await act(async () => {
       void router.navigate('/other');
@@ -285,7 +285,7 @@ describe('useProjectionWorkspace', () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     const router = renderWorkspace();
-    await waitFor(() => expect(latestRef.current.openingLoading).toBe(false));
+    await waitFor(() => expect(latestRef.current.opening.loading).toBe(false));
 
     await act(async () => {
       await router.navigate('/other');

@@ -754,6 +754,32 @@ describe('ProjectionWorkspacePage', () => {
     expect(phaseRows(row)).toHaveLength(2);
   });
 
+  it('shows the owning event in the inspector and moves the phase from it', async () => {
+    renderWorkspace();
+    const other = await addEvent();
+    // The newest phase is the selected one, so its row is the inspector's.
+    const owner = await addEvent();
+
+    fillPhase(phaseRows(owner)[0], { name: 'World trip' });
+
+    const inspector = screen.getByTestId('life-event-inspector');
+    const select = within(inspector).getByLabelText('Belongs to event');
+    const ownerName = (within(owner).getByLabelText(/Event name/) as HTMLInputElement).value;
+    const otherName = (within(other).getByLabelText(/Event name/) as HTMLInputElement).value;
+    // The owner is listed, so the field is never blank and shows where the
+    // phase currently belongs.
+    expect(select).toHaveTextContent(ownerName);
+
+    fireEvent.click(select);
+    const options = await screen.findAllByRole('option');
+    fireEvent.click(options.find((option) => option.textContent === otherName) as HTMLElement);
+
+    expect(await within(other).findByDisplayValue('World trip')).toBeInTheDocument();
+    // The row it left keeps a blank phase instead of going empty.
+    expect(within(owner).queryByDisplayValue('World trip')).not.toBeInTheDocument();
+    expect(within(owner).getAllByTestId('phase-row')).toHaveLength(1);
+  }, 20_000);
+
   it('dashes the indicators and shows a reason when the refresh fails', async () => {
     vi.mocked(calculateProjectionWorkflow.execute).mockResolvedValue({
       ok: false,
@@ -1197,7 +1223,7 @@ describe('ProjectionWorkspacePage', () => {
     const router = renderWorkspace();
     await screen.findByText('No closed period yet.');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    fireEvent.click(screen.getByRole('button', { name: 'BACK TO PROJECTIONS' }));
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/retirement'));
   });

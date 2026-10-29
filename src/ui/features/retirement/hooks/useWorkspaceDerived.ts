@@ -3,6 +3,7 @@ import { type AssumptionsVM } from '@/ui/features/retirement/viewmodels/assumpti
 import {
   assumptionsFilled,
   currentAgeFor,
+  finalYearFor,
   retirementAgeRange,
   retirementYearFor,
 } from '@/ui/features/retirement/viewmodels/railIndicators.vm';
@@ -44,6 +45,10 @@ export function useWorkspaceDerived({
 
   return {
     openingResolved,
+    /** Numeric reads of the assumption strings, so render never parses them. */
+    birthYear: Number(assumptions.birthYear),
+    lifeExpectancy: Number(assumptions.lifeExpectancy),
+    finalYear: finalYearFor(assumptions.birthYear, assumptions.lifeExpectancy),
     readiness: buildReadiness({
       valid: rulesReady,
       incomeRuleCount,

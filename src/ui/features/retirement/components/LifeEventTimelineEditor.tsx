@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/ui/components/ui/button';
+import { TIMELINE_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { RULE_TYPE_LABELS } from '@/ui/constants/retirement/setupLabels';
 import {
   WORKSPACE_ACTION_LABELS,
@@ -8,6 +9,7 @@ import {
 } from '@/ui/constants/retirement/workspaceRailLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 import { LifeEventTimelineTrack } from '@/ui/features/retirement/components/LifeEventTimelineTrack';
+import { RETIREMENT_YEAR_MARKER_CLASS } from '@/ui/features/retirement/components/timelineStyles';
 import { useTimelineGesture } from '@/ui/features/retirement/components/useTimelineGesture';
 import { type LifeEventDraftVM } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
 import {
@@ -47,7 +49,6 @@ interface LifeEventTimelineEditorProps {
   onCreate: (startYear: number, endYear: number, eventId: string | null) => void;
   onGestureStart: () => void;
   onRangeChange: (
-    eventId: string,
     phaseId: string,
     targetEventId: string,
     startYear: number,
@@ -253,10 +254,7 @@ export function LifeEventTimelineEditor({
           </p>
           {anchorYear !== null && (
             <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span
-                className="w-3 border-t border-dashed border-border-strong"
-                aria-hidden="true"
-              />
+              <span className={`w-3 border-t ${RETIREMENT_YEAR_MARKER_CLASS}`} aria-hidden="true" />
               {WORKSPACE_RAIL_LABELS.RETIREMENT_YEAR} {retirementYear}
             </p>
           )}
@@ -274,7 +272,7 @@ export function LifeEventTimelineEditor({
               key={`left-${step}`}
               variant="text"
               size="sm"
-              aria-label={`Pan ${step} year${step === 1 ? '' : 's'} back`}
+              aria-label={TIMELINE_LABELS.PAN_BACK(step)}
               disabled={currentWindowStart <= bounds.minStart}
               onClick={() => pan(-step)}
             >
@@ -286,7 +284,7 @@ export function LifeEventTimelineEditor({
               key={`right-${step}`}
               variant="text"
               size="sm"
-              aria-label={`Pan ${step} year${step === 1 ? '' : 's'} forward`}
+              aria-label={TIMELINE_LABELS.PAN_FORWARD(step)}
               disabled={currentWindowStart >= bounds.maxStart}
               onClick={() => pan(step)}
             >

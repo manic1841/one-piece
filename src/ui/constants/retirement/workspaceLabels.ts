@@ -55,7 +55,6 @@ export const PROJECTION_WORKSPACE_LABELS = {
   START_YEAR_FIELD: 'Start year',
   START_YEAR_LOADING: 'Loading…',
   START_YEAR_INVALID: 'Enter a whole-number start year.',
-  DEFAULT_NAME_PREFIX: 'Projection',
   PRELOAD_FAILED:
     'Could not resolve the opening balance. Starting from a blank setup with the opening left empty.',
   PRELOAD_OPENING_UNRESOLVED:

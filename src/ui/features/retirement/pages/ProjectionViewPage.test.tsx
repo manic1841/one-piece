@@ -688,7 +688,9 @@ describe('ProjectionViewPage', () => {
     const router = renderView();
 
     expect(await screen.findByText('This projection no longer exists.')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'BACK TO PROJECTIONS' }));
+    // The header back and the empty-state CTA share a name; this asserts the CTA.
+    const [, emptyStateBack] = screen.getAllByRole('button', { name: 'BACK TO PROJECTIONS' });
+    fireEvent.click(emptyStateBack);
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/retirement'));
   });

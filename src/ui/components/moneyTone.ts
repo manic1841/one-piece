@@ -21,3 +21,13 @@ export const MONEY_CHANGE_TONE_CLASS: Record<MoneyChangeTone, string> = {
   ...MONEY_TONE_CLASS,
   muted: 'text-muted-foreground',
 };
+
+/**
+ * Surface for money-coded blocks (a bar, a strip): border plus fill, and the
+ * stronger fill on hover. Values share one vocabulary with the text tones above.
+ */
+export const MONEY_SURFACE_CLASS: Record<MoneyTone, { base: string; hover: string }> = {
+  default: { base: 'border-border/70 bg-muted/20', hover: 'hover:bg-muted/35' },
+  positive: { base: 'border-positive/70 bg-positive/20', hover: 'hover:bg-positive/35' },
+  negative: { base: 'border-negative/70 bg-negative/20', hover: 'hover:bg-negative/35' },
+};

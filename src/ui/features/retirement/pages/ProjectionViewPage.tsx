@@ -106,6 +106,7 @@ export default function ProjectionViewPage() {
       <PageHeader
         crumb={PROJECTION_VIEW_LABELS.CRUMB}
         onBack={() => navigate('/retirement')}
+        backLabel={PROJECTION_VIEW_LABELS.BACK_TO_LIST}
         title={
           view === null ? (
             PROJECTION_VIEW_LABELS.LOADING

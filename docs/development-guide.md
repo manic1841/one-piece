@@ -14,7 +14,7 @@ UI 變更規則。指令與部署見 [operations.md](operations.md)；各功能�
 ### 第二步：定義領域模型 (Domain Layer)
 
 - 在 `src/domains/{domain_name}/` 建立 `schemas.ts` 與 `types.ts`。
-- **嚴禁**直接在 `src/infra/schemas/` 定義業務類型。
+- **嚴禁**在 `src/infra/` 底下另立 schema 目錄定義業務類型。
 
 ### 第三步：實作存取層 (Infrastructure Layer)
 
@@ -110,7 +110,8 @@ UI 變更規則。指令與部署見 [operations.md](operations.md)；各功能�
 - **數值衝突裁決**：兩份文件對同一事實給出不同數值時，以該事實歸屬文件中最新的實測
   值為準，並在同一個 task 內修掉另一處（含 ADR 的歷史敘述）。
 - **保持 `docs/` 的準確性**：主題文件說明現在如何運作；`docs:check` 會擋下失效的相對
-  連結與暫置路徑。
+  連結、暫置路徑，以及從儲存庫頂層起算卻不存在的 `backtick` 路徑（`src/…`、`docs/…`、
+  根目錄檔名）。刻意保留的歷史路徑在該行加 `<!-- docs:check-ignore -->`。
 - **效能考量**：避免在前端進行超大規模的資料處理與循環引用。
 
 ### 3.5 新增文件前的三個測試

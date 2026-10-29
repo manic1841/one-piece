@@ -91,3 +91,13 @@ export const currentAgeFor = (birthYearText: string, currentYear: number): numbe
   const birthYear = Number(birthYearText);
   return Number.isFinite(birthYear) ? currentYear - birthYear : 0;
 };
+
+/** Last projected year (birth + life expectancy), or `null` while either is unset. */
+export const finalYearFor = (birthYearText: string, lifeExpectancyText: string): number | null => {
+  if (birthYearText.trim() === '' || lifeExpectancyText.trim() === '') return null;
+  const birthYear = Number(birthYearText);
+  const lifeExpectancy = Number(lifeExpectancyText);
+  if (!Number.isFinite(birthYear) || !Number.isFinite(lifeExpectancy)) return null;
+  if (birthYear <= 0 || lifeExpectancy <= 0) return null;
+  return birthYear + lifeExpectancy;
+};

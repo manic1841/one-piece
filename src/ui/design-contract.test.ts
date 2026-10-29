@@ -28,6 +28,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/retirement/components/LifeEventTimeline.tsx',
   // Status dot in the event-details summary (income / expense tone).
   'features/retirement/components/LifeEventInspector.tsx',
+  // Slider thumb, an essential circle like the switch knob.
+  'features/retirement/components/PercentSlider.tsx',
 ]);
 
 const SHADOW_ALLOWED = new Set([

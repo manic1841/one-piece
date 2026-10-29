@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { StatusGlyph, type StatusGlyphType } from '@/ui/components/StatusGlyph';
 import { sectionTitleClass } from '@/ui/components/eyebrow';
+import { STATUS_GLYPH_LABELS } from '@/ui/constants/statusGlyphLabels';
 import { cn } from '@/ui/utils/cn';
 
 type PageSectionSpacing = 'default' | 'compact';
@@ -19,6 +20,8 @@ type PageSectionProps = {
   hint?: string;
   /** Test hook for the band itself. */
   testId?: string;
+  /** Accessible name for the band; a named `<section>` becomes a landmark. */
+  ariaLabel?: string;
   /** Vertical rhythm: `default` is the page band; `compact` tightens dense stacks. */
   spacing?: PageSectionSpacing;
   children?: React.ReactNode;
@@ -48,6 +51,7 @@ export function PageSection({
   status,
   hint,
   testId,
+  ariaLabel,
   spacing = 'default',
   children,
   className,
@@ -56,6 +60,7 @@ export function PageSection({
   return (
     <section
       data-testid={testId}
+      aria-label={ariaLabel}
       className={cn('border-b border-border', SPACING_CLASS[spacing], className)}
     >
       {(hasHeading || action !== undefined) && (
@@ -66,7 +71,7 @@ export function PageSection({
                 {status !== undefined && (
                   <>
                     <StatusGlyph type={status} label="" />
-                    <span className="sr-only">{status}</span>
+                    <span className="sr-only">{STATUS_GLYPH_LABELS[status]}</span>
                   </>
                 )}
                 {number !== undefined && title !== undefined

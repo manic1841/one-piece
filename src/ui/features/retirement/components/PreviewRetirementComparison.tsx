@@ -2,14 +2,60 @@ import { type KeyboardEvent, useState } from 'react';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { eyebrowClass } from '@/ui/components/eyebrow';
+import { PageSection } from '@/ui/components/PageSection';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PREVIEW_LABELS as LABELS } from '@/ui/constants/retirement/previewLabels';
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement/resultLabels';
 import { type ProjectionSummaryVM } from '@/ui/features/retirement/viewmodels/projectionView.vm';
 import { type RetirementComparisonVM } from '@/ui/features/retirement/viewmodels/retirementComparison.vm';
 import { cn } from '@/ui/utils/cn';
+
+const DASH = PROJECTION_COMMON_LABELS.DASH;
+
+interface CompareRow {
+  label: string;
+  value: string;
+  negative?: boolean;
+  trial: string;
+  trialNegative?: boolean;
+  delta?: string | null;
+}
+
+function trialValue(trial: ProjectionSummaryVM | null | undefined): string {
+  if (!trial) return DASH;
+  return trial.isBankrupt ? trial.bankruptcyYearText : LABELS.NEVER;
+}
+
+function rowsFor(
+  summary: ProjectionSummaryVM,
+  selected: RetirementComparisonVM | undefined,
+  unchanged: boolean,
+): CompareRow[] {
+  const trial = selected?.summary;
+  return [
+    {
+      label: LABELS.RUNS_OUT,
+      value: summary.isBankrupt ? summary.bankruptcyYearText : LABELS.NEVER,
+      negative: summary.isBankrupt,
+      trial: trialValue(trial),
+      trialNegative: trial?.isBankrupt,
+    },
+    {
+      label: PROJECTION_RESULT_LABELS.METRIC_FINAL_NET_WORTH,
+      value: summary.finalNetWorthText,
+      trial: trial?.finalNetWorthText ?? DASH,
+      delta: unchanged ? null : selected?.finalDelta,
+    },
+    {
+      label: PROJECTION_RESULT_LABELS.METRIC_RETIREMENT_NET_WORTH,
+      value: summary.retirementNetWorthText ?? DASH,
+      trial: trial?.retirementNetWorthText ?? DASH,
+      delta: unchanged ? null : selected?.retirementDelta,
+    },
+  ];
+}
 
 export function PreviewRetirementComparison({
   retirementAge,
@@ -30,6 +76,8 @@ export function PreviewRetirementComparison({
   const trial = selected?.summary;
   const earliest = comparisons.find((comparison) => comparison.summary?.isBankrupt === false);
   const hasErrors = comparisons.some((comparison) => comparison.error !== null);
+  const failed = Boolean(selected?.error);
+  const rows = rowsFor(summary, selected, unchanged);
   const handleAgeKey = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
@@ -37,38 +85,21 @@ export function PreviewRetirementComparison({
       Math.max(minAge, Math.min(maxAge, current + (event.key === 'ArrowLeft' ? -1 : 1))),
     );
   };
-  const rows = [
-    {
-      label: LABELS.RUNS_OUT,
-      value: summary.isBankrupt ? summary.bankruptcyYearText : LABELS.NEVER,
-      negative: summary.isBankrupt,
-      trial: trial ? (trial.isBankrupt ? trial.bankruptcyYearText : LABELS.NEVER) : '—',
-      trialNegative: trial?.isBankrupt,
-    },
-    {
-      label: PROJECTION_RESULT_LABELS.METRIC_FINAL_NET_WORTH,
-      value: summary.finalNetWorthText,
-      trial: trial?.finalNetWorthText ?? '—',
-      delta: unchanged ? null : selected?.finalDelta,
-    },
-    {
-      label: PROJECTION_RESULT_LABELS.METRIC_RETIREMENT_NET_WORTH,
-      value: summary.retirementNetWorthText ?? '—',
-      trial: trial?.retirementNetWorthText ?? '—',
-      delta: unchanged ? null : selected?.retirementDelta,
-    },
-  ];
 
   if (comparisons.length === 0) {
     return <p className="text-sm text-muted-foreground">{LABELS.NO_COMPARISON_AGES}</p>;
   }
 
   return (
-    <section className="border-y border-border py-6" aria-label={LABELS.COMPARISON}>
+    <PageSection
+      title={LABELS.COMPARISON}
+      ariaLabel={LABELS.COMPARISON}
+      spacing="compact"
+      className="border-t"
+    >
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-10">
         <div>
-          <h2 className={eyebrowClass}>{LABELS.COMPARISON}</h2>
-          <p className="mt-2 text-sm text-muted-foreground">{LABELS.COMPARISON_DESCRIPTION}</p>
+          <p className="text-sm text-muted-foreground">{LABELS.COMPARISON_DESCRIPTION}</p>
           <div className="mt-5 flex items-center gap-4">
             <Button
               variant="outline"
@@ -117,6 +148,9 @@ export function PreviewRetirementComparison({
                 </th>
                 <th scope="col" className="px-2 pb-3 font-medium text-foreground">
                   {LABELS.TRIAL(age)}
+                  {failed && (
+                    <span className="text-negative"> {PROJECTION_COMMON_LABELS.ERROR_MARK}</span>
+                  )}
                 </th>
               </tr>
             </thead>
@@ -149,6 +183,11 @@ export function PreviewRetirementComparison({
               ))}
             </tbody>
           </table>
+          {selected?.error && (
+            <Alert variant="destructive" className="mt-3">
+              <AlertDescription>{selected.error}</AlertDescription>
+            </Alert>
+          )}
           <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2 text-xs">
             <span className="text-muted-foreground">{LABELS.EARLIEST}</span>
             {hasErrors ? (
@@ -161,14 +200,9 @@ export function PreviewRetirementComparison({
               <span>{LABELS.NO_SUSTAINABLE_AGE}</span>
             )}
           </div>
-          {selected?.error && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertDescription>{selected.error}</AlertDescription>
-            </Alert>
-          )}
         </div>
       </div>
       <p className="mt-4 text-xs text-muted-foreground">{LABELS.COMPARISON_NOTE}</p>
-    </section>
+    </PageSection>
   );
 }

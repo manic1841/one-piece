@@ -15,7 +15,7 @@
 - `pnpm lint`: 執行唯讀 ESLint 檢查。
 - `pnpm lint:fix`: 明確執行 ESLint 自動修正。
 - `pnpm format`: 執行 Prettier 自動排版（寫入型驗證步驟，commit 前執行）。
-- `pnpm docs:check`: 驗證正式文件（`docs/`，加上根目錄 `CONTEXT.md`、`AGENTS.md`）不引用暫置路徑與 spec 套件名，並斷言已退役的設計暫置資料夾不存在、相對連結可解析。可解析範圍與攔阻樣式見 `scripts/check-doc-references.sh`。
+- `pnpm docs:check`: 驗證正式文件（`docs/`，加上根目錄 `CONTEXT.md`、`AGENTS.md`）不引用暫置路徑與 spec 套件名，並斷言已退役的設計暫置資料夾不存在、相對連結可解析、反引號裡以儲存庫頂層為根的路徑存在。可解析範圍與攔阻樣式見 `scripts/check-doc-references.sh` 與 `scripts/check-doc-code-paths.mjs`。
 
 驗證收尾順序：`pnpm format` → `pnpm lint` → typecheck → tests → `pnpm docs:check`。format 放最前面，避免排版差異淹沒實質 diff。
 

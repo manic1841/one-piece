@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { MONEY_SURFACE_CLASS } from '@/ui/components/moneyTone';
 import {
   type BarGeometry,
   type TimelineBar,
@@ -45,6 +46,8 @@ export function LifeEventTimelineBar({
   onPointerDown,
   onEdgePointerDown,
 }: LifeEventTimelineBarProps) {
+  const surface = MONEY_SURFACE_CLASS[tone === 'income' ? 'positive' : 'negative'];
+
   return (
     <span
       role="button"
@@ -53,9 +56,9 @@ export function LifeEventTimelineBar({
       data-bar={slot}
       className={cn(
         'absolute flex items-center gap-0.5 overflow-hidden border px-1 text-[11px] leading-none',
-        tone === 'income'
-          ? 'border-positive/70 bg-positive/20 text-positive hover:bg-positive/35'
-          : 'border-negative/70 bg-negative/20 text-negative hover:bg-negative/35',
+        surface.base,
+        surface.hover,
+        tone === 'income' ? 'text-positive' : 'text-negative',
         shape.clippedStart ? 'rounded-l-none border-l-dashed' : 'rounded-l-sm',
         shape.clippedEnd ? 'rounded-r-none border-r-dashed' : 'rounded-r-sm',
         selected && 'ring-2 ring-ring',

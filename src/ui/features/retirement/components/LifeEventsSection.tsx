@@ -58,13 +58,15 @@ interface LifeEventsSectionProps {
   removePhase: (eventId: string, phaseId: string) => string;
   updatePhase: (eventId: string, phaseId: string, patch: Partial<PhaseDraftVM>) => void;
   onGestureStart: () => void;
+  /** The drop settlement: owner is resolved by phase id, so no origin event. */
   onRangeChange: (
-    eventId: string,
     phaseId: string,
     targetEventId: string,
     startYear: number,
     endYear: number,
   ) => void;
+  /** Same-row drags edit the span; this is the keyboard equivalent of a cross-row drag. */
+  reparent: (phaseId: string, targetEventId: string) => void;
   /** Band state and reason; only reported when an event is invalid. */
   status?: 'error';
   hint?: string;
@@ -112,6 +114,7 @@ export function LifeEventsSection({
   updatePhase,
   onGestureStart,
   onRangeChange,
+  reparent,
   status,
   hint,
 }: LifeEventsSectionProps) {
@@ -266,9 +269,15 @@ export function LifeEventsSection({
           focusRequest={isDesktop || sheetOpen ? focusRequest : null}
           eventErrors={errors[selectedEvent.id] ?? {}}
           errors={errors[selectedEvent.id]?.phaseErrors?.[selectedPhase.id] ?? {}}
+          eventOptions={events.map((event) => ({ value: event.id, label: event.name }))}
           updateEvent={(patch) => update(selectedEvent.id, patch)}
           updatePhase={(patch) => updatePhase(selectedEvent.id, selectedPhase.id, patch)}
           setType={(type) => setType(selectedEvent.id, type)}
+          onReparent={(targetEventId) => {
+            // The current event is listed too, so re-picking it is a no-op.
+            if (targetEventId === selectedEvent.id) return;
+            reparent(selectedPhase.id, targetEventId);
+          }}
         />
       </DrawerPanel>
     ) : (

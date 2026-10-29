@@ -1,6 +1,7 @@
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PREVIEW_LABELS as LABELS } from '@/ui/constants/retirement/previewLabels';
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement/resultLabels';
 import { PreviewRetirementComparison } from '@/ui/features/retirement/components/PreviewRetirementComparison';
@@ -88,7 +89,7 @@ export function WorkspacePreview({
               <Metric
                 testId="metric-retirement-net-worth"
                 label={PROJECTION_RESULT_LABELS.METRIC_RETIREMENT_NET_WORTH}
-                value={calculated.summary.retirementNetWorthText ?? '—'}
+                value={calculated.summary.retirementNetWorthText ?? PROJECTION_COMMON_LABELS.DASH}
                 change={yearMeta(calculated.projection.retirementYear)}
               />
               <Metric
@@ -155,7 +156,7 @@ export function WorkspacePreview({
         )}
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           {LABELS.SUMMARY(
-            openingAmount ?? '—',
+            openingAmount ?? PROJECTION_COMMON_LABELS.DASH,
             startYear,
             assumptions.retirementAge,
             assumptions.lifeExpectancy,

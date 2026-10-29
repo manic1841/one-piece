@@ -158,7 +158,7 @@ describe('LifeEventTimelineEditor', () => {
     drag(track, from, { x: from.x + yearWidth() * 2, y: from.y }, 4, barAt(0));
 
     expect(onGestureStart).toHaveBeenCalledTimes(1);
-    expect(onRangeChange).toHaveBeenLastCalledWith('event-1', 'phase-1', 'event-1', 2030, 2031);
+    expect(onRangeChange).toHaveBeenLastCalledWith('phase-1', 'event-1', 2030, 2031);
   });
 
   it('reparents onto the row under the pointer', () => {
@@ -167,7 +167,7 @@ describe('LifeEventTimelineEditor', () => {
 
     drag(track, from, { x: from.x + yearWidth(), y: barPoint(1).y }, 4, barAt(0));
 
-    expect(onRangeChange).toHaveBeenLastCalledWith('event-1', 'phase-1', 'event-2', 2029, 2030);
+    expect(onRangeChange).toHaveBeenLastCalledWith('phase-1', 'event-2', 2029, 2030);
   });
 
   it('resizes from the edge without moving the other end', () => {
@@ -183,7 +183,7 @@ describe('LifeEventTimelineEditor', () => {
     fireEvent.pointerMove(track, { clientX: from.x + yearWidth(), clientY: from.y, pointerId: 1 });
     fireEvent.pointerUp(track, { clientX: from.x + yearWidth(), clientY: from.y, pointerId: 1 });
 
-    expect(onRangeChange).toHaveBeenLastCalledWith('event-1', 'phase-1', 'event-1', 2028, 2030);
+    expect(onRangeChange).toHaveBeenLastCalledWith('phase-1', 'event-1', 2028, 2030);
   });
 
   it('creates a phase on the empty years under the pointer', () => {

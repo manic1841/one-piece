@@ -50,7 +50,6 @@ interface UseTimelineGestureOptions {
   onCreate: (startYear: number, endYear: number, eventId: string | null) => void;
   onGestureStart: () => void;
   onRangeChange: (
-    eventId: string,
     phaseId: string,
     targetEventId: string,
     startYear: number,
@@ -204,7 +203,6 @@ export function useTimelineGesture({
             year,
           });
     onRangeChange(
-      current.eventId,
       current.phaseId,
       'targetEventId' in draft ? draft.targetEventId : current.targetEventId,
       draft.startYear,

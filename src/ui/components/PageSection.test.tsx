@@ -32,7 +32,7 @@ describe('PageSection', () => {
       </PageSection>,
     );
 
-    expect(screen.getByText('02 / ASSUMPTIONS').parentElement).toHaveTextContent('error');
+    expect(screen.getByText('02 / ASSUMPTIONS').parentElement).toHaveTextContent('ERROR');
   });
 
   it('keeps a content-only band free of heading chrome', () => {

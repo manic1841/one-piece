@@ -22,6 +22,7 @@ import {
   TextArea,
   TextInput,
 } from '@/ui/components/form';
+import { ComboboxField } from '@/ui/components/form/Combobox';
 import { DateInput } from '@/ui/components/form/DateInput';
 import { SelectField } from '@/ui/components/form/Select';
 import { Button } from '@/ui/components/ui/button';
@@ -201,7 +202,22 @@ const SelectSection: React.FC = () => (
           ]}
         />
       </FieldDemo>
+      <FieldDemo label="LEDGER CODE · SEARCHABLE">
+        <ComboboxField
+          aria-label="Ledger code"
+          placeholder="Search ledger codes"
+          options={[
+            { value: 'salary', label: 'Salary', hint: '12 uses' },
+            { value: 'rent', label: 'Rent', hint: '10 uses' },
+            { value: 'groceries', label: 'Groceries', group: 'UNUSED' },
+            { value: 'insurance', label: 'Insurance', group: 'UNUSED' },
+          ]}
+        />
+      </FieldDemo>
     </div>
+    <GalleryCaption>
+      清單長到不能捲、或選項需要脈絡（`hint`／`group`）才用 `Combobox`；5 項以內用 `Select`。
+    </GalleryCaption>
   </GallerySection>
 );
 
@@ -247,8 +263,20 @@ const SwitchSection: React.FC = () => {
             <span className="text-sm">Notifications</span>
             <Switch checked={notify} onCheckedChange={setNotify} aria-label="Notifications" />
           </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Reconcile on save</span>
+            <Switch
+              checked={reconcile}
+              onCheckedChange={setReconcile}
+              error
+              aria-label="Reconcile on save"
+            />
+          </div>
         </div>
       </GalleryModule>
+      <GalleryCaption>
+        `switch` 沒有自己的錯誤樣式，只把 `FormControl` 注入的 `error` 轉成 `aria-invalid`。
+      </GalleryCaption>
     </GallerySection>
   );
 };
