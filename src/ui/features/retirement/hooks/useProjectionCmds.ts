@@ -32,7 +32,7 @@ type PersistInput = Omit<
 
 /**
  * Projection writes only. Reads live in the query hooks that compose this one,
- * and the save-name forms live in `useSaveNameForms`.
+ * and the save-name fields live in `useNameField`.
  *
  * Every method runs through `useLoadingTask.run`, so infrastructure and
  * permission failures never throw; they resolve to `kind: 'failed'`. A

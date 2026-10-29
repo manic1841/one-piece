@@ -36,9 +36,7 @@ describe('buildRuleSentence', () => {
   });
 
   it('drops a source that repeats the rule name', () => {
-    expect(buildRuleSentence(rule({ name: 'Rent' }), resolve)).toBe(
-      'follows inflation · for life',
-    );
+    expect(buildRuleSentence(rule({ name: 'Rent' }), resolve)).toBe('follows inflation · for life');
   });
   it('spells out a growth rate and keeps the source', () => {
     expect(
@@ -49,7 +47,11 @@ describe('buildRuleSentence', () => {
   it('says a percentage is of its source', () => {
     expect(
       buildRuleSentence(
-        rule({ method: 'percentage', parameters: { ratio: 0.1 }, source: { type: 'rule', id: 'rule:salary' } }),
+        rule({
+          method: 'percentage',
+          parameters: { ratio: 0.1 },
+          source: { type: 'rule', id: 'rule:salary' },
+        }),
         resolve,
       ),
     ).toBe('10% of Salary · for life');
@@ -90,9 +92,9 @@ describe('buildRuleSentence', () => {
   });
 
   it('turns age and year conditions into a phrase', () => {
-    expect(buildRuleSentence(rule({ endCondition: { type: 'specificAge', age: 85 } }), resolve)).toBe(
-      'follows inflation · Rent · through age 85',
-    );
+    expect(
+      buildRuleSentence(rule({ endCondition: { type: 'specificAge', age: 85 } }), resolve),
+    ).toBe('follows inflation · Rent · through age 85');
     expect(
       buildRuleSentence(rule({ endCondition: { type: 'specificYear', year: 2050 } }), resolve),
     ).toBe('follows inflation · Rent · through 2050');

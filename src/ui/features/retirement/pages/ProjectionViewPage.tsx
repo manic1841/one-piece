@@ -42,7 +42,6 @@ export default function ProjectionViewPage() {
     saveAsPlanForm,
     submitSaveAsPlan,
   } = useProjectionView(userProfile?.householdId, id);
-  const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
   const [tab, setTab] = useState<ViewTab>('overview');
   // Selection is owned by the page: switching tabs keeps it, missing years reset it.
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
@@ -53,13 +52,10 @@ export default function ProjectionViewPage() {
     view.projection.yearlyDetails.some((row) => row.year === selectedYear);
   const activeYear = selectedRowExists ? selectedYear : null;
 
-  const openSaveAsPlan = () => {
-    saveAsPlanForm.reset({ name: view?.name ?? '' });
-    setSaveAsPlanOpen(true);
-  };
+  const openSaveAsPlan = () => saveAsPlanForm.open(view?.name ?? '');
 
   const handleSaveAsPlanSuccess = () => {
-    setSaveAsPlanOpen(false);
+    saveAsPlanForm.close();
     toast.success(PROJECTION_VIEW_LABELS.PLAN_SAVED);
   };
 
@@ -214,11 +210,12 @@ export default function ProjectionViewPage() {
         </>
       )}
 
-      {saveAsPlanOpen && view !== null && (
+      {view !== null && (
         <SaveAsPlanDialog
-          form={saveAsPlanForm}
+          open={saveAsPlanForm.isOpen}
+          form={saveAsPlanForm.field}
           submit={() => submitSaveAsPlan(handleSaveAsPlanSuccess)}
-          onCancel={() => setSaveAsPlanOpen(false)}
+          onCancel={saveAsPlanForm.close}
         />
       )}
     </div>

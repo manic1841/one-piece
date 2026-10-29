@@ -17,7 +17,7 @@ import { AssumptionsSection } from '@/ui/features/retirement/components/Assumpti
 import { LifeEventsSection } from '@/ui/features/retirement/components/LifeEventsSection';
 import { ProjectionRulesSection } from '@/ui/features/retirement/components/ProjectionRulesSection';
 import { type DebtAccountOption } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
-import { type PlanNameForm } from '@/ui/features/retirement/hooks/useSaveNameForm';
+import { type NameFieldForm } from '@/ui/features/retirement/hooks/useNameField';
 import {
   type PlanAssumptionsDraft,
   type PlanEventsDraft,
@@ -29,7 +29,7 @@ import { type SectionStates } from '@/ui/features/retirement/viewmodels/workspac
 
 /** The controller surface both the create and the edit page provide. */
 export interface RetirementPlanFormController {
-  form: PlanNameForm;
+  form: NameFieldForm;
   assumptions: PlanAssumptionsDraft;
   rules: PlanRulesDraft;
   events: PlanEventsDraft;

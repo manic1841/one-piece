@@ -1,5 +1,6 @@
 /** Display copy for the projection list and read-only view (#345). */
 import { PROJECTION_RISK_LABELS } from '@/ui/constants/retirement/displayLabels';
+import { PLAN_FORM_LABELS } from '@/ui/constants/retirement/planLabels';
 
 export const PROJECTION_LIST_LABELS = {
   TITLE: 'Projections',
@@ -167,7 +168,7 @@ export const SAVE_AS_PLAN_ERROR_LABELS = {
 
 export const SAVE_AS_PLAN_LABELS = {
   TITLE: 'Save as plan',
-  NAME: 'Plan name',
+  NAME: PLAN_FORM_LABELS.NAME,
   NAME_REQUIRED: 'Name is required.',
   FAILED: 'Could not save the plan. Nothing was written.',
   CONFIRM: 'SAVE',

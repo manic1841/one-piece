@@ -1,6 +1,14 @@
 import type { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
 
 /**
+ * Field-level wording the UI owns, separate from the domain codes above: the
+ * name field is not a schema, so it has no error code to be keyed by.
+ */
+export const NAME_FIELD_LABELS = {
+  REQUIRED: 'Name is required.',
+} as const;
+
+/**
  * One zh-TW message per domain schema code. The `Record` annotation makes a
  * missing or extra entry a compile error.
  */

@@ -5,10 +5,10 @@ import { toast } from 'sonner';
 
 import { type PlanDraft } from '@/application/retirement/types';
 import { PLAN_EDIT_LABELS } from '@/ui/constants/retirement/planLabels';
+import { useNameField } from '@/ui/features/retirement/hooks/useNameField';
 import { usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { PLAN_LIST_HREF, usePlanResource } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
-import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
 import { useWorkspaceLeaveGuard } from '@/ui/features/retirement/hooks/useWorkspaceLeaveGuard';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 import { type LoadingTaskResult } from '@/ui/hooks/useLoadingTask';
@@ -67,7 +67,7 @@ export function usePlanForm({
   const seededRef = useRef(false);
 
   const drafts = usePlanDrafts();
-  const { planForm, submitPlanForm } = useSaveNameForms();
+  const { field: nameForm, seed: seedName, submit: submitName } = useNameField();
   const routePlanId = resource.planId;
   /** Where BACK goes: the plan itself when the route names one, else the list. */
   const back = routePlanId === null ? PLAN_LIST_HREF : `${PLAN_LIST_HREF}/${routePlanId}`;
@@ -84,11 +84,11 @@ export function usePlanForm({
       projectionRules: plan.projectionRules,
       lifeEvents: plan.lifeEvents,
     });
-    planForm.reset({ name: plan.name });
-  }, [drafts, planForm, resource.plan]);
+    seedName(plan.name);
+  }, [drafts, resource.plan, seedName]);
 
   const submitForm = () =>
-    submitPlanForm(async (name) => {
+    submitName(async (name) => {
       const draft = drafts.takeValidated();
       if (draft === null) return { ok: false, messages: [invalidMessage] };
 
@@ -110,7 +110,7 @@ export function usePlanForm({
 
   return {
     ...drafts,
-    form: planForm,
+    form: nameForm,
     submit: submitForm,
     saved,
     canManage,

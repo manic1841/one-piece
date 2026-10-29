@@ -5,10 +5,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { useNameField } from '@/ui/features/retirement/hooks/useNameField';
 import { usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { usePlanResource } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
-import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
 import { draftGroup } from '@/ui/features/retirement/testing/planFormFixture';
 
 import { usePlanForm } from './usePlanForm';
@@ -16,7 +16,7 @@ import { usePlanForm } from './usePlanForm';
 vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
 vi.mock('@/ui/features/retirement/hooks/usePlanResource');
 vi.mock('@/ui/features/retirement/hooks/useRetirementPlanAccess');
-vi.mock('@/ui/features/retirement/hooks/useSaveNameForms');
+vi.mock('@/ui/features/retirement/hooks/useNameField');
 vi.mock('@/ui/features/retirement/hooks/useWorkspaceLeaveGuard', () => ({
   useWorkspaceLeaveGuard: vi.fn(),
 }));
@@ -25,7 +25,7 @@ vi.mock('@/ui/features/retirement/hooks/usePlanDrafts');
 const mockResource = vi.mocked(usePlanResource);
 const mockAccess = vi.mocked(useRetirementPlanAccess);
 const mockDrafts = vi.mocked(usePlanDrafts);
-const mockForms = vi.mocked(useSaveNameForms);
+const mockForms = vi.mocked(useNameField);
 const mockNavigate = vi.fn();
 
 vi.mock('react-router-dom', async (importOriginal) => ({
@@ -50,8 +50,9 @@ const plan = {
 const parsed = { assumptions: {}, projectionRules: [], lifeEvents: [] };
 
 const forms = (overrides: Record<string, unknown> = {}) => ({
-  planForm: { reset: vi.fn() },
-  submitPlanForm: (onSubmit: (name: string) => Promise<unknown>) => onSubmit('Retire early'),
+  field: { reset: vi.fn() },
+  seed: vi.fn(),
+  submit: (save: (name: string) => Promise<unknown>) => save('Retire early'),
   ...overrides,
 });
 
@@ -106,7 +107,9 @@ describe('usePlanForm', () => {
 
   it('seeds the drafts and the name from the loaded plan exactly once', async () => {
     const seeded = drafts();
+    const fields = forms();
     mockDrafts.mockReturnValue(seeded as never);
+    mockForms.mockReturnValue(fields as never);
     const { rerender } = render();
 
     await waitFor(() => expect(seeded.replaceAll).toHaveBeenCalledTimes(1));
@@ -115,9 +118,11 @@ describe('usePlanForm', () => {
       projectionRules: plan.projectionRules,
       lifeEvents: plan.lifeEvents,
     });
+    expect(fields.seed).toHaveBeenCalledWith('Retire early');
 
     rerender();
     await waitFor(() => expect(seeded.replaceAll).toHaveBeenCalledTimes(1));
+    expect(fields.seed).toHaveBeenCalledTimes(1);
   });
 
   it('leaves the birth year unlocked when there is no plan to seed', async () => {

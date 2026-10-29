@@ -2,13 +2,17 @@ import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { type DefinitionItem } from '@/ui/components/DefinitionRows';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
-import { ASSUMPTION_LABELS, RULE_LABELS, RULE_TYPE_LABELS } from '@/ui/constants/retirement/setupLabels';
+import {
+  ASSUMPTION_LABELS,
+  RULE_LABELS,
+  RULE_TYPE_LABELS,
+} from '@/ui/constants/retirement/setupLabels';
 import { percentText } from '@/ui/features/retirement/viewmodels/projectionRows.vm';
 import {
   type EventAxis,
   type EventVocabulary,
-  type SourceResolver,
   type SnapshotEventVM,
+  type SourceResolver,
   buildEventRows,
   buildRuleSentence,
 } from '@/ui/features/retirement/viewmodels/retirementPlanRows.vm';
@@ -110,7 +114,10 @@ export function mapRetirementPlanToVM(
     ...plan.lifeEvents.flatMap((event) => event.phases.map((phase) => phase.startYear)),
   );
   const timeline: PlanTimelineVM = {
-    startYear: Math.min(Number.isFinite(firstPhaseYear) ? firstPhaseYear : currentYear, planEndYear),
+    startYear: Math.min(
+      Number.isFinite(firstPhaseYear) ? firstPhaseYear : currentYear,
+      planEndYear,
+    ),
     endYear: planEndYear,
     retirementYear,
   };

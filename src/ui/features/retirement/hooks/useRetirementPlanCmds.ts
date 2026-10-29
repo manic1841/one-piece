@@ -16,8 +16,7 @@ import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTas
 
 /**
  * Plan writes only. Reads live in the query hooks that compose this one, and the
- * save-name forms live in `useSaveNameForms` (they are Controller state, not
- * commands).
+ * name fields live in `useNameField` (they are Controller state, not commands).
  *
  * Like the projection commands, every method resolves through `run`: an
  * infrastructure failure is the outer `kind: 'failed'`, a validation failure is

@@ -19,23 +19,27 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { SAVE_AS_PLAN_LABELS } from '@/ui/constants/retirement/projectionLabels';
-import { type SaveNameVM } from '@/ui/features/retirement/viewmodels/saveName.vm';
+import {
+  type NameFieldVM,
+  type SaveNameOutcome,
+} from '@/ui/features/retirement/hooks/useNameField';
 
 interface SaveAsPlanDialogProps {
-  form: UseFormReturn<SaveNameVM>;
-  submit: () => Promise<void>;
+  open: boolean;
+  form: UseFormReturn<NameFieldVM>;
+  submit: () => Promise<SaveNameOutcome>;
   onCancel: () => void;
 }
 
 /** Creates a new plan from the projection's config; the projection stays untouched. */
-export function SaveAsPlanDialog({ form, submit, onCancel }: SaveAsPlanDialogProps) {
+export function SaveAsPlanDialog({ open, form, submit, onCancel }: SaveAsPlanDialogProps) {
   const { errors, isSubmitting } = form.formState;
   const rootMessage = errors.root?.message ?? null;
   const failed = rootMessage !== null || errors.name !== undefined;
 
   return (
     <Dialog
-      open
+      open={open}
       onOpenChange={(next) => {
         if (next || isSubmitting) return;
         onCancel();

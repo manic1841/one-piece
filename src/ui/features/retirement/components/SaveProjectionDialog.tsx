@@ -19,7 +19,10 @@ import {
   DialogTitle,
 } from '@/ui/components/ui/dialog';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
-import { type SaveNameVM } from '@/ui/features/retirement/viewmodels/saveName.vm';
+import {
+  type NameFieldVM,
+  type SaveNameOutcome,
+} from '@/ui/features/retirement/hooks/useNameField';
 
 interface SaveProjectionDialogProps {
   open: boolean;
@@ -27,14 +30,15 @@ interface SaveProjectionDialogProps {
   nameLabel?: string;
   confirmLabel?: string;
   savingLabel?: string;
-  form: UseFormReturn<SaveNameVM>;
-  submit: () => Promise<void>;
+  form: UseFormReturn<NameFieldVM>;
+  submit: () => Promise<SaveNameOutcome>;
   onCancel: () => void;
 }
 
 /**
  * Dumb save gate. All form state lives in the controller; Esc and backdrop are
  * inert while saving, and a failure keeps the dialog open with every message.
+ * Closing is reported through `onCancel` only — the field resets itself.
  */
 export function SaveProjectionDialog({
   open,
@@ -54,7 +58,6 @@ export function SaveProjectionDialog({
       open={open}
       onOpenChange={(next) => {
         if (next || isSubmitting) return;
-        form.reset();
         onCancel();
       }}
     >
@@ -96,14 +99,7 @@ export function SaveProjectionDialog({
         )}
 
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => {
-              form.reset();
-              onCancel();
-            }}
-            disabled={isSubmitting}
-          >
+          <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
             {PROJECTION_WORKSPACE_LABELS.SAVE_DIALOG_CANCEL}
           </Button>
           <Button onClick={() => void submit()} disabled={isSubmitting}>

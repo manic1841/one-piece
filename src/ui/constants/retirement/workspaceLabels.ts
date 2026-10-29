@@ -1,4 +1,5 @@
 /** 退休投影工作區（#341 骨架）的顯示文字單一來源。 */
+import { PLAN_FORM_LABELS } from '@/ui/constants/retirement/planLabels';
 
 export const PROJECTION_WORKSPACE_LABELS = {
   TITLE: 'New projection',
@@ -35,7 +36,6 @@ export const PROJECTION_WORKSPACE_LABELS = {
   SAVE: 'SAVE',
   SAVE_DIALOG_TITLE: 'Save projection',
   SAVE_DIALOG_NAME: 'Projection name',
-  SAVE_DIALOG_NAME_REQUIRED: 'Name is required.',
   SAVE_DIALOG_FAILED: 'Could not save the projection. Nothing was written.',
   SAVE_DIALOG_CONFIRM: 'SAVE',
   SAVE_DIALOG_SAVING: 'SAVING...',
@@ -44,8 +44,7 @@ export const PROJECTION_WORKSPACE_LABELS = {
   SAVED_MESSAGE: 'Projection saved.',
   SAVED_LINK: 'View projection',
   SAVE_AS_PLAN_DIALOG_TITLE: 'Save setup as plan',
-  SAVE_AS_PLAN_DIALOG_NAME: 'Plan name',
-  SAVE_AS_PLAN_DIALOG_NAME_REQUIRED: 'Name is required.',
+  SAVE_AS_PLAN_DIALOG_NAME: PLAN_FORM_LABELS.NAME,
   SAVE_AS_PLAN_DIALOG_CONFIRM: 'SAVE PLAN',
   SAVE_AS_PLAN_DIALOG_SAVING: 'SAVING...',
   SAVE_AS_PLAN_FAILED: 'Could not save the plan.',

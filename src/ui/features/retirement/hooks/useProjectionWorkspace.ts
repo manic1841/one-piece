@@ -9,10 +9,10 @@ import {
   resolveErrorLabel,
 } from '@/ui/constants/retirement/resultLabels';
 import { useIndicatorCalculation } from '@/ui/features/retirement/hooks/useIndicatorCalculation';
+import { useNameField } from '@/ui/features/retirement/hooks/useNameField';
 import { useProjectionCalculate } from '@/ui/features/retirement/hooks/useProjectionCalculate';
 import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
 import { useProjectionPreload } from '@/ui/features/retirement/hooks/useProjectionPreload';
-import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
 import { useWorkspaceDraft } from '@/ui/features/retirement/hooks/useWorkspaceDraft';
 import { useWorkspaceIndicators } from '@/ui/features/retirement/hooks/useWorkspaceIndicators';
 import { useWorkspaceLeaveGuard } from '@/ui/features/retirement/hooks/useWorkspaceLeaveGuard';
@@ -46,7 +46,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     persist,
     saveWorkspaceAsPlan,
   } = useProjectionCmds(householdId);
-  const { saveForm, submitSaveForm, planForm, submitPlanForm } = useSaveNameForms();
+  const saveForm = useNameField();
+  const saveAsPlanForm = useNameField();
   const [searchParams, setSearchParams] = useSearchParams();
   const fromId = searchParams.get('from');
   const planId = searchParams.get('plan');
@@ -262,20 +263,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     [calculated, saveAction],
   );
 
-  const submitSave = (onSuccess?: () => void) =>
-    submitSaveForm(async (name) => {
-      const outcome = await save(name);
-      if (outcome.ok) onSuccess?.();
-      return outcome;
-    });
-
-  const submitSaveAsPlan = (onSuccess?: () => void) =>
-    submitPlanForm(async (name) => {
-      const outcome = await saveAsPlan(name);
-      if (outcome.ok) onSuccess?.();
-      return outcome;
-    });
-
   const applyRetirementAge = useCallback(
     (age: number) => {
       if (!applyCalculatedRetirementAge(age)) return;
@@ -340,9 +327,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       saveAsPlan,
       saveForm,
       lastSavedName,
-      submitSave,
-      saveAsPlanForm: planForm,
-      submitSaveAsPlan,
+      saveAsPlanForm,
       defaultName: defaultProjectionName,
     },
     indicators: indicators.indicators,

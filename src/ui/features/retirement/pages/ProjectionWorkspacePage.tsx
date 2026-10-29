@@ -40,8 +40,6 @@ export default function ProjectionWorkspacePage() {
   const workspace = useProjectionWorkspace(householdId);
   const { codes: ledgerCodes } = useLedgerCodes();
   const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
-  const [saveOpen, setSaveOpen] = useState(false);
-  const [saveAsPlanOpen, setSaveAsPlanOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
   const lifeEventsRef = useRef<HTMLDivElement>(null);
   const [revealYear, setRevealYear] = useState<number | null>(null);
@@ -57,16 +55,13 @@ export default function ProjectionWorkspacePage() {
   };
 
   const openSave = () => {
-    workspace.save.saveForm.reset({
-      name:
-        workspace.save.lastSavedName ?? workspace.appliedPlanName ?? workspace.save.defaultName(),
-    });
-    setSaveOpen(true);
+    workspace.save.saveForm.open(
+      workspace.save.lastSavedName ?? workspace.appliedPlanName ?? workspace.save.defaultName(),
+    );
   };
 
   const openSaveAsPlan = () => {
-    workspace.save.saveAsPlanForm.reset({ name: workspace.appliedPlanName ?? '' });
-    setSaveAsPlanOpen(true);
+    workspace.save.saveAsPlanForm.open(workspace.appliedPlanName ?? '');
   };
 
   /**
@@ -256,25 +251,32 @@ export default function ProjectionWorkspacePage() {
         />
       )}
 
-      {saveOpen && (
+      {workspace.save.saveForm.isOpen && (
         <SaveProjectionDialog
           open
-          form={workspace.save.saveForm}
-          submit={() => workspace.save.submitSave(() => setSaveOpen(false))}
-          onCancel={() => setSaveOpen(false)}
+          form={workspace.save.saveForm.field}
+          submit={() =>
+            workspace.save.saveForm.submit(workspace.save.save, workspace.save.saveForm.close)
+          }
+          onCancel={workspace.save.saveForm.close}
         />
       )}
 
-      {saveAsPlanOpen && (
+      {workspace.save.saveAsPlanForm.isOpen && (
         <SaveProjectionDialog
           open
           title={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_TITLE}
           nameLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_NAME}
           confirmLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_CONFIRM}
           savingLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_SAVING}
-          form={workspace.save.saveAsPlanForm}
-          submit={() => workspace.save.submitSaveAsPlan(() => setSaveAsPlanOpen(false))}
-          onCancel={() => setSaveAsPlanOpen(false)}
+          form={workspace.save.saveAsPlanForm.field}
+          submit={() =>
+            workspace.save.saveAsPlanForm.submit(
+              workspace.save.saveAsPlan,
+              workspace.save.saveAsPlanForm.close,
+            )
+          }
+          onCancel={workspace.save.saveAsPlanForm.close}
         />
       )}
     </div>

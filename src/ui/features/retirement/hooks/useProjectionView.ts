@@ -5,8 +5,8 @@ import {
   SAVE_AS_PLAN_ERROR_LABELS,
   SAVE_AS_PLAN_LABELS,
 } from '@/ui/constants/retirement/projectionLabels';
+import { useNameField } from '@/ui/features/retirement/hooks/useNameField';
 import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
-import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
 import {
   type ProjectionViewVM,
   mapProjectionViewToVM,
@@ -28,7 +28,7 @@ export function useProjectionView(
   const auth = useAuthIdentity();
   const { renameProjection, deleteProjection, saveProjectionAsPlan, errorMessage } =
     useProjectionCmds(householdId);
-  const { saveAsPlanForm, submitSaveAsPlanForm } = useSaveNameForms();
+  const saveAsPlanForm = useNameField();
   const [view, setView] = useState<ProjectionViewVM | null>(null);
   const [notFound, setNotFound] = useState(false);
   const { loading, error, run } = useLoadingTask({ initiallyLoading: true });
@@ -97,7 +97,7 @@ export function useProjectionView(
     saveAsPlan,
     saveAsPlanForm,
     submitSaveAsPlan: (onSuccess?: () => void) =>
-      submitSaveAsPlanForm(async (name) => {
+      saveAsPlanForm.submit(async (name) => {
         const task = await saveAsPlan(name);
         if (!task.ok) return { ok: false, messages: [getTaskErrorMessage(task)] };
 
@@ -109,8 +109,7 @@ export function useProjectionView(
             messages: [SAVE_AS_PLAN_ERROR_LABELS[code] ?? SAVE_AS_PLAN_LABELS.FAILED],
           };
         }
-        onSuccess?.();
         return { ok: true };
-      }),
+      }, onSuccess),
   };
 }
