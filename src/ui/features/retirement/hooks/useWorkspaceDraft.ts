@@ -2,41 +2,39 @@ import { useCallback, useState } from 'react';
 
 import { type AuthContext } from '@/application/types';
 import { useOpeningDraft } from '@/ui/features/retirement/hooks/useOpeningDraft';
-import { usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
+import { type PlanDraftPayload, usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { type WorkspaceDraft } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 import { type useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
-interface UseWorkspaceDraftsArgs {
+interface UseWorkspaceDraftArgs {
   householdId: string | undefined;
   auth: AuthContext;
-  /** Marks the workspace dirty on every user edit (not on a preload). */
-  markDirty: () => void;
+  /** Called on every user edit: the workspace marks its rail stale here. */
+  onDirty: () => void;
   run: ReturnType<typeof useLoadingTask>['run'];
   currentYear: number;
 }
 
 /**
- * Everything the user edits: opening net worth, assumptions, rules, events and
- * the start year. They are one draft in practice — a plan or a preload replaces
- * all of it at once — so the wholesale replace/reset helpers live here instead
- * of at each call site. The three groups themselves belong to the draft module.
+ * The whole workspace draft: opening net worth, start year, assumptions, rules
+ * and events. They are one draft in practice — a plan or a preload replaces all
+ * of it at once — so the wholesale replace/reset helpers live here instead of at
+ * each call site. The three input groups belong to the plan draft module.
+ *
+ * `resetBase` and `resetAll` are separate gestures: applying a plan keeps the
+ * three groups and drops the rest, starting over blank drops everything.
  */
-export function useWorkspaceDrafts({
+export function useWorkspaceDraft({
   householdId,
   auth,
-  markDirty,
+  onDirty,
   run,
   currentYear,
-}: UseWorkspaceDraftsArgs) {
-  const planDrafts = usePlanDrafts({ onDirty: markDirty });
-  const { setDirty } = planDrafts;
-  /** Every user edit, whether or not it lands in one of the three groups. */
-  const onEdit = useCallback(() => {
-    setDirty(true);
-    markDirty();
-  }, [markDirty, setDirty]);
+}: UseWorkspaceDraftArgs) {
+  const planDrafts = usePlanDrafts({ onDirty });
+  const { markDirty } = planDrafts;
 
-  const openingDraft = useOpeningDraft({ householdId, auth, markDirty: onEdit, run });
+  const openingDraft = useOpeningDraft({ householdId, auth, markDirty, run });
   const {
     opening,
     reportValue,
@@ -55,16 +53,17 @@ export function useWorkspaceDrafts({
   const setStartYear = useCallback(
     (next: string) => {
       setStartYearState(Number(next));
-      onEdit();
+      markDirty();
     },
-    [onEdit],
+    [markDirty],
   );
 
   /**
-   * The parts neither a plan nor a blank reset keeps: the opening goes back to
-   * its unset draft so a scenario is never a mix of two runs.
+   * The parts a plan does not carry: the opening goes back to its unset draft so
+   * a scenario is never a mix of two runs, and the start year returns to this
+   * year.
    */
-  const resetScenarioBase = useCallback(() => {
+  const resetBase = useCallback(() => {
     resetOpeningDraft();
     setStartYearState(currentYear);
   }, [currentYear, resetOpeningDraft]);
@@ -82,10 +81,10 @@ export function useWorkspaceDrafts({
     [planDrafts, replaceOpening],
   );
 
-  const resetDraftToBlank = useCallback(() => {
+  const resetAll = useCallback(() => {
     planDrafts.reset();
-    resetScenarioBase();
-  }, [planDrafts, resetScenarioBase]);
+    resetBase();
+  }, [planDrafts, resetBase]);
 
   const retryOpening = useCallback(() => {
     void reloadOpening();
@@ -103,12 +102,14 @@ export function useWorkspaceDrafts({
     resetToSnapshot,
     ...planDrafts,
     /** The three groups only: what a plan carries. */
-    replaceGroups: planDrafts.replaceAll,
+    replaceGroups: (payload: PlanDraftPayload) => planDrafts.replaceAll(payload),
     startYear,
     setStartYear,
     replaceAll,
-    resetScenarioBase,
-    resetDraftToBlank,
+    resetBase,
+    resetAll,
     retryOpening,
   };
 }
+
+export type WorkspaceDraftController = ReturnType<typeof useWorkspaceDraft>;

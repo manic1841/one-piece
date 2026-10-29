@@ -105,6 +105,9 @@ export function usePlanDrafts({ onDirty }: UsePlanDraftsArgs = {}) {
 
   const revealAll = useCallback(() => setRevealed(true), [setRevealed]);
 
+  /** A write that does not go through a group (the opening, the start year). */
+  const markDirty = useCallback(() => setDirty(true), [setDirty]);
+
   /** The all-or-nothing gate: every group must parse, and a failure is revealed. */
   const takeValidated = useCallback((): PlanDraftPayload | null => {
     const result = validate();
@@ -141,6 +144,12 @@ export function usePlanDrafts({ onDirty }: UsePlanDraftsArgs = {}) {
     [assumptions, events, rules, setRevealed],
   );
 
+  /** The draft has been written; the gesture history no longer applies. */
+  const markSaved = useCallback(() => {
+    undo.clear();
+    setDirty(false);
+  }, [undo, setDirty]);
+
   /** Back to the unsaved defaults, as if the form had just been opened. */
   const reset = useCallback(() => {
     assumptions.resetToBlank();
@@ -155,10 +164,11 @@ export function usePlanDrafts({ onDirty }: UsePlanDraftsArgs = {}) {
     rules,
     events,
     dirty,
-    setDirty,
     preview,
     sectionState,
-    undo: { canUndo: undo.canUndo, run: undo.undo },
+    undo: { canUndo: undo.canUndo, run: undo.undo, clear: undo.clear },
+    markDirty,
+    markSaved,
     rememberEvents,
     validate,
     revealAll,

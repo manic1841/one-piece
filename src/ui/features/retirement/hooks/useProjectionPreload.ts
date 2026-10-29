@@ -7,7 +7,8 @@ import { type WorkspaceDraft } from '@/ui/features/retirement/viewmodels/workspa
 import { type useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface PreloadTargets {
-  setDirty: (dirty: boolean) => void;
+  /** Preloading writes the draft without going through an edit; it still counts as unsaved. */
+  markDirty: () => void;
   setWarning: (warning: string | null) => void;
   replaceAll: (draft: WorkspaceDraft) => void;
   markSeeded: () => void;
@@ -32,7 +33,7 @@ export function useProjectionPreload({
   fromId,
   auth,
   run,
-  setDirty,
+  markDirty,
   setWarning,
   replaceAll,
   markSeeded,
@@ -66,7 +67,7 @@ export function useProjectionPreload({
                 opening: { source: 'derived', amountText: '', anchorYearMonth: null },
                 reportValue: null,
               });
-              setDirty(true);
+              markDirty();
               clearParams();
               return;
             }
@@ -116,13 +117,13 @@ export function useProjectionPreload({
             }
 
             markSeeded();
-            setDirty(true);
+            markDirty();
             clearParams();
           },
         },
       );
     },
-    [auth, clearParams, householdId, markSeeded, replaceAll, run, setDirty, setWarning],
+    [auth, clearParams, householdId, markDirty, markSeeded, replaceAll, run, setWarning],
   );
 
   useEffect(() => {

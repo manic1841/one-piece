@@ -27,6 +27,8 @@ interface UseWorkspaceSaveArgs {
   setSavedId: (id: string) => void;
   setLastSavedName: (name: string) => void;
   setSavedAsPlan: (saved: boolean) => void;
+  /** The draft is now written: the gesture history no longer applies. */
+  markSaved: () => void;
 }
 
 /**
@@ -41,6 +43,7 @@ export function useWorkspaceSave({
   setSavedId,
   setLastSavedName,
   setSavedAsPlan,
+  markSaved,
 }: UseWorkspaceSaveArgs) {
   const save = useCallback(
     async (
@@ -69,9 +72,10 @@ export function useWorkspaceSave({
 
       setSavedId(outcome.id);
       setLastSavedName(name);
+      markSaved();
       return { ok: true, id: outcome.id };
     },
-    [householdId, persist, setLastSavedName, setSavedId],
+    [householdId, markSaved, persist, setLastSavedName, setSavedId],
   );
 
   const saveAsPlan = useCallback(
@@ -100,9 +104,10 @@ export function useWorkspaceSave({
       }
 
       setSavedAsPlan(true);
+      markSaved();
       return { ok: true, id: outcome.id };
     },
-    [householdId, saveAsPlanCommand, setSavedAsPlan, takeValidatedPlan],
+    [householdId, markSaved, saveAsPlanCommand, setSavedAsPlan, takeValidatedPlan],
   );
 
   return { save, saveAsPlan };

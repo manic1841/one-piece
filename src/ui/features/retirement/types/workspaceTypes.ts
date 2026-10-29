@@ -1,8 +1,8 @@
 import { type useOpeningDraft } from '@/ui/features/retirement/hooks/useOpeningDraft';
 import { type usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { type useProjectionCalculate } from '@/ui/features/retirement/hooks/useProjectionCalculate';
-import { type useWorkspaceDerived } from '@/ui/features/retirement/hooks/useWorkspaceDerived';
 import { type RetirementComparisonVM } from '@/ui/features/retirement/viewmodels/retirementComparison.vm';
+import { type WorkspaceDerivedVM } from '@/ui/features/retirement/viewmodels/workspaceDerived.vm';
 import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 
 export type ProjectionWorkspaceStage = 'setup' | 'preview';
@@ -15,7 +15,8 @@ export type ProjectionWorkspaceStage = 'setup' | 'preview';
 export type WorkspaceAssumptions = ReturnType<typeof usePlanDrafts>['assumptions'];
 export type WorkspaceRules = ReturnType<typeof usePlanDrafts>['rules'];
 export type WorkspaceEvents = ReturnType<typeof usePlanDrafts>['events'];
-export type WorkspaceDerived = ReturnType<typeof useWorkspaceDerived>;
+export type WorkspaceDerived = WorkspaceDerivedVM;
+export type WorkspaceDraft = ReturnType<typeof usePlanDrafts>;
 
 /** The opening net worth draft plus the load state around it. */
 export interface WorkspaceOpening
@@ -38,7 +39,8 @@ export interface WorkspaceOpening
 export interface WorkspaceUndo {
   canUndo: boolean;
   run: () => void;
-  push: (restore: () => void) => void;
+  /** Pushes the restore callback for a timeline gesture, once, before it writes. */
+  rememberEvents: () => void;
 }
 
 /** Calculation output, from the run itself to what the preview and errors show. */

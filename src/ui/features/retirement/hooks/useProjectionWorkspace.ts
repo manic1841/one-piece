@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { type ProjectionSummary } from '@/domains/retirement/projectionTypes';
+import { defaultProjectionName } from '@/shared/projectionName';
 import {
   PROJECTION_RESULT_LABELS,
   resolveErrorLabel,
@@ -12,16 +13,20 @@ import { useProjectionCalculate } from '@/ui/features/retirement/hooks/useProjec
 import { useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
 import { useProjectionPreload } from '@/ui/features/retirement/hooks/useProjectionPreload';
 import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
-import { useWorkspaceDerived } from '@/ui/features/retirement/hooks/useWorkspaceDerived';
-import { useWorkspaceDrafts } from '@/ui/features/retirement/hooks/useWorkspaceDrafts';
+import { useWorkspaceDraft } from '@/ui/features/retirement/hooks/useWorkspaceDraft';
 import { useWorkspaceIndicators } from '@/ui/features/retirement/hooks/useWorkspaceIndicators';
 import { useWorkspaceLeaveGuard } from '@/ui/features/retirement/hooks/useWorkspaceLeaveGuard';
-import { useWorkspaceSaveFlow } from '@/ui/features/retirement/hooks/useWorkspaceSaveFlow';
+import { useWorkspaceSave } from '@/ui/features/retirement/hooks/useWorkspaceSave';
 import { useWorkspaceScenario } from '@/ui/features/retirement/hooks/useWorkspaceScenario';
-import { useWorkspaceStage } from '@/ui/features/retirement/hooks/useWorkspaceStage';
-import { useWorkspaceUndo } from '@/ui/features/retirement/hooks/useWorkspaceUndo';
 import { useWorkspaceValidation } from '@/ui/features/retirement/hooks/useWorkspaceValidation';
+import {
+  type ProjectionWorkspaceStage,
+  type WorkspaceCalc,
+  type WorkspaceOpening,
+  type WorkspaceUndo,
+} from '@/ui/features/retirement/types/workspaceTypes';
 import { mapProjectionWarningsToVM } from '@/ui/features/retirement/viewmodels/projectionResult.vm';
+import { buildWorkspaceDerived } from '@/ui/features/retirement/viewmodels/workspaceDerived.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -53,6 +58,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     initiallyLoading: true,
   });
 
+  const [stage, setStage] = useState<ProjectionWorkspaceStage>('setup');
   const [appliedPlanName, setAppliedPlanName] = useState<string | null>(null);
   const [openingValidationError, setOpeningValidationError] = useState<string | undefined>();
   const [startYearValidationError, setStartYearValidationError] = useState<string | undefined>();
@@ -61,7 +67,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [savedAsPlan, setSavedAsPlan] = useState(false);
   const [preloadWarning, setPreloadWarning] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
-  const undo = useWorkspaceUndo();
 
   // The rail indicators are created before the draft exists, so they reach the
   // refresh through this ref; it is filled below, once the drafts are wired.
@@ -71,10 +76,13 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     PROJECTION_RESULT_LABELS.RESOLVE_FAILED,
   );
 
-  const markDirty = useCallback(() => {
-    indicators.markOutdated();
-  }, [indicators]);
-  const drafts = useWorkspaceDrafts({ householdId, auth, markDirty, run, currentYear });
+  const drafts = useWorkspaceDraft({
+    householdId,
+    auth,
+    onDirty: indicators.markOutdated,
+    run,
+    currentYear,
+  });
   const {
     opening,
     reportValue,
@@ -84,8 +92,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     retryOpening,
     replaceAll,
     replaceGroups,
-    resetScenarioBase,
-    resetDraftToBlank: resetDraftsToBlank,
+    resetBase,
+    resetAll,
     setOpeningAmount,
     commitOpeningAmount,
     resetToSnapshot,
@@ -95,7 +103,10 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     startYear,
     setStartYear,
     dirty,
-    setDirty,
+    undo,
+    rememberEvents,
+    markSaved,
+    markDirty,
     sectionState,
   } = drafts;
 
@@ -110,7 +121,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     householdId,
     fromId,
     run,
-    setDirty,
+    markDirty,
     setWarning: setPreloadWarning,
     replaceAll,
     markSeeded,
@@ -148,7 +159,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
 
   const incomeRuleCount = rules.rules.filter((rule) => rule.ruleType === 'income').length;
   const valid = assumptions.valid && rules.valid && events.valid;
-  const derived = useWorkspaceDerived({
+  const derived = buildWorkspaceDerived({
     assumptions: assumptions.values,
     rulesReady: valid,
     eventCount: events.events.length,
@@ -158,7 +169,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     currentYear,
   });
 
-  const { stage, goToPreview, goToSetup } = useWorkspaceStage();
+  const goToPreview = useCallback(() => setStage('preview'), []);
+  const goToSetup = useCallback(() => setStage('setup'), []);
 
   const {
     calculated,
@@ -218,9 +230,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       indicators.reset();
       dropSavedState();
       markDirty();
-      setDirty(true);
     },
-    [dropSavedState, indicators, markDirty, resetCalculation, goToSetup, setDirty],
+    [dropSavedState, indicators, markDirty, resetCalculation, goToSetup],
   );
 
   const { applyPlan, resetToBlank, reapplyPlan } = useWorkspaceScenario({
@@ -228,24 +239,41 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     planId,
     auth,
     replaceGroups,
-    resetDraftsToBlank,
-    resetScenarioBase,
+    resetDraftsToBlank: resetAll,
+    resetBase,
     onSwapped: onScenarioSwapped,
     setWarning: setPreloadWarning,
     clearParams,
   });
 
-  const { save, saveAsPlan, defaultName, submitSave, saveAsPlanForm, submitSaveAsPlan } =
-    useWorkspaceSaveFlow({
-      householdId,
-      cmds: { persist, saveWorkspaceAsPlan },
-      forms: { saveForm, submitSaveForm, planForm, submitPlanForm },
-      takeValidatedPlan,
-      calculated,
-      undo,
-      setSavedId,
-      setLastSavedName,
-      setSavedAsPlan,
+  const { save: saveAction, saveAsPlan } = useWorkspaceSave({
+    householdId,
+    persist,
+    saveAsPlanCommand: saveWorkspaceAsPlan,
+    takeValidatedPlan,
+    setSavedId,
+    setLastSavedName,
+    setSavedAsPlan,
+    markSaved,
+  });
+
+  const save = useCallback(
+    (name: string) => saveAction(name, calculated === null ? null : calculated.calculation),
+    [calculated, saveAction],
+  );
+
+  const submitSave = (onSuccess?: () => void) =>
+    submitSaveForm(async (name) => {
+      const outcome = await save(name);
+      if (outcome.ok) onSuccess?.();
+      return outcome;
+    });
+
+  const submitSaveAsPlan = (onSuccess?: () => void) =>
+    submitPlanForm(async (name) => {
+      const outcome = await saveAsPlan(name);
+      if (outcome.ok) onSuccess?.();
+      return outcome;
     });
 
   const applyRetirementAge = useCallback(
@@ -285,7 +313,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       commitOpeningAmount,
       resetToSnapshot,
       reload: retryOpening,
-    },
+    } satisfies WorkspaceOpening,
     assumptions,
     rules,
     events,
@@ -293,18 +321,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     setStartYear,
     setRetirementAge,
     setAssumptionField,
-    derived: {
-      openingResolved: derived.openingResolved,
-      readiness: derived.readiness,
-      progress: derived.progress,
-      ageRange: derived.ageRange,
-      assumptionBounds: derived.assumptionBounds,
-      retirementYear: derived.retirementYear,
-      finalYear: derived.finalYear,
-      birthYear: derived.birthYear,
-      lifeExpectancy: derived.lifeExpectancy,
-    },
-    undo: { canUndo: undo.canUndo, run: undo.undo, push: undo.push },
+    derived,
+    undo: { canUndo: undo.canUndo, run: undo.run, rememberEvents } satisfies WorkspaceUndo,
     calc: {
       calculated,
       calculating,
@@ -314,7 +332,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       warningLabels: calculated ? mapProjectionWarningsToVM(calculated.calculation) : [],
       retirementComparisons,
       applyRetirementAge,
-    },
+    } satisfies WorkspaceCalc,
     save: {
       savedId,
       savedAsPlan,
@@ -323,9 +341,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       saveForm,
       lastSavedName,
       submitSave,
-      saveAsPlanForm,
+      saveAsPlanForm: planForm,
       submitSaveAsPlan,
-      defaultName,
+      defaultName: defaultProjectionName,
     },
     indicators: indicators.indicators,
   };

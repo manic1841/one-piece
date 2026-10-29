@@ -1,6 +1,8 @@
 import { act, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { type WorkspaceDraftController } from '@/ui/features/retirement/hooks/useWorkspaceDraft';
+
 import { useIndicatorCalculation } from './useIndicatorCalculation';
 
 /**
@@ -24,7 +26,7 @@ const draftsOf = (overrides: DraftsOverrides = {}) =>
     }),
     opening: { source: 'manual', amountText: '1000' },
     startYear: 2026,
-  }) as never;
+  }) as unknown as WorkspaceDraftController;
 
 const summary = { finalNetWorth: 10 } as never;
 

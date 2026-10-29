@@ -15,7 +15,7 @@ interface UseWorkspaceScenarioArgs {
   /** Wipes every draft back to blank, the opening and start year included. */
   resetDraftsToBlank: () => void;
   /** Opening + start year only: the parts a plan does not carry. */
-  resetScenarioBase: () => void;
+  resetBase: () => void;
   /** Runs after the drafts are swapped, so the shell can drop the stale result. */
   onSwapped: (appliedPlanName: string | null) => void;
   setWarning: (warning: string | null) => void;
@@ -33,7 +33,7 @@ export function useWorkspaceScenario({
   auth,
   replaceGroups,
   resetDraftsToBlank,
-  resetScenarioBase,
+  resetBase,
   onSwapped,
   setWarning,
   clearParams,
@@ -47,10 +47,10 @@ export function useWorkspaceScenario({
       });
       // A plan carries assumptions, rules and events only. Everything else goes
       // back to its blank default so the result is not a mix of two scenarios.
-      resetScenarioBase();
+      resetBase();
       onSwapped(plan.name);
     },
-    [onSwapped, replaceGroups, resetScenarioBase],
+    [onSwapped, replaceGroups, resetBase],
   );
 
   /**

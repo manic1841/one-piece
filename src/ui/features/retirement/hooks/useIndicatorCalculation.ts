@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef } from 'react';
 
 import { type ProjectionSummary } from '@/domains/retirement/projectionTypes';
 import { type useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
-import { type useWorkspaceDrafts } from '@/ui/features/retirement/hooks/useWorkspaceDrafts';
+import { type WorkspaceDraftController } from '@/ui/features/retirement/hooks/useWorkspaceDraft';
 import { type useWorkspaceValidation } from '@/ui/features/retirement/hooks/useWorkspaceValidation';
 
 interface UseIndicatorCalculationArgs {
-  drafts: ReturnType<typeof useWorkspaceDrafts>;
+  drafts: WorkspaceDraftController;
   validateOpening: ReturnType<typeof useWorkspaceValidation>['validateOpening'];
   calculateProjection: ReturnType<typeof useProjectionCmds>['calculate'];
 }

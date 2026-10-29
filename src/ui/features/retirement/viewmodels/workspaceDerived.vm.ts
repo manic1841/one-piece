@@ -16,7 +16,7 @@ import {
   buildReadiness,
 } from '@/ui/features/retirement/viewmodels/workspaceReadiness.vm';
 
-interface UseWorkspaceDerivedOptions {
+interface BuildWorkspaceDerivedOptions {
   assumptions: AssumptionsVM;
   rulesReady: boolean;
   eventCount: number;
@@ -28,10 +28,10 @@ interface UseWorkspaceDerivedOptions {
 
 /**
  * Numbers the shell derives from the draft: readiness, the progress dots and
- * the retirement-age bounds. Pure reads of the drafts, so they are computed on
- * every render rather than stored.
+ * the retirement-age bounds. Pure reads, so they are recomputed on every render
+ * and the controller does not have to re-list each field.
  */
-export function useWorkspaceDerived({
+export function buildWorkspaceDerived({
   assumptions,
   rulesReady,
   eventCount,
@@ -39,7 +39,7 @@ export function useWorkspaceDerived({
   incomeRuleCount,
   opening,
   currentYear,
-}: UseWorkspaceDerivedOptions) {
+}: BuildWorkspaceDerivedOptions) {
   const openingResolved =
     opening.amountText.trim() !== '' && openingSchema.safeParse(opening).success;
 
@@ -69,3 +69,5 @@ export function useWorkspaceDerived({
     }),
   };
 }
+
+export type WorkspaceDerivedVM = ReturnType<typeof buildWorkspaceDerived>;

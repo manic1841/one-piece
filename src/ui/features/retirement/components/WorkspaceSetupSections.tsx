@@ -67,11 +67,6 @@ export function WorkspaceSetupSections({
   lifeEventsRef,
   revealYear,
 }: WorkspaceSetupSectionsProps) {
-  const rememberEvents = () => {
-    const snapshot = events.snapshot();
-    undo.push(() => events.replaceDrafts(snapshot));
-  };
-
   /**
    * A drop settles on `movePhase`: it looks the owner up by phase id, so a drag
    * that leaves a row and comes back still lands, and a same-row drop is just a
@@ -163,7 +158,7 @@ export function WorkspaceSetupSections({
           addEventWithPhase={events.addEventWithPhase}
           removePhase={events.removePhase}
           updatePhase={events.updatePhase}
-          onGestureStart={rememberEvents}
+          onGestureStart={undo.rememberEvents}
           onRangeChange={changeRange}
           reparent={events.reparentPhase}
           status={sectionState.events?.status}
