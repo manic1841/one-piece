@@ -21,6 +21,7 @@ import {
   type RuleType,
   type RulesForm as RulesFormValue,
 } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
+import { cn } from '@/ui/utils/cn';
 
 interface ProjectionRulesSectionProps {
   form: UseFormReturn<RulesFormValue>;
@@ -197,7 +198,7 @@ export function ProjectionRulesSection({
         <div className="grid gap-8">
           {isEmpty ? (
             <div className="grid justify-items-start gap-3 py-2">
-              <p className="text-[13px] text-muted-foreground">{RULE_LABELS.EMPTY}</p>
+              <p className="text-sm text-muted-foreground">{RULE_LABELS.EMPTY}</p>
               {!readOnly && (
                 <Button variant="outline" size="sm" onClick={startCreate}>
                   {RULE_LABELS.ADD}
@@ -217,14 +218,17 @@ export function ProjectionRulesSection({
                 <div key={side} className="grid gap-3">
                   <div className="flex items-center gap-3">
                     <p className={eyebrowClass}>{label}</p>
-                    <span className={eyebrowClass} data-testid={`${side}-rule-status`}>
+                    <span
+                      className={cn(eyebrowClass, errorCount > 0 && 'text-destructive')}
+                      data-testid={`${side}-rule-status`}
+                    >
                       {sideRules.length}
                       {errorCount > 0 && ` · ${errorCount} WARNING`}
                     </span>
                   </div>
 
                   {sideRules.length === 0 ? (
-                    <p className="text-muted-foreground text-[13px]">{emptyLabel}</p>
+                    <p className="text-muted-foreground text-sm">{emptyLabel}</p>
                   ) : (
                     <ul className="grid gap-1">
                       {sideRules.map(({ rule }) => (

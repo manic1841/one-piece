@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { Button } from '@/ui/components/ui/button';
+import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
 import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';
@@ -65,7 +66,7 @@ export function ProjectionRuleDialog({
       <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
         <DialogContent aria-describedby={undefined} className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-muted-foreground font-mono text-sm font-semibold uppercase">
+            <DialogTitle className={cn(sectionTitleClass, 'text-muted-foreground')}>
               {title}
             </DialogTitle>
           </DialogHeader>
@@ -79,7 +80,7 @@ export function ProjectionRuleDialog({
     <Sheet open={open} onOpenChange={(next) => !next && onCancel()}>
       <SheetContent side="bottom" className={cn('max-h-[92vh] overflow-y-auto')}>
         <SheetHeader>
-          <SheetTitle className="text-muted-foreground font-mono text-sm font-semibold uppercase">
+          <SheetTitle className={cn(sectionTitleClass, 'text-muted-foreground')}>
             {title}
           </SheetTitle>
         </SheetHeader>

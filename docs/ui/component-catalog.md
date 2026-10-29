@@ -92,7 +92,7 @@
 | `src/ui/components/ui/dialog.tsx`                       | ui/ 群組                          |
 | `src/ui/components/ui/dropdown-menu.tsx`                | ui/ 群組                          |
 | `src/ui/components/ui/input.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/label.tsx`                        | ui/ 群組                          |
+| `src/ui/components/ui/label.tsx`                        | ui/ 群組（`labelVariants` 帶 `size` 軸：`default`／`compact`） |
 | `src/ui/components/ui/popover.tsx`                      | ui/ 群組                          |
 | `src/ui/components/ui/select.tsx`                       | ui/ 群組                          |
 | `src/ui/components/ui/sheet.tsx`                        | ui/ 群組                          |
@@ -422,16 +422,17 @@
   - Props：原生 div 屬性。
   - **不要用於**：欄位不要自行決定 label 或 error 的位置與間距，一律透過它。
 - **`FormLabel`** — 欄位標籤。
-  - Props：原生 label 屬性，另加 `required?`（在尾端加 `*`，不寫「必填」字樣）。
+  - Props：原生 label 屬性，另加 `required?`（在尾端加 `*`，不寫「必填」字樣）、`size?`（`default`／`compact`）。
+  - 變體：`size="compact"`（12px）供密集表單（多欄並排、行動版）；尺寸只在這裡決定，不在父層寫 `[&_label]`。
   - **不要用於**：需在 `FormField` 內。
 - **`FormControl`** — 以 `cloneElement` 把表單狀態注入子欄位（id、name、value、onChange、onBlur、ref、error 與對應的 `aria-*`）。**接線集中在這裡，欄位本身不得 import RHF**（[ADR-0065](../adr/0065-rhf-free-field-components-with-formcontrol-glue.md)）。
   - Props：`children`（單一元素，必填）。
   - **不要用於**：不要用它包非欄位元素。
+- **`FormMessage`** — 欄位的第一筆錯誤，只顯示第一筆、無錯誤時不渲染，固定掛在 control 下方；同模組另匯出 `formMessageClass`，供無法使用元件的錯誤彙總（repeater 尾端、alert 式清單）重用同一組字級與字重。
+  - Props：原生 p 屬性，`children` 作為欄位錯誤缺席時的內容。
+  - **不要用於**：不要自行寫一組 destructive 字級／字重；錯誤表面只有這一個（design-system §7 `form`）。
 - **`FormDescription`** — 欄位說明文字。
   - Props：原生 p 屬性。**不要用於**：錯誤訊息用它會顯示不出來（用 `FormMessage`）。
-- **`FormMessage`** — 錯誤訊息，只顯示第一筆錯誤；無錯誤時不渲染。
-  - Props：原生 p 屬性。
-  - **不要用於**：需在 `FormField` 內。
 - 範例：`src/ui/features/debt/components/DebtAccountForm.tsx`
 
 ### 欄位（RHF-free 受控元件，value 契約為 string）

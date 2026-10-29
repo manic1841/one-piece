@@ -14,7 +14,7 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
+import { eyebrowClass, sectionTitleClass } from '@/ui/components/eyebrow';
 import { MONEY_TONE_CLASS, signTone } from '@/ui/components/moneyTone';
 import { PROJECTION_YEARLY_DETAIL_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabels';
@@ -51,7 +51,7 @@ const YEARLY_COL_SPAN = YEARLY_COLUMN_WIDTHS.length;
 /** Retirement divider row; replaces the per-row status column. */
 function RetirementDivider({ year }: { year: number }) {
   return (
-    <span className="font-mono text-[11px] font-semibold uppercase tracking-widest text-warning">
+    <span className={cn(eyebrowClass, 'font-semibold text-warning')}>
       {PROJECTION_YEARLY_DETAIL_LABELS.retirementDivider} · {year}
     </span>
   );

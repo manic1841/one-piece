@@ -33,6 +33,7 @@ export const RULE_LABELS = {
   SOURCE_USED_BY: 'used by {count}',
   RULE_SOURCE: 'Another rule',
   UNNAMED_RULE: '(unnamed rule)',
+  ERROR_COUNT: '{count} errors',
   SUMMARY_OF: 'of',
   SUMMARY_PER_YEAR: '/ year',
   SUMMARY_FOLLOWS_INFLATION: 'follows inflation',

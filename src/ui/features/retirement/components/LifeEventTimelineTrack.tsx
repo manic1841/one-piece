@@ -153,7 +153,7 @@ export function LifeEventTimelineTrack({
                   <span
                     aria-hidden="true"
                     className={cn(
-                      'pointer-events-none absolute top-1/2 -translate-y-1/2 font-mono text-[10px] tabular-nums text-muted-foreground',
+                      'pointer-events-none absolute top-1/2 -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground',
                       afterWindow ? 'right-1' : 'left-1',
                     )}
                   >

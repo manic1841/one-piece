@@ -82,7 +82,7 @@ test('timeline drag is undoable and a dirty workspace asks before leaving', asyn
   await undo.click();
   await expect(startYear).toHaveText(original ?? '');
 
-  await page.getByRole('button', { name: 'Back', exact: true }).click();
+  await page.getByRole('button', { name: 'BACK TO PROJECTIONS' }).click();
   await expect(page.getByText('Leave this workspace?')).toBeVisible();
   await page.getByRole('button', { name: 'LEAVE' }).click();
   await expect(page).toHaveURL(/\/retirement$/);

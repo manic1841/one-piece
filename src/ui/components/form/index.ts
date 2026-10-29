@@ -13,6 +13,7 @@ export { FormLabel } from './FormLabel';
 export { FormControl } from './FormControl';
 export { FormDescription } from './FormDescription';
 export { FormMessage } from './FormMessage';
+export { formMessageClass } from './FormMessage';
 
 export { TextInput } from './TextInput';
 export { NumberInput } from '../NumberInput';

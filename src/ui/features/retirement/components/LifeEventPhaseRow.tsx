@@ -48,7 +48,7 @@ export function LifeEventPhaseRow({
         <div className="flex-1">
           <FormField name={`${prefix}.name`}>
             <FormItem>
-              <FormLabel>{EVENT_LABELS.PHASE_NAME}</FormLabel>
+              <FormLabel size="compact">{EVENT_LABELS.PHASE_NAME}</FormLabel>
               <FormControl>
                 <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
               </FormControl>
@@ -67,7 +67,7 @@ export function LifeEventPhaseRow({
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField name={`${prefix}.startYearText`}>
           <FormItem>
-            <FormLabel>{EVENT_LABELS.START_YEAR}</FormLabel>
+            <FormLabel size="compact">{EVENT_LABELS.START_YEAR}</FormLabel>
             <FormControl>
               <SelectField
                 value={phase.startYearText}
@@ -83,7 +83,7 @@ export function LifeEventPhaseRow({
 
         <FormField name={`${prefix}.endYearText`}>
           <FormItem>
-            <FormLabel>{EVENT_LABELS.END_YEAR}</FormLabel>
+            <FormLabel size="compact">{EVENT_LABELS.END_YEAR}</FormLabel>
             <FormControl>
               <SelectField
                 value={phase.endYearText}
@@ -99,7 +99,7 @@ export function LifeEventPhaseRow({
 
         <FormField name={`${prefix}.amountText`}>
           <FormItem>
-            <FormLabel>{EVENT_LABELS.AMOUNT}</FormLabel>
+            <FormLabel size="compact">{EVENT_LABELS.AMOUNT}</FormLabel>
             <FormControl>
               <NumberInput readOnly={readOnly} onChange={(amountText) => update({ amountText })} />
             </FormControl>
@@ -109,7 +109,7 @@ export function LifeEventPhaseRow({
 
         <FormField name={`${prefix}.growthRateText`}>
           <FormItem>
-            <FormLabel>{EVENT_LABELS.GROWTH_RATE}</FormLabel>
+            <FormLabel size="compact">{EVENT_LABELS.GROWTH_RATE}</FormLabel>
             <FormControl>
               <NumberInput
                 readOnly={readOnly}

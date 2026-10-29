@@ -3,6 +3,7 @@ import { type KeyboardEvent, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { PageSection } from '@/ui/components/PageSection';
+import { dataTableLabelClass } from '@/ui/components/data-table/styles';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
@@ -139,14 +140,14 @@ export function PreviewRetirementComparison({
           </Button>
         </div>
         <div className="min-w-0">
-          <table className="w-full table-fixed text-left text-xs md:text-sm">
+          <table className="w-full table-fixed text-left text-sm">
             <thead>
               <tr className="border-b border-border">
                 <td className="w-1/3" />
-                <th scope="col" className="px-2 pb-3 font-medium text-muted-foreground">
+                <th scope="col" className={cn(dataTableLabelClass, 'px-2 pb-3')}>
                   {LABELS.CURRENT(retirementAge)}
                 </th>
-                <th scope="col" className="px-2 pb-3 font-medium text-foreground">
+                <th scope="col" className={cn(dataTableLabelClass, 'px-2 pb-3 text-foreground')}>
                   {LABELS.TRIAL(age)}
                   {failed && (
                     <span className="text-negative"> {PROJECTION_COMMON_LABELS.ERROR_MARK}</span>
@@ -157,7 +158,7 @@ export function PreviewRetirementComparison({
             <tbody>
               {rows.map((row) => (
                 <tr key={row.label} className="border-b border-border/50">
-                  <th scope="row" className="py-3 pr-3 text-xs font-normal text-muted-foreground">
+                  <th scope="row" className="py-3 pr-3 font-normal text-muted-foreground">
                     {row.label}
                   </th>
                   <td

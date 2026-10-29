@@ -5,6 +5,7 @@ import {
   FormLabel,
   FormMessage,
   TextInput,
+  formMessageClass,
 } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import { Switch } from '@/ui/components/ui/switch';
@@ -62,7 +63,7 @@ export function LifeEventRow({
         <div className="flex-1">
           <FormField name={`${prefix}.name`}>
             <FormItem>
-              <FormLabel required>{EVENT_LABELS.NAME}</FormLabel>
+              <FormLabel required size="compact">{EVENT_LABELS.NAME}</FormLabel>
               <FormControl>
                 <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
               </FormControl>
@@ -71,7 +72,7 @@ export function LifeEventRow({
           </FormField>
         </div>
 
-        <label className="flex h-[34px] items-center gap-2 text-sm text-muted-foreground">
+        <label className="flex h-[34px] items-center gap-2 text-xs text-muted-foreground">
           <Switch checked={event.enabled} onCheckedChange={toggle} disabled={readOnly} />
           {event.enabled ? EVENT_LABELS.ENABLED : EVENT_LABELS.DISABLED}
         </label>
@@ -84,7 +85,7 @@ export function LifeEventRow({
       </div>
 
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
           {EVENT_LABELS.TYPE}
           <Switch
             checked={event.type === 'expense'}
@@ -96,7 +97,7 @@ export function LifeEventRow({
             {EVENT_TYPE_LABELS[event.type]}
           </span>
         </label>
-        {errors.type && <p className="text-destructive text-sm font-medium">{errors.type}</p>}
+        {errors.type && <p className={formMessageClass}>{errors.type}</p>}
       </div>
 
       <div className="grid gap-2">
@@ -128,7 +129,7 @@ export function LifeEventRow({
           </ul>
         )}
 
-        {errors.phases && <p className="text-destructive text-sm font-medium">{errors.phases}</p>}
+        {errors.phases && <p className={formMessageClass}>{errors.phases}</p>}
       </div>
     </li>
   );

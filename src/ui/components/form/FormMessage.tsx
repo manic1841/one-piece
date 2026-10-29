@@ -4,6 +4,13 @@ import { cn } from '@/ui/utils/cn';
 
 import { formMessageId, useFormField, useFormItemId } from './form-context';
 
+/**
+ * The one error-text surface of the form system. Fields that render their error
+ * outside `FormMessage` (repeater summaries, alert-like aggregates) reuse this
+ * class instead of writing their own destructive text.
+ */
+export const formMessageClass = 'text-destructive text-sm font-medium';
+
 /** Renders the field's first error below the control; falls back to `children`. */
 export const FormMessage = React.forwardRef<
   HTMLParagraphElement,
@@ -18,12 +25,7 @@ export const FormMessage = React.forwardRef<
   }
 
   return (
-    <p
-      ref={ref}
-      id={formMessageId(id)}
-      className={cn('text-destructive text-sm font-medium', className)}
-      {...props}
-    >
+    <p ref={ref} id={formMessageId(id)} className={cn(formMessageClass, className)} {...props}>
       {body}
     </p>
   );

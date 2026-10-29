@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { ChevronDown } from 'lucide-react';
 
+import { dataTableLabelClass } from '@/ui/components/data-table/styles';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabels';
 import { type SnapshotEventVM } from '@/ui/features/retirement/viewmodels/projectionView.vm';
@@ -75,10 +76,10 @@ export function LifeEventTimeline({
                     )}
                   />
                   <span className="min-w-0 truncate text-sm">{event.name}</span>
-                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
                     {event.rangeText}
                   </span>
-                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                  <span className="shrink-0 text-xs text-muted-foreground">
                     {event.timingText} · {event.typeText}
                     {event.isDisabled && ` · ${PROJECTION_VIEW_LABELS.EVENT_DISABLED}`}
                   </span>
@@ -132,7 +133,12 @@ export function LifeEventTimeline({
 
               {isOpen && (
                 <div className="pb-3 pl-6" data-testid={`event-details-${event.id}`}>
-                  <div className="grid grid-cols-[7rem_1fr_5rem] gap-x-3 border-b border-border pb-1 text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                  <div
+                    className={cn(
+                      'grid grid-cols-[7rem_1fr_5rem] gap-x-3 border-b border-border pb-1',
+                      dataTableLabelClass,
+                    )}
+                  >
                     <span>{PROJECTION_VIEW_LABELS.PHASE_RANGE}</span>
                     <span className="text-right">{PROJECTION_VIEW_LABELS.PHASE_AMOUNT}</span>
                     <span className="text-right">{PROJECTION_VIEW_LABELS.PHASE_GROWTH}</span>
@@ -173,7 +179,7 @@ export function LifeEventTimeline({
             <span
               key={tick}
               className={cn(
-                'absolute top-1 font-mono text-[10px] tabular-nums text-muted-foreground',
+                'absolute top-1 font-mono text-[11px] tabular-nums text-muted-foreground',
                 // Narrow screens only keep the period edges and the anchor.
                 !isMajor && 'hidden md:block',
                 tick === anchorYear && 'font-semibold text-foreground',

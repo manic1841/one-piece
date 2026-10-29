@@ -5,7 +5,7 @@ import { type UseFormReturn } from 'react-hook-form';
 import { PageSection } from '@/ui/components/PageSection';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { DrawerPanel } from '@/ui/components/drawer/DrawerPanel';
-import { Form } from '@/ui/components/form';
+import { Form, formMessageClass } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import { Sheet, SheetContent } from '@/ui/components/ui/sheet';
 import { EVENT_LABELS } from '@/ui/constants/retirement/eventLabels';
@@ -281,7 +281,7 @@ export function LifeEventsSection({
         />
       </DrawerPanel>
     ) : (
-      <p className="text-[13px] text-muted-foreground">{WORKSPACE_ACTION_LABELS.NO_SELECTION}</p>
+      <p className="text-sm text-muted-foreground">{WORKSPACE_ACTION_LABELS.NO_SELECTION}</p>
     );
 
   return (
@@ -311,7 +311,7 @@ export function LifeEventsSection({
       >
         {isEmpty ? (
           <div className="grid justify-items-start gap-3 py-2">
-            <p className="text-[13px] text-muted-foreground">{EVENT_LABELS.EMPTY}</p>
+            <p className="text-sm text-muted-foreground">{EVENT_LABELS.EMPTY}</p>
             {!readOnly && (
               <Button ref={addRef} variant="outline" size="sm" onClick={createDefault}>
                 {EVENT_LABELS.ADD}
@@ -388,7 +388,7 @@ export function LifeEventsSection({
         {allMessages.length > 0 && (
           <ul className="mt-3 space-y-1 text-center" data-testid="event-error-summary">
             {allMessages.map((message, index) => (
-              <li key={`${message}-${index}`} className="text-destructive text-sm font-medium">
+              <li key={`${message}-${index}`} className={formMessageClass}>
                 {message}
               </li>
             ))}

@@ -32,8 +32,7 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/retirement/components/PercentSlider.tsx',
 ]);
 
-const SHADOW_ALLOWED = new Set([
-  // Floating layers only: dialog, dropdown, sheet, toast, popover, select,
+const SHADOW_ALLOWED = new Set([  // Floating layers only: dialog, dropdown, sheet, toast, popover, select,
   // command palette, switch knob, and the materialized app chrome (L1/L2/L3).
   'components/Toast.tsx',
   'components/charts/ChartTooltip.tsx',
@@ -50,6 +49,26 @@ const SHADOW_ALLOWED = new Set([
   'features/app/pages/GalleryInteraction.tsx',
 ]);
 
+/**
+ * Sub-11px type that predates the floor or sits in role classes the floor rule
+ * does not name (avatar initials, crumb, legend, progress meta). Everything else
+ * — table headers, mobile field labels, chart axis / reference labels — must stay
+ * at 11px or above.
+ */
+const TYPE_FLOOR_ALLOWED = new Set([
+  'components/Avatar.tsx',
+  'components/CliProgress.tsx',
+  'components/PageHeader.tsx',
+  'components/Toast.tsx',
+  'components/YearMonthPicker.tsx',
+  'components/charts/ChartLegend.tsx',
+  'features/account/pages/AccountList.tsx',
+  'features/app/pages/GalleryInteraction.tsx',
+  'features/monthly_close/stages/debt_repayment/components/CloseDebtRepaymentStage.tsx',
+  'features/transaction/components/TransactionItem.tsx',
+  'features/transaction/components/TransactionPeriodPicker.tsx',
+]);
+
 const collectSourceFiles = (dir: string): string[] => {
   return readdirSync(dir).flatMap((entry) => {
     const entryPath = path.join(dir, entry);
@@ -61,10 +80,26 @@ const collectSourceFiles = (dir: string): string[] => {
 
 const toRelative = (filePath: string): string => path.relative(UI_DIR, filePath);
 
+const read = (file: string): string => readFileSync(path.resolve(UI_DIR, file), 'utf8');
+
+/** Feature files whose `text-destructive` is not error copy (counts, required marker). */
+const DESTRUCTIVE_TONE_ONLY = new Set([
+  'features/retirement/components/LifeEventInspector.tsx',
+  'features/retirement/components/ProjectionRuleRow.tsx',
+  'features/retirement/components/ProjectionRulesSection.tsx',
+]);
+
+/**
+ * The retirement flow is the reference implementation for labels, section
+ * headings and error text (design-system §4 / §7 `form`); keep it that way.
+ */
+const RETIREMENT_DIR = 'features/retirement';
+
 describe('design system radius/shadow contract (issue #125)', () => {
   const sourceFiles = [path.resolve(UI_DIR, '../App.tsx'), ...collectSourceFiles(UI_DIR)].map(
     toRelative,
   );
+  const retirementFiles = collectSourceFiles(path.resolve(UI_DIR, RETIREMENT_DIR)).map(toRelative);
 
   it('discovers UI source files', () => {
     expect(sourceFiles.length).toBeGreaterThan(50);
@@ -90,6 +125,39 @@ describe('design system radius/shadow contract (issue #125)', () => {
       .filter((file) =>
         readFileSync(path.resolve(UI_DIR, file), 'utf8').match(/shadow-(sm|md|lg|xl|2xl|inner)/),
       );
+    expect(violations).toEqual([]);
+  });
+
+  it('never goes below the 11px type floor (design-system §4)', () => {
+    const violations = sourceFiles
+      .filter((file) => !TYPE_FLOOR_ALLOWED.has(file))
+      .filter((file) => readFileSync(path.resolve(UI_DIR, file), 'utf8').match(/text-\[([0-9]|10)px\]/));
+    expect(violations).toEqual([]);
+  });
+
+  it('sets field-label size from the label token, not a page-level override', () => {
+    const violations = sourceFiles.filter((file) =>
+      readFileSync(path.resolve(UI_DIR, file), 'utf8').match(/\[&[^\]]*_label\]/),
+    );
+    expect(violations).toEqual([]);
+  });
+
+  it('uses the shared eyebrow / section-title class instead of copying them', () => {
+    const eyebrowRecipe = /text-\[11px\][^'"`]*(uppercase|tracking-widest)/;
+    const violations = retirementFiles.filter((file) => eyebrowRecipe.test(read(file)));
+    expect(violations).toEqual([]);
+  });
+
+  it('renders error copy through formMessageClass', () => {
+    const violations = retirementFiles
+      .filter((file) => !DESTRUCTIVE_TONE_ONLY.has(file))
+      .filter((file) => {
+        const source = read(file);
+        return source
+          .split('\n')
+          .filter((line) => line.includes('text-destructive'))
+          .some((line) => !line.includes('font-medium') && !line.includes('formMessageClass'));
+      });
     expect(violations).toEqual([]);
   });
 });

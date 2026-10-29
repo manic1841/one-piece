@@ -31,15 +31,15 @@ export function WorkspacePinnedBar({
   return (
     <div
       data-testid="workspace-pinned-bar"
-      className="material-chrome grid gap-1 border-t border-border py-2 text-xs md:hidden"
+      className="material-chrome grid gap-1 border-t border-border py-2 md:hidden"
     >
-      <p className="text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {readiness.ready
           ? WORKSPACE_RAIL_LABELS.READY
           : readiness.blockers.map((blocker) => READINESS_BLOCKER_LABELS[blocker]).join(' ')}
       </p>
       {indicators.status !== 'idle' && (
-        <dl className="flex flex-wrap gap-x-4 gap-y-1 font-mono tabular-nums">
+        <dl className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs tabular-nums">
           <div className="flex gap-1">
             <dt className="text-muted-foreground">{WORKSPACE_RAIL_LABELS.METRIC_RETIREMENT}</dt>
             <dd>{value(indicators.retirementNetWorthText)}</dd>

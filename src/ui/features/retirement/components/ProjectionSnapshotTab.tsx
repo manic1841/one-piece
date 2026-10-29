@@ -17,7 +17,7 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { eyebrowClass } from '@/ui/components/eyebrow';
+import { eyebrowClass, sectionTitleClass } from '@/ui/components/eyebrow';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabels';
 import { LifeEventTimeline } from '@/ui/features/retirement/components/LifeEventTimeline';
@@ -93,7 +93,7 @@ export function ProjectionSnapshotTab({ view }: ProjectionSnapshotTabProps) {
             <MobileDataList>
               {snapshot.ruleGroups.map((group) => (
                 <div key={group.key} className="space-y-3">
-                  <p className="text-[11px] font-semibold text-foreground">{group.title}</p>
+                  <p className={sectionTitleClass}>{group.title}</p>
                   {group.rows.map((rule) => (
                     <MobileDataRow key={rule.id}>
                       <p className="text-sm">
@@ -165,7 +165,7 @@ export function ProjectionSnapshotTab({ view }: ProjectionSnapshotTabProps) {
                       <DataTableRow className="h-auto bg-muted/40">
                         <DataTableCell
                           colSpan={RULE_COLUMN_WIDTHS.length}
-                          className="py-1.5 text-[11px] font-semibold text-foreground"
+                          className={cn(sectionTitleClass, 'py-1.5')}
                         >
                           {group.title}
                           <span className="ml-2 font-mono font-normal text-muted-foreground">

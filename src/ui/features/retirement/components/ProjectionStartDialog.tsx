@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 
 import { Skeleton } from '@/ui/components/Skeleton';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -73,9 +74,7 @@ export function ProjectionStartDialog({
     <div className="grid gap-6">
       {!showEmpty && (
         <section className="grid gap-2">
-          <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {START_PROJECTION_LABELS.PLAN_SECTION}
-          </h2>
+          <h2 className={eyebrowClass}>{START_PROJECTION_LABELS.PLAN_SECTION}</h2>
 
           {library.loading && (
             <div role="status" className="grid gap-2" data-testid="plan-options-loading">

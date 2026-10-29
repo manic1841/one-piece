@@ -57,7 +57,7 @@ export function ProjectionOverviewTab({ view, onSelectYear }: ProjectionOverview
         <p className={eyebrowClass}>{PROJECTION_VIEW_LABELS.VERDICT_EYEBROW}</p>
         <p
           className={cn(
-            'mt-2 max-w-2xl text-xl font-semibold leading-snug tracking-heading',
+            'mt-2 max-w-2xl text-2xl font-semibold leading-snug tracking-heading',
             verdict.isNegative ? 'text-negative' : 'text-foreground',
           )}
           data-testid={isEmpty ? 'overview-empty' : 'overview-verdict'}

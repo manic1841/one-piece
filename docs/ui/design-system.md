@@ -116,8 +116,10 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
 - `font-mono` 為正式的資料樣式：金額、日期、代碼、badge、座標軸與標籤性 UI（FROM/TO/APPLY 等）一律使用；段落正文維持 UI 字族，不以等寬呈現長文。
 - Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display 用 `tracking-tight`、heading 用對應的負字距 class、body 不設、caption 用 `tracking-wide` 級距。**11px 全大寫 mono 標籤**（eyebrow／label／module）用 `tracking-widest`——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
 - **Section 標題與 eyebrow 標籤分屬兩級**：section 標題（`PageSection` 的 title）比 eyebrow 標籤大一階、用重量建立層級（14px、`font-semibold`、`text-foreground`，仍為 mono 全大寫，不套 `tracking-widest`）；module 標籤、metric label、eyebrow 等標籤性文字維持 11px mono `tracking-widest`（`eyebrowClass`）。
+- **欄位標籤是第三級**：`FormLabel` / `Label` 預設 14px `font-medium`；密集表單用 `size="compact"`（12px）降一階。12px 仍在 11px 地板之上，且**永遠低於 section 標題**——section 標題與欄位標籤不得同尺寸，否則尺寸這條層級訊號整條失效。尺寸由 `Label` 的 `size` 承擔，不得再用頁面層級的 `[&_label]:text-xs` 覆寫。
 - Leading 與尺寸反比：標題 `leading-tight`、內文 `leading-relaxed`。
-- **字級地板 11px**：表頭、行動版欄位標籤與圖表座標軸／參考線標籤不得低於 11px（CJK 在 10px 以下失去字形細節）。其餘 11px 以上的標籤級距不受影響。
+- **字級地板 11px**：表頭、行動版欄位標籤與圖表座標軸／參考線標籤不得低於 11px（CJK 在 10px 以下失去字形細節）。其餘 11px 以上的標籤級距不受影響。`src/ui/design-contract.test.ts` 以此為 CI 守門，低於地板的檔案必須進 allowlist 並註明理由。
+- **標籤與標題一律走具名 class**：`eyebrowClass`（11px 標籤）與 `sectionTitleClass`（14px 標題）是唯一寫法；同一份 contract test 守著這條。
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
 - 頁面標題使用重量（`font-semibold`/`font-bold`）建立層級，不以加大尺寸為唯一手段。
 
@@ -187,7 +189,8 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
   - **注入契約**：`FormControl` 以 `cloneElement` 注入 `value / onChange / onBlur / name / ref / error（boolean）/ aria-invalid / aria-describedby / id`。`error` 供視覺、`aria-*` 供無障礙，兩者缺一不可；欄位元件必須轉發 `ref` 至原生元素。
   - **Select 無值列**：Radix Select 禁止空字串作為 item value（空字串語意是「清除選擇、顯示 placeholder」）。optional select 的「無值」列以 `noneLabel` 表示（sentinel item value 內部承擔，欄位 value contract 仍為 string，選擇「無值」列時 emit `''`）；option 不得自帶 `value: ''`。
   - **Required**：必填欄位在 `FormLabel` 尾端加 `*`（`text-destructive`），不寫「必填」文字。
-  - **Error**：一律顯示在 control 下方，只顯示第一筆錯誤（`FormMessage`）；欄位錯誤時 `FormLabel` 轉 `text-destructive`。
+  - **標籤字級**：密集表單（多欄並排、行動版）的欄位標籤傳 `size="compact"`；單欄寬鬆表單省略。切換字級只改 `size`，不手寫 `text-*`，也不在父層寫 `[&_label]`。
+  - **Error**：一律顯示在 control 下方，只顯示第一筆錯誤（`FormMessage`）；欄位錯誤時 `FormLabel` 轉 `text-destructive`。無法用 `FormMessage` 的錯誤彙總（repeater 尾端、計算前的整批錯誤）沿用 `formMessageClass`，不另寫字級／字重。
   - **重複列的錯誤**：重複列（repeater）的逐列錯誤不佔控制項下方空間，改彙總於區塊底部，並以輸入框錯誤態標示問題列；每列仍保留供無障礙描述使用的訊息。
   - **Disabled**：使用 native `disabled`，統一 `opacity-50` 且不可 focus（由 input primitives 的 `disabled:` 樣式承擔，不另行手寫）。
   - **單一數字輸入**：全站數字欄位是單一 `NumberInput`（`src/ui/components/NumberInput.tsx`，form 與 data-table 兩個 barrel 都 re-export），以 `surface` 表達 form／table 兩種表面。兩者**共用高度（34px）與數字處理**（右對齊 mono `tabular-nums`、移除原生 spinner）**，surface 各自保留**——form 用 `rounded-md` + `border-input` + `bg-background`（即 `ui/input` 的樣式），table 用 `rounded-none` + `border-border` + `bg-muted`；共用的只有幾何與數字處理，不是整體外觀。

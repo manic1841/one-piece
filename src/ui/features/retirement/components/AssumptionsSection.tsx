@@ -1,6 +1,7 @@
 import { type UseFormReturn } from 'react-hook-form';
 
 import { PageSection } from '@/ui/components/PageSection';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import {
   Form,
   FormControl,
@@ -66,7 +67,7 @@ export function AssumptionsSection({
   status,
   hint,
 }: AssumptionsSectionProps) {
-  const groupLabelClass = 'text-xs font-medium tracking-wide text-muted-foreground uppercase';
+  const groupLabelClass = eyebrowClass;
   const hintClass = 'text-xs text-muted-foreground';
 
   const rates: { field: RateField; label: string; min: number; max: number }[] = [
@@ -100,7 +101,7 @@ export function AssumptionsSection({
             <div className="grid gap-4 sm:grid-cols-3">
               <FormField name="birthYear">
                 <FormItem>
-                  <FormLabel>{LABELS.BIRTH_YEAR}</FormLabel>
+                  <FormLabel size="compact">{LABELS.BIRTH_YEAR}</FormLabel>
                   <FormControl>
                     <SelectField
                       value={form.watch('birthYear')}
@@ -116,7 +117,7 @@ export function AssumptionsSection({
 
               <FormField name="retirementAge">
                 <FormItem>
-                  <FormLabel>{LABELS.RETIREMENT_AGE}</FormLabel>
+                  <FormLabel size="compact">{LABELS.RETIREMENT_AGE}</FormLabel>
                   <FormControl>
                     <SelectField
                       value={form.watch('retirementAge')}
@@ -136,7 +137,7 @@ export function AssumptionsSection({
 
               <FormField name="lifeExpectancy">
                 <FormItem>
-                  <FormLabel>{LABELS.LIFE_EXPECTANCY}</FormLabel>
+                  <FormLabel size="compact">{LABELS.LIFE_EXPECTANCY}</FormLabel>
                   <FormControl>
                     <SelectField
                       value={form.watch('lifeExpectancy')}
@@ -163,7 +164,7 @@ export function AssumptionsSection({
                   <FormField key={field} name={field}>
                     <FormItem>
                       <div className="flex items-baseline justify-between gap-3">
-                        <FormLabel>{label}</FormLabel>
+                        <FormLabel size="compact">{label}</FormLabel>
                         <span className="font-mono text-sm font-semibold tabular-nums">
                           {value === '' ? PROJECTION_COMMON_LABELS.DASH : `${value}%`}
                         </span>

@@ -176,7 +176,7 @@ export default function ProjectionWorkspacePage() {
       <div
         className={cn('grid gap-8', showRail && 'md:grid-cols-[minmax(0,52rem)_14rem] md:gap-x-10')}
       >
-        <div className="min-w-0 [&_label]:text-xs">
+        <div className="min-w-0">
           {isPreview ? (
             <WorkspacePreview
               retirementComparisons={workspace.calc.retirementComparisons}

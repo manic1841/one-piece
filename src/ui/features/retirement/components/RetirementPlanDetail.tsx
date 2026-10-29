@@ -1,6 +1,7 @@
 import { DangerZone } from '@/ui/components/DangerZone';
 import { DefinitionRows } from '@/ui/components/DefinitionRows';
 import { PageSection } from '@/ui/components/PageSection';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { EVENT_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
 import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';
@@ -9,6 +10,7 @@ import {
   type PlanRuleVM,
   type RetirementPlanVM,
 } from '@/ui/features/retirement/viewmodels/retirementPlan.vm';
+import { cn } from '@/ui/utils/cn';
 
 function RuleBlock({ rule }: { rule: PlanRuleVM }) {
   return (
@@ -43,9 +45,7 @@ function EventBlock({ event }: { event: PlanEventVM }) {
         ]}
       />
 
-      <h4 className="pt-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-        {PLAN_DETAIL_LABELS.PHASES}
-      </h4>
+      <h4 className={cn(eyebrowClass, 'pt-2')}>{PLAN_DETAIL_LABELS.PHASES}</h4>
       <dl className="grid gap-3">
         {event.phases.map((phase) => (
           <div key={phase.key} className="grid gap-1 border-b border-border pb-3">

@@ -1,6 +1,8 @@
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/types/workspaceTypes';
+import { cn } from '@/ui/utils/cn';
 
 interface WorkspaceStepsProps {
   stage: ProjectionWorkspaceStage;
@@ -16,7 +18,7 @@ export function WorkspaceSteps({ stage }: WorkspaceStepsProps) {
   return (
     <ol
       aria-label={PROJECTION_WORKSPACE_LABELS.STEPS_ARIA_LABEL}
-      className="flex items-center gap-2 border-b border-border pb-3 text-xs"
+      className="flex items-center gap-2 border-b border-border pb-3"
     >
       {steps.map((step) => {
         const isCurrent = step.id === stage;
@@ -37,10 +39,10 @@ export function WorkspaceSteps({ stage }: WorkspaceStepsProps) {
                 label=""
                 className="shrink-0"
               />
-              <span className="font-medium uppercase tracking-widest">{step.label}</span>
+              <span className={cn(eyebrowClass, 'font-medium')}>{step.label}</span>
             </div>
             {step.id === 'setup' && (
-              <span aria-hidden="true" className="text-muted-foreground">
+              <span aria-hidden="true" className="text-xs text-muted-foreground">
                 →
               </span>
             )}

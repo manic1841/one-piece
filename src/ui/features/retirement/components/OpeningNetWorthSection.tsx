@@ -2,9 +2,11 @@ import { useState } from 'react';
 
 import { Pencil } from 'lucide-react';
 
+import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { NumberInput } from '@/ui/components/NumberInput';
 import { PageSection } from '@/ui/components/PageSection';
-import { SelectField } from '@/ui/components/form';
+import { eyebrowClass } from '@/ui/components/eyebrow';
+import { SelectField, formMessageClass } from '@/ui/components/form';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { Label } from '@/ui/components/ui/label';
@@ -111,7 +113,7 @@ export function OpeningNetWorthSection({
           <span className="text-xs text-muted-foreground">
             {PROJECTION_WORKSPACE_LABELS.OPENING_FIELD}
           </span>
-          <span className="font-mono text-lg tabular-nums text-foreground">{amountSummary}</span>
+          <FinancialNumber value={amountSummary} />
           {note !== '' && <span className="text-xs text-muted-foreground">{note}</span>}
           <span className="text-xs text-muted-foreground">
             {PROJECTION_WORKSPACE_LABELS.BASELINE_SUMMARY_START}
@@ -131,19 +133,16 @@ export function OpeningNetWorthSection({
         </div>
       )}
       {!expanded && validationError !== undefined && (
-        <p className="text-xs text-destructive">{validationError}</p>
+        <p className={formMessageClass}>{validationError}</p>
       )}
       {!expanded && startYearError !== undefined && (
-        <p className="text-xs text-destructive">{startYearError}</p>
+        <p className={formMessageClass}>{startYearError}</p>
       )}
 
       {expanded && (
         <div className="grid max-w-xl gap-2">
           <div className="flex items-center justify-between gap-3">
-            <Label
-              htmlFor={OPENING_INPUT_ID}
-              className="text-muted-foreground text-xs tracking-[0.08em] uppercase"
-            >
+            <Label htmlFor={OPENING_INPUT_ID} className={eyebrowClass}>
               {PROJECTION_WORKSPACE_LABELS.OPENING_FIELD}
             </Label>
             <span className="flex shrink-0 items-center gap-4">
@@ -184,28 +183,25 @@ export function OpeningNetWorthSection({
               readOnly={isPreview}
               error={validationError !== undefined}
               aria-invalid={validationError !== undefined}
-              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-2xl font-semibold md:text-3xl"
+              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 text-left text-2xl font-semibold"
               data-testid="opening-net-worth-value"
             />
           </div>
 
           {validationError !== undefined && (
-            <p className="text-destructive text-xs" data-testid="opening-validation-error">
+            <p className={formMessageClass} data-testid="opening-validation-error">
               {validationError}
             </p>
           )}
           {note !== '' && (
-            <p className="text-[13px] text-muted-foreground" data-testid="opening-net-worth-note">
+            <p className="text-sm text-muted-foreground" data-testid="opening-net-worth-note">
               {note}
             </p>
           )}
 
           {/* The year is a parameter of the amount, so it sits below the rule. */}
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-border pt-3">
-            <Label
-              htmlFor={START_YEAR_INPUT_ID}
-              className="text-muted-foreground text-[11px] tracking-[0.08em] uppercase"
-            >
+            <Label htmlFor={START_YEAR_INPUT_ID} className={eyebrowClass}>
               {PROJECTION_WORKSPACE_LABELS.START_YEAR_FIELD}
             </Label>
             <SelectField
@@ -218,7 +214,7 @@ export function OpeningNetWorthSection({
               className="h-8 w-24"
             />
             {startYearError !== undefined && (
-              <p className="text-destructive text-xs" data-testid="start-year-validation-error">
+              <p className={formMessageClass} data-testid="start-year-validation-error">
                 {startYearError}
               </p>
             )}

@@ -103,7 +103,7 @@ export function ProjectionRuleInspector({
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField name={`${prefix}.name`}>
           <FormItem className="sm:col-span-2">
-            <FormLabel required>{RULE_LABELS.NAME}</FormLabel>
+            <FormLabel required size="compact">{RULE_LABELS.NAME}</FormLabel>
             <FormControl>
               {/* eslint-disable-next-line jsx-a11y/no-autofocus -- the dialog's whole job is this one field */}
               <TextInput readOnly={readOnly} autoFocus onChange={(name) => update({ name })} />
@@ -114,7 +114,7 @@ export function ProjectionRuleInspector({
 
         <FormField name={`${prefix}.method`}>
           <FormItem>
-            <FormLabel>{RULE_LABELS.METHOD}</FormLabel>
+            <FormLabel size="compact">{RULE_LABELS.METHOD}</FormLabel>
             <FormControl>
               <SelectField
                 value={rule.method}
@@ -130,7 +130,7 @@ export function ProjectionRuleInspector({
         {rule.method === 'growthRate' && (
           <FormField name={`${prefix}.rateText`}>
             <FormItem>
-              <FormLabel>{RULE_LABELS.PARAMETER_RATE}</FormLabel>
+              <FormLabel size="compact">{RULE_LABELS.PARAMETER_RATE}</FormLabel>
               <FormControl>
                 <PercentSlider
                   min={percent(RETIREMENT_GROWTH_RATE_BOUNDS.min)}
@@ -147,7 +147,7 @@ export function ProjectionRuleInspector({
         {rule.method === 'percentage' && (
           <FormField name={`${prefix}.ratioText`}>
             <FormItem>
-              <FormLabel>{RULE_LABELS.PARAMETER_RATIO}</FormLabel>
+              <FormLabel size="compact">{RULE_LABELS.PARAMETER_RATIO}</FormLabel>
               <FormControl>
                 <NumberInput readOnly={readOnly} onChange={(ratioText) => update({ ratioText })} />
               </FormControl>
@@ -159,7 +159,7 @@ export function ProjectionRuleInspector({
         {rule.method === 'fixedAmount' && (
           <FormField name={`${prefix}.amountText`}>
             <FormItem>
-              <FormLabel>{RULE_LABELS.PARAMETER_AMOUNT}</FormLabel>
+              <FormLabel size="compact">{RULE_LABELS.PARAMETER_AMOUNT}</FormLabel>
               <FormControl>
                 <NumberInput
                   readOnly={readOnly}
@@ -174,7 +174,7 @@ export function ProjectionRuleInspector({
         {!readOnly && (
           <FormField name={`${prefix}.ruleType`}>
             <FormItem>
-              <FormLabel>{RULE_LABELS.RULE_TYPE}</FormLabel>
+              <FormLabel size="compact">{RULE_LABELS.RULE_TYPE}</FormLabel>
               <FormControl>
                 <SelectField
                   value={rule.ruleType}
@@ -190,8 +190,8 @@ export function ProjectionRuleInspector({
         {showsKeepsPace(rule.method) && (
           <FormField name={`${prefix}.keepsPace`}>
             <FormItem className="grid gap-2">
-              <span className="text-sm leading-none font-medium">{RULE_LABELS.KEEPS_PACE}</span>
-              <label className="text-muted-foreground flex items-center gap-2">
+              <span className="text-xs leading-none font-medium">{RULE_LABELS.KEEPS_PACE}</span>
+              <label className="text-muted-foreground flex items-center gap-2 text-xs">
                 <Switch
                   checked={rule.keepsPace}
                   onCheckedChange={(keepsPace) => update({ keepsPace })}
@@ -210,7 +210,7 @@ export function ProjectionRuleInspector({
             {(rule.method === 'inflation' || rule.method === 'growthRate') && (
               <FormField name={`${prefix}.sourceType`}>
                 <FormItem>
-                  <FormLabel>{RULE_LABELS.SOURCE_TYPE}</FormLabel>
+                  <FormLabel size="compact">{RULE_LABELS.SOURCE_TYPE}</FormLabel>
                   <FormControl>
                     <SelectField
                       value={rule.sourceType}
@@ -229,7 +229,7 @@ export function ProjectionRuleInspector({
 
             <FormField name={`${prefix}.sourceId`}>
               <FormItem>
-                <FormLabel>{RULE_LABELS.SOURCE}</FormLabel>
+                <FormLabel size="compact">{RULE_LABELS.SOURCE}</FormLabel>
                 <FormControl>
                   <ComboboxField
                     value={rule.sourceId}
@@ -242,7 +242,7 @@ export function ProjectionRuleInspector({
                   />
                 </FormControl>
                 {rule.sourceType === 'ledgerCode' && (
-                  <p className="text-muted-foreground text-[13px]" data-testid="unassigned-count">
+                  <p className="text-muted-foreground text-sm" data-testid="unassigned-count">
                     {RULE_LABELS.SOURCE_UNASSIGNED.replace('{count}', String(unassignedCount))}
                   </p>
                 )}
@@ -255,7 +255,7 @@ export function ProjectionRuleInspector({
         {showBaseline && (
           <FormField name={`${prefix}.baselinePolicy`}>
             <FormItem>
-              <FormLabel>{RULE_LABELS.BASELINE_POLICY}</FormLabel>
+              <FormLabel size="compact">{RULE_LABELS.BASELINE_POLICY}</FormLabel>
               <FormControl>
                 <SelectField
                   value={rule.baselinePolicy}
@@ -278,7 +278,7 @@ export function ProjectionRuleInspector({
         {showBaseline && needsBaselineYear(rule.baselinePolicy) && (
           <FormField name={`${prefix}.baselineYearText`}>
             <FormItem>
-              <FormLabel required>{RULE_LABELS.BASELINE_YEAR}</FormLabel>
+              <FormLabel required size="compact">{RULE_LABELS.BASELINE_YEAR}</FormLabel>
               <FormControl>
                 <NumberInput
                   readOnly={readOnly}
@@ -294,13 +294,13 @@ export function ProjectionRuleInspector({
         {isDebt ? (
           <div className="grid gap-2">
             <span className="text-sm leading-none font-medium">{RULE_LABELS.END_CONDITION}</span>
-            <p className="text-muted-foreground text-[13px]">{RULE_LABELS.DEBT_END}</p>
+            <p className="text-muted-foreground text-sm">{RULE_LABELS.DEBT_END}</p>
           </div>
         ) : (
           <>
             <FormField name={`${prefix}.endConditionType`}>
               <FormItem>
-                <FormLabel>{RULE_LABELS.END_CONDITION}</FormLabel>
+                <FormLabel size="compact">{RULE_LABELS.END_CONDITION}</FormLabel>
                 <FormControl>
                   <SelectField
                     value={rule.endConditionType}
@@ -321,7 +321,7 @@ export function ProjectionRuleInspector({
             {rule.endConditionType === 'specificAge' && (
               <FormField name={`${prefix}.endAge`}>
                 <FormItem>
-                  <FormLabel>{RULE_LABELS.END_AGE}</FormLabel>
+                  <FormLabel size="compact">{RULE_LABELS.END_AGE}</FormLabel>
                   <FormControl>
                     <NumberInput readOnly={readOnly} onChange={(endAge) => update({ endAge })} />
                   </FormControl>
@@ -333,7 +333,7 @@ export function ProjectionRuleInspector({
             {rule.endConditionType === 'specificYear' && (
               <FormField name={`${prefix}.endYear`}>
                 <FormItem>
-                  <FormLabel>{RULE_LABELS.END_YEAR}</FormLabel>
+                  <FormLabel size="compact">{RULE_LABELS.END_YEAR}</FormLabel>
                   <FormControl>
                     <NumberInput readOnly={readOnly} onChange={(endYear) => update({ endYear })} />
                   </FormControl>
@@ -346,8 +346,8 @@ export function ProjectionRuleInspector({
 
         <FormField name={`${prefix}.enabled`}>
           <FormItem className="grid gap-2">
-            <span className="text-sm leading-none font-medium">{RULE_LABELS.STATE}</span>
-            <label className="text-muted-foreground flex items-center gap-2">
+            <span className="text-xs leading-none font-medium">{RULE_LABELS.STATE}</span>
+            <label className="text-muted-foreground flex items-center gap-2 text-xs">
               <Switch
                 checked={rule.enabled}
                 onCheckedChange={toggle}

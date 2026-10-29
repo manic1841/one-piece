@@ -1,3 +1,4 @@
+import { eyebrowClass } from '@/ui/components/eyebrow';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';
 import { type RuleDraftVM } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
@@ -89,12 +90,14 @@ export function ProjectionRuleRow({
           <span className="truncate text-xs text-muted-foreground">{parameter}</span>
         </span>
         {!rule.enabled && (
-          <span className="text-muted-foreground shrink-0 text-[11px] tracking-[0.08em] uppercase">
-            {RULE_LABELS.DISABLED}
-          </span>
+          <span className={cn(eyebrowClass, 'shrink-0')}>{RULE_LABELS.DISABLED}</span>
         )}
         {errorCount > 0 && (
-          <span className="text-destructive shrink-0 text-[11px]" data-testid="rule-error-count">
+          <span
+            className="text-destructive shrink-0 font-mono text-xs tabular-nums"
+            aria-label={RULE_LABELS.ERROR_COUNT.replace('{count}', String(errorCount))}
+            data-testid="rule-error-count"
+          >
             {errorCount}
           </span>
         )}

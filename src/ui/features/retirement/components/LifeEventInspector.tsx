@@ -83,7 +83,7 @@ export function LifeEventInspector({
         <div className="grid gap-3">
           <FormField name={`${prefix}.name`}>
             <FormItem>
-              <FormLabel required className="block">
+              <FormLabel required size="compact" className="block">
                 {EVENT_LABELS.NAME}
               </FormLabel>
               <FormControl>
@@ -94,11 +94,11 @@ export function LifeEventInspector({
           </FormField>
           <FormField name={`${prefix}.type`}>
             <FormItem>
-              <FormLabel required className="block">
+              <FormLabel required size="compact" className="block">
                 {EVENT_LABELS.TYPE}
               </FormLabel>
               <FormControl>
-                <label className="flex h-[34px] items-center gap-2 text-sm">
+                <label className="flex h-[34px] items-center gap-2 text-xs">
                   <Switch
                     checked={event.type === 'expense'}
                     onCheckedChange={(expense) => setType(expense ? 'expense' : 'income')}
@@ -119,8 +119,8 @@ export function LifeEventInspector({
       <section className="grid content-start gap-3">
         <p className={eyebrowClass}>{EVENT_LABELS.PHASE_SECTION}</p>
         {!readOnly && eventOptions.length > 1 && (
-          <label className="grid gap-1.5 text-sm">
-            <span className="text-xs">{EVENT_LABELS.BELONGS_TO}</span>
+          <label className="grid gap-1.5 text-xs">
+            <span>{EVENT_LABELS.BELONGS_TO}</span>
             <SelectField
               aria-label={EVENT_LABELS.BELONGS_TO}
               value={event.id}
@@ -132,7 +132,7 @@ export function LifeEventInspector({
         <div className="grid gap-3 md:grid-cols-2">
           <FormField name={`${phasePrefix}.name`}>
             <FormItem>
-              <FormLabel required className="block">
+              <FormLabel required size="compact" className="block">
                 {EVENT_LABELS.PHASE_NAME}
               </FormLabel>
               <FormControl>
@@ -144,7 +144,7 @@ export function LifeEventInspector({
 
           {/* Same label/control rhythm as FormItem so Period lines up with Phase name. */}
           <div role="group" aria-labelledby={periodLabelId} className="space-y-2">
-            <Label id={periodLabelId} className="block">
+            <Label id={periodLabelId} size="compact" className="block">
               {EVENT_LABELS.PERIOD}
               <span className="ml-0.5 text-destructive" aria-hidden="true">
                 *
@@ -190,7 +190,7 @@ export function LifeEventInspector({
           <div className="grid grid-cols-2 gap-3 md:col-span-2">
             <FormField name={`${phasePrefix}.amountText`}>
               <FormItem>
-                <FormLabel required className="block">
+                <FormLabel required size="compact" className="block">
                   {EVENT_LABELS.AMOUNT}
                 </FormLabel>
                 <FormControl>
@@ -205,7 +205,7 @@ export function LifeEventInspector({
 
             <FormField name={`${phasePrefix}.growthRateText`}>
               <FormItem>
-                <FormLabel className="block">{EVENT_LABELS.GROWTH_RATE}</FormLabel>
+                <FormLabel size="compact" className="block">{EVENT_LABELS.GROWTH_RATE}</FormLabel>
                 <FormControl>
                   <NumberInput
                     readOnly={readOnly}

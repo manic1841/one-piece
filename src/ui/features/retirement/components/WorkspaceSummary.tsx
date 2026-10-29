@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { eyebrowClass } from '@/ui/components/eyebrow';
+import { eyebrowClass, sectionTitleClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { ASSUMPTION_LABELS } from '@/ui/constants/retirement/setupLabels';
@@ -10,6 +10,7 @@ import {
   WORKSPACE_RAIL_LABELS,
   WORKSPACE_SECTION_LABELS,
 } from '@/ui/constants/retirement/workspaceRailLabels';
+import { cn } from '@/ui/utils/cn';
 import { type AssumptionsVM } from '@/ui/features/retirement/viewmodels/assumptionForm.vm';
 import { type LifeEventDraftVM } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
 import { type RuleDraftVM } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
@@ -42,8 +43,8 @@ function SummaryLine({
   return (
     <div className="border-b border-border py-3" data-testid={`summary-${number ?? title}`}>
       <div className="flex items-center gap-3">
-        <span className="w-6 font-mono text-[11px] text-muted-foreground">{number}</span>
-        <span className="text-sm font-semibold uppercase">{title}</span>
+        <span className={cn(eyebrowClass, 'w-6 shrink-0')}>{number}</span>
+        <span className={sectionTitleClass}>{title}</span>
         <span className="min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">
           {text}
         </span>
