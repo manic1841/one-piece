@@ -7,7 +7,7 @@ let latest: ReturnType<typeof useRuleDrafts>;
 
 function Harness() {
   // eslint-disable-next-line react-hooks/globals
-  latest = useRuleDrafts(vi.fn());
+  latest = useRuleDrafts({ revealed: false, onEdit: vi.fn() });
   return <div />;
 }
 

@@ -45,9 +45,9 @@ export const planFormController = (
     projectionStartYear: 2026,
   },
   undo: { canUndo: false, run: vi.fn() },
-  sectionState: {},
+  sectionState: () => ({}),
   rememberEvents: vi.fn(),
-  validateAll: vi.fn(),
+  takeValidated: vi.fn(),
   ...overrides,
 });
 

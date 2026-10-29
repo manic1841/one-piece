@@ -22,7 +22,6 @@ import { WorkspaceSetupSections } from '@/ui/features/retirement/components/Work
 import { WorkspaceSteps } from '@/ui/features/retirement/components/WorkspaceSteps';
 import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import { useProjectionWorkspace } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
-import { buildSectionState } from '@/ui/features/retirement/viewmodels/workspaceSectionState.vm';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
@@ -108,13 +107,10 @@ export default function ProjectionWorkspacePage() {
   })();
   const showRail = !isPreview && workspace.indicators.status !== 'idle';
 
-  const sectionState = buildSectionState({
-    blockers: workspace.derived.readiness.blockers,
-    openingValidationError: workspace.opening.validationError,
-    assumptionsInvalid: Object.keys(workspace.assumptions.errors).length > 0,
-    rulesInvalid: Object.keys(workspace.rules.errors).length > 0,
-    eventsInvalid: Object.keys(workspace.events.errors).length > 0,
-  });
+  const sectionState = workspace.sectionState(
+    workspace.derived.readiness.blockers,
+    workspace.opening.validationError,
+  );
 
   return (
     <div className="space-y-6">

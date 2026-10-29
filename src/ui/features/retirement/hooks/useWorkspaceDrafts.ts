@@ -1,10 +1,8 @@
 import { useCallback, useState } from 'react';
 
 import { type AuthContext } from '@/application/types';
-import { useAssumptionDraft } from '@/ui/features/retirement/hooks/useAssumptionDraft';
-import { useLifeEventDrafts } from '@/ui/features/retirement/hooks/useLifeEventDrafts';
 import { useOpeningDraft } from '@/ui/features/retirement/hooks/useOpeningDraft';
-import { useRuleDrafts } from '@/ui/features/retirement/hooks/useRuleDrafts';
+import { usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { type WorkspaceDraft } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 import { type useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -21,7 +19,7 @@ interface UseWorkspaceDraftsArgs {
  * Everything the user edits: opening net worth, assumptions, rules, events and
  * the start year. They are one draft in practice — a plan or a preload replaces
  * all of it at once — so the wholesale replace/reset helpers live here instead
- * of at each call site.
+ * of at each call site. The three groups themselves belong to the draft module.
  */
 export function useWorkspaceDrafts({
   householdId,
@@ -30,7 +28,15 @@ export function useWorkspaceDrafts({
   run,
   currentYear,
 }: UseWorkspaceDraftsArgs) {
-  const openingDraft = useOpeningDraft({ householdId, auth, markDirty, run });
+  const planDrafts = usePlanDrafts({ onDirty: markDirty });
+  const { setDirty } = planDrafts;
+  /** Every user edit, whether or not it lands in one of the three groups. */
+  const onEdit = useCallback(() => {
+    setDirty(true);
+    markDirty();
+  }, [markDirty, setDirty]);
+
+  const openingDraft = useOpeningDraft({ householdId, auth, markDirty: onEdit, run });
   const {
     opening,
     reportValue,
@@ -44,21 +50,14 @@ export function useWorkspaceDrafts({
     resetToSnapshot,
     resetDraft: resetOpeningDraft,
   } = openingDraft;
-  const assumptions = useAssumptionDraft(markDirty);
-  const rules = useRuleDrafts(markDirty);
-  const events = useLifeEventDrafts(markDirty);
   const [startYear, setStartYearState] = useState(currentYear);
-
-  const { resetFrom: resetAssumptions, resetToBlank: blankAssumptions } = assumptions;
-  const { replaceAll: replaceRules } = rules;
-  const { replaceAll: replaceEvents } = events;
 
   const setStartYear = useCallback(
     (next: string) => {
       setStartYearState(Number(next));
-      markDirty();
+      onEdit();
     },
-    [markDirty],
+    [onEdit],
   );
 
   /**
@@ -72,21 +71,21 @@ export function useWorkspaceDrafts({
 
   const replaceAll = useCallback(
     (draft: WorkspaceDraft) => {
-      resetAssumptions(draft.assumptions);
-      replaceRules(draft.rules);
-      replaceEvents(draft.events);
+      planDrafts.replaceAll({
+        assumptions: draft.assumptions,
+        projectionRules: draft.rules,
+        lifeEvents: draft.events,
+      });
       setStartYearState(draft.startYear);
       replaceOpening(draft.opening, draft.reportValue);
     },
-    [replaceEvents, replaceOpening, replaceRules, resetAssumptions],
+    [planDrafts, replaceOpening],
   );
 
   const resetDraftToBlank = useCallback(() => {
-    blankAssumptions();
-    replaceRules([]);
-    replaceEvents([]);
+    planDrafts.reset();
     resetScenarioBase();
-  }, [blankAssumptions, replaceEvents, replaceRules, resetScenarioBase]);
+  }, [planDrafts, resetScenarioBase]);
 
   const retryOpening = useCallback(() => {
     void reloadOpening();
@@ -102,9 +101,9 @@ export function useWorkspaceDrafts({
     setOpeningAmount,
     commitOpeningAmount,
     resetToSnapshot,
-    assumptions,
-    rules,
-    events,
+    ...planDrafts,
+    /** The three groups only: what a plan carries. */
+    replaceGroups: planDrafts.replaceAll,
     startYear,
     setStartYear,
     replaceAll,

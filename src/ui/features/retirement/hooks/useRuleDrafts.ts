@@ -36,7 +36,14 @@ export type {
 
 const DEFAULT_METHOD: RuleMethod = 'inflation';
 
-export function useRuleDrafts(markDirty: () => void) {
+interface UseRuleDraftsArgs {
+  /** The form's one reveal switch; the group only reads it. */
+  revealed: boolean;
+  /** Every user edit, never a replacement. */
+  onEdit: () => void;
+}
+
+export function useRuleDrafts({ revealed, onEdit }: UseRuleDraftsArgs) {
   const resolver = useCallback<Resolver<RulesForm>>((values): ResolverResult<RulesForm> => {
     const parsed = RuleFormSchema.safeParse(values);
     if (parsed.success) return { values, errors: {} };
@@ -45,7 +52,7 @@ export function useRuleDrafts(markDirty: () => void) {
     for (const issue of parsed.error.issues) {
       const [index, field] = issue.path;
       if (typeof index !== 'number' || typeof field !== 'string') continue;
-      if (!values.rules[index]?.touched) continue;
+      if (!values.rules[index]?.touched && !revealed) continue;
 
       fieldErrors[index] ??= {};
       fieldErrors[index][field] ??= { type: 'validation', message: issue.message };
@@ -53,7 +60,7 @@ export function useRuleDrafts(markDirty: () => void) {
 
     if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
     return { values, errors: { rules: fieldErrors } } as unknown as ResolverResult<RulesForm>;
-  }, []);
+  }, [revealed]);
 
   const form = useForm<RulesForm>({ mode: 'onTouched', defaultValues: { rules: [] }, resolver });
   const rules = form.watch('rules');
@@ -66,9 +73,9 @@ export function useRuleDrafts(markDirty: () => void) {
   const commit = useCallback(
     (next: RuleDraftVM[]) => {
       form.reset({ rules: next } as never);
-      markDirty();
+      onEdit();
     },
-    [form, markDirty],
+    [form, onEdit],
   );
 
   const update = useCallback(
@@ -229,10 +236,10 @@ export function useRuleDrafts(markDirty: () => void) {
     const all = collectRuleErrors(rules);
     const visible: RuleErrorsById = {};
     for (const rule of rules) {
-      if (rule.touched && all[rule.id]) visible[rule.id] = all[rule.id];
+      if ((revealed || rule.touched) && all[rule.id]) visible[rule.id] = all[rule.id];
     }
     return visible;
-  }, [rules]);
+  }, [revealed, rules]);
 
   const replaceAll = useCallback(
     (next: ProjectionRule[]) => {
@@ -241,23 +248,12 @@ export function useRuleDrafts(markDirty: () => void) {
     [form],
   );
 
-  /** CALCULATE reveals every rule error, not only the touched rows. */
-  const revealAll = useCallback(() => {
-    form.setValue(
-      'rules',
-      form.getValues('rules').map((rule) => ({ ...rule, touched: true })),
-      { shouldDirty: true, shouldTouch: true },
-    );
-    void form.trigger();
-  }, [form]);
-
   return {
     form,
     rules,
     errors: visibleErrors,
     valid: Object.keys(collectRuleErrors(rules)).length === 0,
     add,
-    revealAll,
     remove,
     replace,
     toggle,

@@ -3,9 +3,7 @@ import { useCallback } from 'react';
 import { type PlanDraft, type ProjectionCalculation } from '@/application/retirement/types';
 import { type CreateRetirementPlanOutcome } from '@/application/retirement/use_cases/createRetirementPlanUseCase';
 import { type PersistProjectionOutcome } from '@/application/retirement/use_cases/persistProjectionUseCase';
-import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
-import { type LifeEvent } from '@/domains/retirement/lifeEvents';
-import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+import { type PlanDraftPayload } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { resolveValidationIssueLabel } from '@/ui/constants/retirement/resultLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
@@ -17,12 +15,6 @@ export interface SaveWorkspaceOutcome {
   messages?: string[];
 }
 
-interface ValidatedPlanFields {
-  assumptions: RetirementAssumptions;
-  rules: ProjectionRule[];
-  lifeEvents: LifeEvent[];
-}
-
 interface UseWorkspaceSaveArgs {
   householdId: string | undefined;
   persist: (input: {
@@ -31,7 +23,7 @@ interface UseWorkspaceSaveArgs {
   }) => Promise<LoadingTaskResult<PersistProjectionOutcome>>;
   saveAsPlanCommand: (draft: PlanDraft) => Promise<LoadingTaskResult<CreateRetirementPlanOutcome>>;
   /** Returns `null` and reveals the field errors when the draft is invalid. */
-  takeValidatedPlan: () => ValidatedPlanFields | null;
+  takeValidatedPlan: () => PlanDraftPayload | null;
   setSavedId: (id: string) => void;
   setLastSavedName: (name: string) => void;
   setSavedAsPlan: (saved: boolean) => void;
@@ -95,7 +87,7 @@ export function useWorkspaceSave({
       const task = await saveAsPlanCommand({
         name,
         assumptions: plan.assumptions,
-        projectionRules: plan.rules,
+        projectionRules: plan.projectionRules,
         lifeEvents: plan.lifeEvents,
       });
       if (!task.ok) {

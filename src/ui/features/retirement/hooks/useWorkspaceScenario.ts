@@ -1,10 +1,8 @@
 import { useCallback } from 'react';
 
 import { type AuthContext } from '@/application/types';
-import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
-import { type LifeEvent } from '@/domains/retirement/lifeEvents';
-import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { type RetirementPlan } from '@/domains/retirement/types';
+import { type PlanDraftPayload } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { usePlanPreload } from '@/ui/features/retirement/hooks/usePlanPreload';
 
 interface UseWorkspaceScenarioArgs {
@@ -12,9 +10,8 @@ interface UseWorkspaceScenarioArgs {
   /** Route query `?plan=`; `null` means there is no plan to apply. */
   planId: string | null;
   auth: AuthContext;
-  resetAssumptions: (assumptions: RetirementAssumptions) => void;
-  replaceRules: (rules: ProjectionRule[]) => void;
-  replaceEvents: (events: LifeEvent[]) => void;
+  /** Turns a plan into the three draft groups; the opening and start year stay put. */
+  replaceGroups: (payload: PlanDraftPayload) => void;
   /** Wipes every draft back to blank, the opening and start year included. */
   resetDraftsToBlank: () => void;
   /** Opening + start year only: the parts a plan does not carry. */
@@ -34,9 +31,7 @@ export function useWorkspaceScenario({
   householdId,
   planId,
   auth,
-  resetAssumptions,
-  replaceRules,
-  replaceEvents,
+  replaceGroups,
   resetDraftsToBlank,
   resetScenarioBase,
   onSwapped,
@@ -45,15 +40,17 @@ export function useWorkspaceScenario({
 }: UseWorkspaceScenarioArgs) {
   const applyPlan = useCallback(
     (plan: RetirementPlan) => {
-      resetAssumptions(plan.assumptions);
-      replaceRules(plan.projectionRules);
-      replaceEvents(plan.lifeEvents);
+      replaceGroups({
+        assumptions: plan.assumptions,
+        projectionRules: plan.projectionRules,
+        lifeEvents: plan.lifeEvents,
+      });
       // A plan carries assumptions, rules and events only. Everything else goes
       // back to its blank default so the result is not a mix of two scenarios.
       resetScenarioBase();
       onSwapped(plan.name);
     },
-    [onSwapped, replaceEvents, replaceRules, resetAssumptions, resetScenarioBase],
+    [onSwapped, replaceGroups, resetScenarioBase],
   );
 
   /**

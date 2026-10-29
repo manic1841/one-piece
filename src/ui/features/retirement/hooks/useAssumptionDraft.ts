@@ -16,9 +16,20 @@ import {
 } from '@/ui/features/retirement/viewmodels/assumptionForm.vm';
 import { type ValidationOutcome } from '@/ui/features/retirement/viewmodels/formValidation';
 
-export function useAssumptionDraft(markDirty: () => void, currentYear = new Date().getFullYear()) {
+interface UseAssumptionDraftArgs {
+  /** The form's one reveal switch; the group only reads it. */
+  revealed: boolean;
+  /** Every user edit, never a reset. */
+  onEdit: () => void;
+  currentYear?: number;
+}
+
+export function useAssumptionDraft({
+  revealed,
+  onEdit,
+  currentYear = new Date().getFullYear(),
+}: UseAssumptionDraftArgs) {
   const [birthYearLocked, setBirthYearLocked] = useState(false);
-  const [revealed, setRevealed] = useState(false);
 
   const schema = useMemo(() => createAssumptionFormSchema(currentYear), [currentYear]);
 
@@ -48,9 +59,9 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
   const setField = useCallback(
     (field: AssumptionField, text: string) => {
       form.setValue(field, text, { shouldTouch: true, shouldDirty: true, shouldValidate: true });
-      markDirty();
+      onEdit();
     },
-    [form, markDirty],
+    [form, onEdit],
   );
 
   const validate = useCallback((): ValidationOutcome<RetirementAssumptions, AssumptionErrors> => {
@@ -91,7 +102,6 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
     (assumptions: RetirementAssumptions) => {
       form.reset(mapAssumptionsToVM(assumptions));
       setBirthYearLocked(true);
-      setRevealed(false);
     },
     [form],
   );
@@ -100,13 +110,6 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
   const resetToBlank = useCallback(() => {
     form.reset(DEFAULT_ASSUMPTIONS_VM);
     setBirthYearLocked(false);
-    setRevealed(false);
-  }, [form]);
-
-  /** CALCULATE reveals every field error, not only the touched ones. */
-  const revealAll = useCallback(() => {
-    setRevealed(true);
-    void form.trigger();
   }, [form]);
 
   return {
@@ -117,7 +120,6 @@ export function useAssumptionDraft(markDirty: () => void, currentYear = new Date
     valid: validation.ok,
     setField,
     validate,
-    revealAll,
     resetFrom,
     resetToBlank,
   };

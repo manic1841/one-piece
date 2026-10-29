@@ -24,6 +24,7 @@ import {
   type PlanFormPreviewVM,
   type PlanRulesDraft,
 } from '@/ui/features/retirement/viewmodels/planForm.vm';
+import { type ReadinessBlocker } from '@/ui/features/retirement/viewmodels/workspaceReadiness.vm';
 import { type SectionStates } from '@/ui/features/retirement/viewmodels/workspaceSectionState.vm';
 
 /** The controller surface both the create and the edit page provide. */
@@ -34,7 +35,7 @@ export interface RetirementPlanFormController {
   events: PlanEventsDraft;
   preview: PlanFormPreviewVM;
   undo: { canUndo: boolean; run: () => void };
-  sectionState: SectionStates;
+  sectionState: (blockers: ReadinessBlocker[], openingValidationError?: string) => SectionStates;
   rememberEvents: () => void;
 }
 
@@ -61,10 +62,11 @@ export function RetirementPlanForm({
   debtAccounts,
   header,
 }: RetirementPlanFormProps) {
-  const { form, assumptions, rules, events, preview, undo, sectionState, rememberEvents } =
-    controller;
+  const { form, assumptions, rules, events, preview, undo, rememberEvents } = controller;
   const { errors } = form.formState;
   const rootMessage = errors.root?.message ?? null;
+  // A plan is a template: nothing here resolves against readiness, so no blockers.
+  const sectionState = controller.sectionState([]);
 
   return (
     <div className="space-y-6 pb-10">

@@ -53,7 +53,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     initiallyLoading: true,
   });
 
-  const [dirty, setDirty] = useState(false);
   const [appliedPlanName, setAppliedPlanName] = useState<string | null>(null);
   const [openingValidationError, setOpeningValidationError] = useState<string | undefined>();
   const [startYearValidationError, setStartYearValidationError] = useState<string | undefined>();
@@ -73,10 +72,8 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   );
 
   const markDirty = useCallback(() => {
-    setDirty(true);
     indicators.markOutdated();
-  }, [indicators]);
-  const drafts = useWorkspaceDrafts({ householdId, auth, markDirty, run, currentYear });
+  }, [indicators]);  const drafts = useWorkspaceDrafts({ householdId, auth, markDirty, run, currentYear });
   const {
     opening,
     reportValue,
@@ -85,6 +82,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     loadOpening,
     retryOpening,
     replaceAll,
+    replaceGroups,
     resetScenarioBase,
     resetDraftToBlank: resetDraftsToBlank,
     setOpeningAmount,
@@ -95,6 +93,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     events,
     startYear,
     setStartYear,
+    dirty,
+    setDirty,
+    sectionState,
   } = drafts;
 
   const clearParams = useCallback(() => {
@@ -139,9 +140,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   );
 
   const { validate, revealErrors, takeValidatedPlan, validateOpening } = useWorkspaceValidation({
-    assumptions,
-    rules,
-    events,
+    drafts,
     opening,
     startYear,
   });
@@ -218,17 +217,16 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       indicators.reset();
       dropSavedState();
       markDirty();
+      setDirty(true);
     },
-    [dropSavedState, indicators, markDirty, resetCalculation, goToSetup],
+    [dropSavedState, indicators, markDirty, resetCalculation, goToSetup, setDirty],
   );
 
   const { applyPlan, resetToBlank, reapplyPlan } = useWorkspaceScenario({
     householdId,
     planId,
     auth,
-    resetAssumptions: assumptions.resetFrom,
-    replaceRules: rules.replaceAll,
-    replaceEvents: events.replaceAll,
+    replaceGroups,
     resetDraftsToBlank,
     resetScenarioBase,
     onSwapped: onScenarioSwapped,
@@ -271,6 +269,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     revealErrors,
     valid,
     dirty,
+    sectionState,
     preloadWarning,
     appliedPlanName,
     opening: {

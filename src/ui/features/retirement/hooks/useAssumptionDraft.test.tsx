@@ -8,7 +8,7 @@ const markDirty = vi.fn();
 
 function Harness() {
   // eslint-disable-next-line react-hooks/globals
-  latest = useAssumptionDraft(markDirty, 2026);
+  latest = useAssumptionDraft({ revealed: false, onEdit: markDirty, currentYear: 2026 });
   return <div />;
 }
 

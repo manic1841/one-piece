@@ -21,33 +21,26 @@ export function useIndicatorCalculation({
   validateOpening,
   calculateProjection,
 }: UseIndicatorCalculationArgs) {
-  const { assumptions, rules, events, opening, startYear } = drafts;
+  const { opening, startYear, validate } = drafts;
   const latestRef = useRef<(() => Promise<ProjectionSummary>) | undefined>(undefined);
 
   const calculateIndicators = useCallback(async (): Promise<ProjectionSummary> => {
-    const assumptionsResult = assumptions.validate();
+    const gate = validate();
     const openingError = validateOpening();
-    if (
-      !assumptionsResult.ok ||
-      assumptionsResult.data === undefined ||
-      openingError !== undefined
-    ) {
+    if (!gate.assumptions.ok || gate.assumptions.data === undefined || openingError !== undefined) {
       throw new Error(openingError ?? 'invalid');
     }
-
-    const ruleResult = rules.validate();
-    const eventResult = events.validate();
 
     const task = await calculateProjection({
       startYear,
       opening: { source: opening.source, amount: Number(opening.amountText) },
-      assumptions: assumptionsResult.data,
-      rules: ruleResult.data ?? [],
-      lifeEvents: eventResult.data ?? [],
+      assumptions: gate.assumptions.data,
+      rules: gate.rules.data ?? [],
+      lifeEvents: gate.events.data ?? [],
     });
     if (!task.ok || !task.value.ok) throw new Error('calculate failed');
     return task.value.calculation.result.summary;
-  }, [assumptions, calculateProjection, events, opening, rules, startYear, validateOpening]);
+  }, [calculateProjection, opening, startYear, validate, validateOpening]);
 
   // The indicators hook is created before this one, so it reads through a ref.
   useEffect(() => {

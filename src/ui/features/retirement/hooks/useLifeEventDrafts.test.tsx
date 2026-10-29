@@ -10,7 +10,7 @@ const markDirty = vi.fn();
 
 function Harness() {
   // eslint-disable-next-line react-hooks/globals
-  latest = useLifeEventDrafts(markDirty);
+  latest = useLifeEventDrafts({ revealed: false, onEdit: markDirty });
   return <div />;
 }
 

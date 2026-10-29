@@ -6,7 +6,7 @@ import { useRuleDrafts } from '@/ui/features/retirement/hooks/useRuleDrafts';
 import { ProjectionRulesSection } from './ProjectionRulesSection';
 
 function Harness() {
-  const rules = useRuleDrafts(vi.fn());
+  const rules = useRuleDrafts({ revealed: false, onEdit: vi.fn() });
   return (
     <ProjectionRulesSection
       form={rules.form}

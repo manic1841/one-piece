@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { usePlanDraftForm } from '@/ui/features/retirement/hooks/usePlanDraftForm';
+import { usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { usePlanResource } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
 import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
@@ -20,11 +20,11 @@ vi.mock('@/ui/features/retirement/hooks/useSaveNameForms');
 vi.mock('@/ui/features/retirement/hooks/useWorkspaceLeaveGuard', () => ({
   useWorkspaceLeaveGuard: vi.fn(),
 }));
-vi.mock('@/ui/features/retirement/hooks/usePlanDraftForm');
+vi.mock('@/ui/features/retirement/hooks/usePlanDrafts');
 
 const mockResource = vi.mocked(usePlanResource);
 const mockAccess = vi.mocked(useRetirementPlanAccess);
-const mockDrafts = vi.mocked(usePlanDraftForm);
+const mockDrafts = vi.mocked(usePlanDrafts);
 const mockForms = vi.mocked(useSaveNameForms);
 const mockNavigate = vi.fn();
 
@@ -62,9 +62,10 @@ const drafts = (overrides: Record<string, unknown> = {}) => ({
   events: { ...draftGroup(), replaceAll: vi.fn(), revealAll: vi.fn(), validate: vi.fn() },
   preview: {},
   undo: { canUndo: false, run: vi.fn() },
-  sectionState: {},
+  sectionState: () => ({}),
   rememberEvents: vi.fn(),
-  validateAll: vi.fn().mockReturnValue(parsed),
+  replaceAll: vi.fn(),
+  takeValidated: vi.fn().mockReturnValue(parsed),
   ...overrides,
 });
 
@@ -108,12 +109,15 @@ describe('usePlanForm', () => {
     mockDrafts.mockReturnValue(seeded as never);
     const { rerender } = render();
 
-    await waitFor(() => expect(seeded.assumptions.resetFrom).toHaveBeenCalledTimes(1));
-    expect(seeded.rules.replaceAll).toHaveBeenCalledWith(plan.projectionRules);
-    expect(seeded.events.replaceAll).toHaveBeenCalledWith(plan.lifeEvents);
+    await waitFor(() => expect(seeded.replaceAll).toHaveBeenCalledTimes(1));
+    expect(seeded.replaceAll).toHaveBeenCalledWith({
+      assumptions: plan.assumptions,
+      projectionRules: plan.projectionRules,
+      lifeEvents: plan.lifeEvents,
+    });
 
     rerender();
-    await waitFor(() => expect(seeded.assumptions.resetFrom).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(seeded.replaceAll).toHaveBeenCalledTimes(1));
   });
 
   it('leaves the birth year unlocked when there is no plan to seed', async () => {
@@ -152,7 +156,7 @@ describe('usePlanForm', () => {
 
   it('writes nothing and reports the abort when a draft is invalid', async () => {
     const submit = vi.fn();
-    mockDrafts.mockReturnValue(drafts({ validateAll: vi.fn().mockReturnValue(null) }) as never);
+    mockDrafts.mockReturnValue(drafts({ takeValidated: vi.fn().mockReturnValue(null) }) as never);
 
     const { result } = render(submit);
     const outcome = await result.current.submit();

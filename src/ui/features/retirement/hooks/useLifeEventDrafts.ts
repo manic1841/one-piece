@@ -42,7 +42,14 @@ interface RHFError {
   message: string;
 }
 
-export function useLifeEventDrafts(markDirty: () => void) {
+interface UseLifeEventDraftsArgs {
+  /** The form's one reveal switch; the group only reads it. */
+  revealed: boolean;
+  /** Every user edit, never a replacement. */
+  onEdit: () => void;
+}
+
+export function useLifeEventDrafts({ revealed, onEdit }: UseLifeEventDraftsArgs) {
   const [focusRequest, setFocusRequest] = useState<PhaseFocusRequest | null>(null);
   const sequenceRef = useRef(0);
 
@@ -62,20 +69,20 @@ export function useLifeEventDrafts(markDirty: () => void) {
 
       if (kind === 'phases' && typeof phaseIndex === 'number' && typeof phaseField === 'string') {
         const phase = event.phases[phaseIndex];
-        if (!phase?.touched) continue;
+        if (!phase?.touched && !revealed) continue;
         const phaseErrors = (row.phaseErrors ??= {}) as Record<number, Record<string, RHFError>>;
         const phaseRow: Record<string, RHFError> = (phaseErrors[phaseIndex] ??= {});
         phaseRow[phaseField] ??= rhfError;
         continue;
       }
 
-      if (!event.touched) continue;
+      if (!event.touched && !revealed) continue;
       row[kind] ??= rhfError;
     }
 
     if (Object.keys(fieldErrors).length === 0) return { values, errors: {} };
     return { values, errors: { events: fieldErrors } } as unknown as ResolverResult<EventsForm>;
-  }, []);
+  }, [revealed]);
 
   const form = useForm<EventsForm>({
     mode: 'onTouched',
@@ -94,9 +101,9 @@ export function useLifeEventDrafts(markDirty: () => void) {
     (next: LifeEventDraftVM[]) => {
       latest.current = next;
       form.reset(mirrorEventsForm(next) as never);
-      markDirty();
+      onEdit();
     },
-    [form, markDirty],
+    [form, onEdit],
   );
 
   const requestFocus = useCallback((request: PhaseFocusRequest | null) => {
@@ -192,11 +199,11 @@ export function useLifeEventDrafts(markDirty: () => void) {
       const errors = all[event.id];
       if (errors === undefined) continue;
 
-      if (event.touched) visible[event.id] = { ...errors };
+      if (revealed || event.touched) visible[event.id] = { ...errors };
 
       for (const phase of event.phases) {
         const phaseErrors = errors.phaseErrors?.[phase.id];
-        if (!phase.touched || phaseErrors === undefined) continue;
+        if ((!phase.touched && !revealed) || phaseErrors === undefined) continue;
         visible[event.id] = {
           ...visible[event.id],
           phaseErrors: { ...visible[event.id]?.phaseErrors, [phase.id]: phaseErrors },
@@ -204,7 +211,7 @@ export function useLifeEventDrafts(markDirty: () => void) {
       }
     }
     return visible;
-  }, [events]);
+  }, [events, revealed]);
 
   const replaceAll = useCallback(
     (next: LifeEvent[]) => {
@@ -215,25 +222,12 @@ export function useLifeEventDrafts(markDirty: () => void) {
     [form],
   );
 
-  /** CALCULATE reveals every event and phase error. */
-  const revealAll = useCallback(() => {
-    commit(
-      latest.current.map((event) => ({
-        ...event,
-        touched: true,
-        phases: event.phases.map((phase) => ({ ...phase, touched: true })),
-      })),
-    );
-    void form.trigger();
-  }, [commit, form]);
-
   return {
     form,
     events,
     errors: visibleErrors,
     valid: Object.keys(collectEventErrors(events)).length === 0,
     focusRequest,
-    revealAll,
     remove,
     toggle,
     update,

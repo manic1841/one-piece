@@ -87,7 +87,9 @@ export function useProjectionCalculate({
     const task = await calculateProjection({
       startYear,
       opening: { source: opening.source, amount: Number(opening.amountText) },
-      ...plan,
+      assumptions: plan.assumptions,
+      rules: plan.projectionRules,
+      lifeEvents: plan.lifeEvents,
     });
     setCalculating(false);
 

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { type PlanDraft } from '@/application/retirement/types';
 import { PLAN_EDIT_LABELS } from '@/ui/constants/retirement/planLabels';
-import { usePlanDraftForm } from '@/ui/features/retirement/hooks/usePlanDraftForm';
+import { usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { PLAN_LIST_HREF, usePlanResource } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
 import { useSaveNameForms } from '@/ui/features/retirement/hooks/useSaveNameForms';
@@ -66,9 +66,8 @@ export function usePlanForm({
   const [saved, setSaved] = useState(false);
   const seededRef = useRef(false);
 
-  const drafts = usePlanDraftForm();
+  const drafts = usePlanDrafts();
   const { planForm, submitPlanForm } = useSaveNameForms();
-  const { assumptions, rules, events } = drafts;
   const routePlanId = resource.planId;
   /** Where BACK goes: the plan itself when the route names one, else the list. */
   const back = routePlanId === null ? PLAN_LIST_HREF : `${PLAN_LIST_HREF}/${routePlanId}`;
@@ -80,15 +79,17 @@ export function usePlanForm({
     const plan = resource.plan;
     if (plan === null || seededRef.current) return;
     seededRef.current = true;
-    assumptions.resetFrom(plan.assumptions);
-    rules.replaceAll(plan.projectionRules);
-    events.replaceAll(plan.lifeEvents);
+    drafts.replaceAll({
+      assumptions: plan.assumptions,
+      projectionRules: plan.projectionRules,
+      lifeEvents: plan.lifeEvents,
+    });
     planForm.reset({ name: plan.name });
-  }, [assumptions, events, planForm, resource.plan, rules]);
+  }, [drafts, planForm, resource.plan]);
 
   const submitForm = () =>
     submitPlanForm(async (name) => {
-      const draft = drafts.validateAll();
+      const draft = drafts.takeValidated();
       if (draft === null) return { ok: false, messages: [invalidMessage] };
 
       const task = await submit(name, draft);
