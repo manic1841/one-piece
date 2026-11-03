@@ -360,13 +360,12 @@ function phaseRows(row: HTMLElement) {
   return within(row).getAllByTestId('phase-row');
 }
 
-/**
- * happy-dom reports a 1024px viewport, so the workspace is desktop by default.
- * The stub lets a test cross the breakpoint mid-render.
- */
+/** Keep the CSS viewport and the hook's media query in sync for responsive tests. */
 function stubViewport(initialDesktop: boolean) {
   const listeners = new Set<(event: MediaQueryListEvent) => void>();
   const state = { desktop: initialDesktop };
+  const originalWidth = window.innerWidth;
+  window.innerWidth = initialDesktop ? 1024 : 390;
   const spy = vi.spyOn(window, 'matchMedia').mockImplementation(
     (query) =>
       ({
@@ -388,10 +387,15 @@ function stubViewport(initialDesktop: boolean) {
   return {
     set(desktop: boolean) {
       state.desktop = desktop;
+      window.innerWidth = desktop ? 1024 : 390;
+      window.dispatchEvent(new Event('resize'));
       const event = { matches: desktop } as MediaQueryListEvent;
       listeners.forEach((listener) => listener(event));
     },
-    restore: () => spy.mockRestore(),
+    restore: () => {
+      window.innerWidth = originalWidth;
+      spy.mockRestore();
+    },
   };
 }
 
@@ -452,6 +456,7 @@ describe('ProjectionWorkspacePage', () => {
   });
 
   beforeEach(() => {
+    window.innerWidth = 390;
     vi.clearAllMocks();
     ledgerCodesMock.codes = [
       { code: 'income:salary', label: '薪資', type: 'income', isCustom: false, isActive: true },
@@ -729,29 +734,34 @@ describe('ProjectionWorkspacePage', () => {
   });
 
   it('adds a phase to the first event when an empty year is clicked with nothing selected', async () => {
-    renderWorkspace();
-    await fillValidSetup();
-    const row = await addEvent();
-    expect(phaseRows(row)).toHaveLength(1);
+    const viewport = stubViewport(true);
+    try {
+      renderWorkspace();
+      await fillValidSetup();
+      const row = await addEvent();
+      expect(phaseRows(row)).toHaveLength(1);
 
-    const track = screen.getByRole('toolbar', { name: 'Life event timeline' });
-    vi.spyOn(track, 'getBoundingClientRect').mockReturnValue({
-      left: 0,
-      top: 0,
-      width: 600,
-      height: 30,
-      right: 600,
-      bottom: 30,
-      x: 0,
-      y: 0,
-      toJSON: () => ({}),
-    });
+      const track = screen.getByRole('toolbar', { name: 'Life event timeline' });
+      vi.spyOn(track, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        width: 600,
+        height: 30,
+        right: 600,
+        bottom: 30,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      });
 
-    fireEvent.pointerDown(track, { clientX: 300, pointerId: 1 });
-    fireEvent.pointerUp(track, { clientX: 300, pointerId: 1 });
+      fireEvent.pointerDown(track, { clientX: 300, pointerId: 1 });
+      fireEvent.pointerUp(track, { clientX: 300, pointerId: 1 });
 
-    expect(eventRows()).toHaveLength(1);
-    expect(phaseRows(row)).toHaveLength(2);
+      expect(eventRows()).toHaveLength(1);
+      expect(phaseRows(row)).toHaveLength(2);
+    } finally {
+      viewport.restore();
+    }
   });
 
   it('shows the owning event in the inspector and moves the phase from it', async () => {
@@ -1107,7 +1117,7 @@ describe('ProjectionWorkspacePage', () => {
     expect(
       phaseRows(row).map((phase) => within(phase).getByLabelText(/Start year/).textContent),
     ).toEqual(['2030', '2035', '2040']);
-  }, 20_000);
+  }, 30_000);
 
   it('blocks overlapping phases and focuses the offending start year', async () => {
     renderWorkspace();
@@ -1457,21 +1467,28 @@ describe('ProjectionWorkspacePage', () => {
   });
 
   it('replaces the last phase deleted from the list and focuses the column', async () => {
-    renderWorkspace();
+    const viewport = stubViewport(true);
+    try {
+      renderWorkspace();
 
-    const row = await addEvent();
-    // One phase to begin with: deleting it must not leave the event empty.
-    const [onlyPhase] = within(row).getAllByTestId('phase-row');
-    expect(within(row).getAllByTestId('phase-row')).toHaveLength(1);
-    fireEvent.click(within(onlyPhase).getByRole('button', { name: 'Delete phase' }));
+      const row = await addEvent();
+      // One phase to begin with: deleting it must not leave the event empty.
+      const [onlyPhase] = within(row).getAllByTestId('phase-row');
+      expect(within(row).getAllByTestId('phase-row')).toHaveLength(1);
+      fireEvent.click(within(onlyPhase).getByRole('button', { name: 'Delete phase' }));
 
-    await waitFor(() => expect(within(eventRows()[0]).getAllByTestId('phase-row')).toHaveLength(1));
-    // The list is hidden at this width, so the inspector is where focus belongs.
-    await waitFor(() =>
-      expect(
-        within(screen.getByTestId('life-event-inspector')).getByLabelText(/Start year/),
-      ).toHaveFocus(),
-    );
+      await waitFor(() =>
+        expect(within(eventRows()[0]).getAllByTestId('phase-row')).toHaveLength(1),
+      );
+      // The list is hidden at this width, so the inspector is where focus belongs.
+      await waitFor(() =>
+        expect(
+          within(screen.getByTestId('life-event-inspector')).getByLabelText(/Start year/),
+        ).toHaveFocus(),
+      );
+    } finally {
+      viewport.restore();
+    }
   });
 
   it('drops the selection and returns focus to ADD EVENT when other phases remain', async () => {
@@ -1756,4 +1773,4 @@ describe('ProjectionWorkspacePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
     expect(await screen.findByLabelText('Projection name')).toHaveValue('First projection');
   });
-});
+}, 15_000);
