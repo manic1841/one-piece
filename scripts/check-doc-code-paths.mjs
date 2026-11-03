@@ -12,8 +12,11 @@
 // name like `types.ts` or `ui/table` is a doc-relative reference and is left to
 // the writers — resolving those would need to guess which of several roots was
 // meant. A path carrying a placeholder segment (`{domain}`, `<feature>`, `*`,
-// `...`) names a shape rather than a location and is skipped. A line carrying
-// `docs:check-ignore` is skipped too, for paths cited on purpose as historical.
+// `...`) names a shape rather than a location and is skipped. A path under a
+// gitignored top-level entry (`node_modules/…`, `dist/…`) is cited on purpose
+// but cannot be required on disk: it appears only after an install or a build.
+// A line carrying `docs:check-ignore` is skipped too, for paths retained on
+// purpose as historical.
 //
 // Usage: check-doc-code-paths.mjs [path ...] (same target rules as
 // check-doc-references.sh).
@@ -23,6 +26,15 @@ const TOKEN = /`([A-Za-z.][\w./<>{}*…-]*)`/g;
 const PLACEHOLDER = /[<>{}*…]|\.\.\./;
 const IGNORE = 'docs:check-ignore';
 const TOP_LEVEL = new Set(readdirSync('.'));
+// Ignored top-level entries are not repo content: they exist only after an
+// install or a build, so a path under them is valid yet cannot be required on
+// disk. Only plain names are read; glob and nested patterns are skipped.
+const GITIGNORED = new Set(
+  readFileSync('.gitignore', 'utf8')
+    .split('\n')
+    .map((line) => line.replace(/\/$/, ''))
+    .filter((line) => /^[\w.-]+$/.test(line)),
+);
 
 const targets =
   process.argv.length > 2 ? process.argv.slice(2) : ['docs', 'CONTEXT.md', 'AGENTS.md'];
@@ -56,6 +68,7 @@ for (const file of files) {
       // A trailing slash means "the folder"; the folder itself is what has to exist.
       const path = raw.replace(/^\.\//, '').replace(/\/$/, '');
       if (path === '') continue;
+      if (GITIGNORED.has(path.split('/')[0])) continue;
       if (!TOP_LEVEL.has(path.split('/')[0])) continue;
       if (existsSync(path)) continue;
       dead.push(`${file}:${index + 1}: dead code path -> ${path}`);
