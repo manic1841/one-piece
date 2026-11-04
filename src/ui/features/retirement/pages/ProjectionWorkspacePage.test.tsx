@@ -17,6 +17,10 @@ import { type RetirementPlan } from '@/domains/retirement/types';
 
 import ProjectionWorkspacePage from './ProjectionWorkspacePage';
 
+// 整頁工作區的每個案例都要真的填完 setup、送計算、等結果落地，最慢的幾個本機就
+// 要近 4 秒，CI runner 較慢會撞到 5 秒預設值。只放寬這個檔案，其餘維持預設。
+vi.setConfig({ testTimeout: 20_000 });
+
 vi.mock('@/application/retirement/use_cases/getProjectionOpeningUseCase', () => ({
   getProjectionOpeningUseCase: { execute: vi.fn() },
 }));

@@ -42,6 +42,10 @@
 - `matchMedia` 有實作且預設回報 1024px 視窗,故 `Layout` 的 mobile bottom sheet
   測試以 `stubMobileViewport()` 明確指定行動版視窗,不再依賴環境預設值。
 
+逾時維持 vitest 的 5 秒預設值;真正走完整流程的整頁測試(如
+`ProjectionWorkspacePage.test.tsx`)本機個案就接近 4 秒,可在檔案頂端用
+`vi.setConfig({ testTimeout: 20_000 })` 就地放寬,不要為此調高全域值。
+
 ## 整合測試
 
 - 執行 `vitest.integration.config.ts`,include `src/**/*.integration.test.{ts,tsx}`。
