@@ -26,6 +26,7 @@ import {
 } from '@/ui/features/retirement/viewmodels/planForm.vm';
 import { type ReadinessBlocker } from '@/ui/features/retirement/viewmodels/workspaceReadiness.vm';
 import { type SectionStates } from '@/ui/features/retirement/viewmodels/workspaceSectionState.vm';
+import { type SourceOptions } from '@/ui/hooks/useSourceOptions';
 
 /** The controller surface both the create and the edit page provide. */
 export interface RetirementPlanFormController {
@@ -44,8 +45,9 @@ interface RetirementPlanFormProps {
   submitting: boolean;
   /** Managers edit; everyone else reads the same form. */
   readOnly: boolean;
-  ledgerCodes: LedgerCodeItem[];
-  debtAccounts: DebtAccountOption[];
+  /** Picker sources, each carrying its own failure and retry. */
+  ledgerSource: SourceOptions<LedgerCodeItem>;
+  debtSource: SourceOptions<DebtAccountOption>;
   /** Header block owned by the page (title, actions, state). */
   header: ReactNode;
 }
@@ -58,8 +60,8 @@ export function RetirementPlanForm({
   controller,
   submitting,
   readOnly,
-  ledgerCodes,
-  debtAccounts,
+  ledgerSource,
+  debtSource,
   header,
 }: RetirementPlanFormProps) {
   const { form, assumptions, rules, events, preview, undo, rememberEvents } = controller;
@@ -119,8 +121,8 @@ export function RetirementPlanForm({
         rules={rules.rules}
         errors={rules.errors}
         readOnly={readOnly}
-        ledgerCodes={ledgerCodes}
-        debtAccounts={debtAccounts}
+        ledgerSource={ledgerSource}
+        debtSource={debtSource}
         add={rules.add}
         remove={rules.remove}
         replace={rules.replace}

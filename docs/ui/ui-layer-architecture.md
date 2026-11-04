@@ -228,7 +228,9 @@ Rules:
   (`features/monthly_close/hooks/useStageLoader.ts`), which owns the in-flight controller, the write-back, the
   supersede-abort, the `enabled` gate and the failure semantics, leaving each stage hook only its payload mapping. A
   feature mechanism lives beside the hooks that compose it; it is not promoted to `src/ui/hooks/` until a second feature
-  needs it.
+  needs it. The one-shot read has since crossed that line and lives in `src/ui/hooks/useLoadOnce.ts`, with its picker
+  shape in `src/ui/hooks/useSourceOptions.ts`; `usePlanResource` composes it per route param, so an A→B navigation is a
+  dependency change like any other rather than a second hand-rolled controller.
 - **Seed-Once Ownership**: a feature mechanism that seeds a draft from loaded data owns the ownership rule instead of
   leaving it to every consumer. `useSeededDraft(source)` returns `[value, setValue]`: `source === null` means
   **unknown** (do not seed, and never fabricate an empty draft), `[]`/`{}` means **known empty** (seed it), and the value

@@ -2,8 +2,8 @@ import { useState } from 'react';
 
 import { listRetirementPlansUseCase } from '@/application/retirement/use_cases/listRetirementPlansUseCase';
 import { type RetirementPlan } from '@/domains/retirement/types';
-import { useLoadOnce } from '@/ui/features/retirement/hooks/useLoadOnce';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadOnce } from '@/ui/hooks/useLoadOnce';
 
 export function useRetirementPlanList(householdId: string | undefined) {
   const auth = useAuthIdentity();

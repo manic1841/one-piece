@@ -77,7 +77,7 @@ export const useTransactionForm = (
   const [error, setError] = useState('');
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
   const transactionWithAllocationAttemptRef = useRef<TransactionWithAllocationAttempt | null>(null);
-  const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
+  const { items: allActiveLedgerCodes } = useLedgerCodes(false);
 
   const getTransactionWithAllocationIdempotencyKey = (vm: TransactionFormVM): string => {
     const signature = getTransactionWithAllocationAttemptSignature(vm);

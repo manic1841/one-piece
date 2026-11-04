@@ -4,7 +4,7 @@ import {
   ProjectionCommandErrorCode,
   type ProjectionFailure,
 } from '@/application/retirement/errors';
-import { loadLedgerNetForYear } from '@/application/retirement/ledgerBaseline';
+import { loadLedgerNetsForYear } from '@/application/retirement/ledgerBaseline';
 import {
   type CalculateProjectionRequest,
   type ProjectionCalculation,
@@ -12,7 +12,7 @@ import {
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { type AuthContext } from '@/application/types';
 import { baselineYearFor, calculateProjection } from '@/domains/retirement/calculators';
-import { type ProjectionRule, type RuleSourceType } from '@/domains/retirement/projectionRules';
+import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import {
   type ResolveProjectionInputParams,
   resolveProjectionInput,
@@ -37,8 +37,23 @@ const currentYear = (): number => new Date().getFullYear();
 /** LOCAL time, matching the workspace dialog default. */
 export { defaultProjectionName };
 
-function ruleSource(rule: ProjectionRule): { type: RuleSourceType; id: string } | undefined {
-  return rule.source;
+/**
+ * Rules may share a code with different baseline years, so merge per code
+ * instead of replacing the entry; neither year is lost.
+ */
+function mergeNets(
+  ledgerSources: Map<string, { netByYear: Map<number, number> }>,
+  year: number,
+  nets: Map<string, number>,
+): void {
+  for (const [id, net] of nets) {
+    const entry = ledgerSources.get(id);
+    if (entry === undefined) {
+      ledgerSources.set(id, { netByYear: new Map([[year, net]]) });
+      continue;
+    }
+    entry.netByYear.set(year, net);
+  }
 }
 
 async function gatherRuleSources(input: {
@@ -51,8 +66,8 @@ async function gatherRuleSources(input: {
   const ledgerSources = new Map<string, { netByYear: Map<number, number> }>();
   const debtAccounts = new Map<string, { monthlyPayment: number; endDate: Date }>();
 
-  const ledgerRules = rules.filter((rule) => ruleSource(rule)?.type === 'ledgerCode');
-  const debtRules = rules.filter((rule) => ruleSource(rule)?.type === 'debtAccount');
+  const ledgerRules = rules.filter((rule) => rule.source?.type === 'ledgerCode');
+  const debtRules = rules.filter((rule) => rule.source?.type === 'debtAccount');
 
   if (ledgerRules.length > 0) {
     const codes = await listAllLedgerCodesUseCase.execute({
@@ -62,31 +77,22 @@ async function gatherRuleSources(input: {
       labelResolver: (code) => code,
     });
     const existing = new Set(codes.map((code) => code.code));
-    const loaded = new Map<string, Promise<Map<number, number>>>();
-
-    // Rules may share a code with different baseline years; merge per code
-    // instead of replacing the entry, so neither year is lost.
-    const mergeYear = (sourceId: string, netByYear: Map<number, number>): void => {
-      const entry = ledgerSources.get(sourceId);
-      if (entry === undefined) {
-        ledgerSources.set(sourceId, { netByYear: new Map(netByYear) });
-        return;
-      }
-      for (const [year, net] of netByYear) entry.netByYear.set(year, net);
-    };
+    /** Baseline year -> the codes that need it; one read serves them all. */
+    const codesByYear = new Map<number, Set<string>>();
 
     for (const rule of ledgerRules) {
-      const source = ruleSource(rule);
+      const source = rule.source;
       if (source === undefined || !existing.has(source.id)) continue;
 
       const year = baselineYearFor(rule, startYear);
-      const key = `${source.id}:${year}`;
-      let pending = loaded.get(key);
-      if (pending === undefined) {
-        pending = loadLedgerNetForYear(householdId, source.id, year);
-        loaded.set(key, pending);
-      }
-      mergeYear(source.id, await pending);
+      const ids = codesByYear.get(year) ?? new Set<string>();
+      ids.add(source.id);
+      codesByYear.set(year, ids);
+    }
+
+    // One read per baseline year serves every code that needs that year.
+    for (const [year, ids] of codesByYear) {
+      mergeNets(ledgerSources, year, await loadLedgerNetsForYear(householdId, year, [...ids]));
     }
   }
 
@@ -95,7 +101,7 @@ async function gatherRuleSources(input: {
     const byId = new Map(accounts.map((account) => [account.id, account]));
 
     for (const rule of debtRules) {
-      const source = ruleSource(rule);
+      const source = rule.source;
       if (source === undefined) continue;
       const account = byId.get(source.id);
       if (account === undefined) continue;

@@ -22,7 +22,6 @@ import { WorkspaceSetupSections } from '@/ui/features/retirement/components/Work
 import { WorkspaceSteps } from '@/ui/features/retirement/components/WorkspaceSteps';
 import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import { useProjectionWorkspace } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
-import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 /**
@@ -38,8 +37,8 @@ export default function ProjectionWorkspacePage() {
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId;
   const workspace = useProjectionWorkspace(householdId);
-  const { codes: ledgerCodes } = useLedgerCodes();
-  const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
+  const ledgerSource = useLedgerCodes();
+  const debtSource = useDebtAccountOptions(householdId);
   const [startOpen, setStartOpen] = useState(false);
   const lifeEventsRef = useRef<HTMLDivElement>(null);
   const [revealYear, setRevealYear] = useState<number | null>(null);
@@ -47,7 +46,8 @@ export default function ProjectionWorkspacePage() {
   const finalYear = workspace.derived.finalYear;
 
   const labelForSource = (sourceId: string) =>
-    ledgerCodes.find((code) => code.code === sourceId)?.label ?? PROJECTION_COMMON_LABELS.DASH;
+    ledgerSource.items.find((code) => code.code === sourceId)?.label ??
+    PROJECTION_COMMON_LABELS.DASH;
 
   const jumpToYear = (year: number) => {
     lifeEventsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -94,12 +94,6 @@ export default function ProjectionWorkspacePage() {
     });
   };
 
-  const openingAmountText = (() => {
-    const amount = Number(workspace.opening.value.amountText);
-    return workspace.opening.value.amountText.trim() === '' || !Number.isFinite(amount)
-      ? null
-      : formatCurrency(amount);
-  })();
   const showRail = !isPreview && workspace.indicators.status !== 'idle';
 
   const sectionState = workspace.sectionState(
@@ -175,7 +169,7 @@ export default function ProjectionWorkspacePage() {
               appliedPlanName={workspace.appliedPlanName}
               startYear={workspace.startYear}
               opening={workspace.opening.value}
-              openingAmount={openingAmountText}
+              openingAmount={workspace.derived.openingAmountText}
               assumptions={workspace.assumptions.values}
               rules={workspace.rules.rules}
               events={workspace.events.events}
@@ -202,8 +196,8 @@ export default function ProjectionWorkspacePage() {
               calc={workspace.calc}
               save={workspace.save}
               sectionState={sectionState}
-              ledgerCodes={ledgerCodes}
-              debtAccounts={debtAccounts}
+              ledgerSource={ledgerSource}
+              debtSource={debtSource}
               lifeEventsRef={lifeEventsRef}
               revealYear={revealYear}
             />

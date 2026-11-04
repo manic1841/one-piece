@@ -67,6 +67,7 @@ const detail = (overrides: Record<string, unknown> = {}) => ({
   errorMessage: null,
   notFound: false,
   reload: vi.fn(),
+  debtSource: { items: [], loading: false, errorMessage: null, reload: vi.fn() },
   rename: vi.fn().mockResolvedValue(true),
   remove: vi.fn().mockResolvedValue(true),
   ...overrides,
@@ -125,6 +126,21 @@ describe('RetirementPlanViewPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save name' }));
 
     await waitFor(() => expect(rename).toHaveBeenCalledWith('New plan name'));
+  });
+
+  it('warns and offers a retry when the debt accounts fail to load', () => {
+    const reload = vi.fn();
+    mockUseDetail.mockReturnValue(
+      detail({
+        debtSource: { items: [], loading: false, errorMessage: 'debt down', reload },
+      }) as never,
+    );
+
+    renderPage();
+
+    expect(screen.getByTestId('debt-account-error')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'RETRY' }));
+    expect(reload).toHaveBeenCalled();
   });
 
   it('opens the danger zone delete flow', () => {

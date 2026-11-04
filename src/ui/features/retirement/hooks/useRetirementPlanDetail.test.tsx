@@ -6,6 +6,7 @@ import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/
 import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
 import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { useRetirementPlanDetail } from './useRetirementPlanDetail';
@@ -23,10 +24,15 @@ vi.mock('@/application/retirement/use_cases/deleteRetirementPlanUseCase', () => 
 vi.mock('@/ui/components/confirm/useConfirm');
 vi.mock('@/ui/hooks/useAuthIdentity');
 vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
-  useLedgerCodes: () => ({ codes: [], loading: false }),
+  useLedgerCodes: () => ({ items: [], loading: false, errorMessage: null, reload: vi.fn() }),
 }));
 vi.mock('@/ui/features/retirement/hooks/useDebtAccountOptions', () => ({
-  useDebtAccountOptions: () => ({ accounts: [], loading: false }),
+  useDebtAccountOptions: vi.fn(() => ({
+    items: [],
+    loading: false,
+    errorMessage: null,
+    reload: vi.fn(),
+  })),
 }));
 
 const navigate = vi.fn();
@@ -74,6 +80,25 @@ describe('useRetirementPlanDetail', () => {
     mockUseAuthIdentity.mockReturnValue({ uid: 'u1', email: 'user@example.com' });
     mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(true) } as never);
     mockGet.mockResolvedValue(plan as never);
+  });
+
+  it('forwards a failed debt read and its retry', async () => {
+    const reloadDebtAccounts = vi.fn();
+    vi.mocked(useDebtAccountOptions).mockReturnValue({
+      items: [],
+      loading: false,
+      errorMessage: 'boom',
+      reload: reloadDebtAccounts,
+    });
+
+    const { result } = renderDetail();
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    expect(result.current.debtSource.errorMessage).toBe('boom');
+    result.current.debtSource.reload();
+    expect(reloadDebtAccounts).toHaveBeenCalledTimes(1);
   });
 
   it('updates the view with the renamed plan', async () => {

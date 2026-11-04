@@ -32,8 +32,8 @@ export default function RetirementPlanEditPage() {
     fallbackMessage: PLAN_EDIT_LABELS.SAVE_FAILED,
     successMessage: PLAN_EDIT_LABELS.SAVED,
   });
-  const { codes } = useLedgerCodes();
-  const { accounts } = useDebtAccountOptions(householdId);
+  const ledgerSource = useLedgerCodes();
+  const debtSource = useDebtAccountOptions(householdId);
   const isSubmitting = controller.form.formState.isSubmitting;
   const { readOnly } = controller;
 
@@ -54,8 +54,8 @@ export default function RetirementPlanEditPage() {
         controller={controller}
         submitting={isSubmitting}
         readOnly={readOnly}
-        ledgerCodes={codes}
-        debtAccounts={accounts}
+        ledgerSource={ledgerSource}
+        debtSource={debtSource}
         header={
           <PageHeader
             crumb={PLAN_EDIT_LABELS.CRUMB}

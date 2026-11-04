@@ -4,7 +4,6 @@ import { householdPermissionService } from '@/application/household/householdPer
 import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
-import { projectionRepository } from '@/infra/repositories/projectionRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 import { ProjectionCommandErrorCode } from '../errors';
@@ -18,10 +17,6 @@ vi.mock('@/application/household/householdPermissionService', () => ({
 
 vi.mock('@/application/ledger/use_cases/listAllLedgerCodesUseCase', () => ({
   listAllLedgerCodesUseCase: { execute: vi.fn() },
-}));
-
-vi.mock('@/infra/repositories/projectionRepository', () => ({
-  projectionRepository: { createProjectionAtomically: vi.fn() },
 }));
 
 vi.mock('@/infra/repositories/transactionRepository', () => ({
@@ -105,7 +100,6 @@ describe('calculateProjectionWorkflow', () => {
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.calculation.result.years).toHaveLength(2075 - 2026 + 1);
-    expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
   });
 
   it('captures source facts once for every retirement-age comparison', async () => {
@@ -123,7 +117,6 @@ describe('calculateProjectionWorkflow', () => {
     expect(transactionRepository.listByDateRange).toHaveBeenCalledTimes(reads);
     expect(listAllLedgerCodesUseCase.execute).toHaveBeenCalledTimes(1);
     expect(householdPermissionService.assertWritePermission).toHaveBeenCalledTimes(1);
-    expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
   });
 
   it('derives the opening balance and keeps its anchor in config', async () => {
@@ -155,7 +148,6 @@ describe('calculateProjectionWorkflow', () => {
       ok: false,
       code: ProjectionCommandErrorCode.PROJECTION_VALIDATION_FAILED,
     });
-    expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
   });
 
   it('returns every resolver error without writing', async () => {
@@ -169,7 +161,6 @@ describe('calculateProjectionWorkflow', () => {
     expect(outcome.errors).toEqual([
       expect.objectContaining({ code: 'MISSING_LEDGER_CODE', severity: 'error' }),
     ]);
-    expect(projectionRepository.createProjectionAtomically).not.toHaveBeenCalled();
   });
 
   it('aggregates the ledger baseline from credit minus debit for the needed year', async () => {
@@ -185,10 +176,6 @@ describe('calculateProjectionWorkflow', () => {
         ],
       },
     ] as never);
-    vi.mocked(projectionRepository.createProjectionAtomically).mockResolvedValue({
-      ok: true,
-      id: 'projection-3',
-    });
 
     const calculated = await calculateProjectionWorkflow.execute(request({ rules: [ledgerRule] }));
     expect(calculated.ok).toBe(true);
@@ -253,5 +240,39 @@ describe('calculateProjectionWorkflow', () => {
 
     expect(calculated.ok).toBe(true);
     expect(transactionRepository.listByDateRange).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads a shared baseline year once across different ledger codes', async () => {
+    vi.mocked(listAllLedgerCodesUseCase.execute).mockResolvedValue([
+      { code: 'expense:rent', label: 'Rent', type: 'expense', isCustom: false, isActive: true },
+      { code: 'expense:power', label: 'Power', type: 'expense', isCustom: false, isActive: true },
+    ]);
+    vi.mocked(transactionRepository.listByDateRange).mockResolvedValue([
+      {
+        entries: [
+          { ledgerCode: 'expense:rent', debit: 1400, credit: 0 },
+          { ledgerCode: 'expense:power', debit: 200, credit: 0 },
+        ],
+      },
+    ] as never);
+
+    const calculated = await calculateProjectionWorkflow.execute(
+      request({
+        rules: [
+          ledgerRule,
+          { ...ledgerRule, id: 'rule-2', source: { type: 'ledgerCode', id: 'expense:power' } },
+        ],
+      }),
+    );
+
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+    expect(transactionRepository.listByDateRange).toHaveBeenCalledTimes(1);
+    expect(calculated.calculation.source.ruleSources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ ruleId: 'rule-1', baselineAmount: 1400 }),
+        expect.objectContaining({ ruleId: 'rule-2', baselineAmount: 200 }),
+      ]),
+    );
   });
 });

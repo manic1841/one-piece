@@ -56,6 +56,18 @@ for target in "${targets[@]}"; do
   fi
 done
 
+# Flatten directories into the markdown files underneath: the default target is
+# `docs`, so a directory left unexpanded would skip every topic doc and ADR.
+files=()
+for target in "${targets[@]}"; do
+  if [ -d "$target" ]; then
+    while IFS= read -r found; do files+=("$found"); done \
+      < <(find "$target" -type f -name '*.md' | sort)
+  else
+    files+=("$target")
+  fi
+done
+
 pattern='new[-_]design|one-piece-engineering-spec|visual-consistency\.md|page-review-|task-plans\.md|[0-9]{2}_[A-Za-z][A-Za-z0-9_]*\.md|spec[ 　]?[0-9]{1,2}([^0-9]|$)|spec[ 　]?v[0-9]'
 
 raw=$(grep -rniHE "$pattern" "${targets[@]}" || true)
@@ -83,8 +95,7 @@ fi
 # dead link that no other gate catches. Anchors are not verified (a section can
 # be renamed without breaking the target file), only the path.
 broken=()
-for target in "${targets[@]}"; do
-  [ -f "$target" ] || continue
+for target in "${files[@]}"; do
   dir=$(dirname "$target")
   while IFS= read -r link; do
     [ -z "$link" ] && continue

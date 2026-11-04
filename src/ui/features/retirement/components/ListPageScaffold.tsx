@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { EmptyState } from '@/ui/components/EmptyState';
+import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { Skeleton } from '@/ui/components/Skeleton';
 import {
   DataTable,
@@ -15,8 +16,6 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { Alert, AlertDescription } from '@/ui/components/ui/alert';
-import { Button } from '@/ui/components/ui/button';
 
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
@@ -86,12 +85,12 @@ export function ListPageScaffold<T>({
 
   if (error) {
     return (
-      <Alert variant="warning">
-        <AlertDescription>{loadError}</AlertDescription>
-        <Button variant="text" className="ml-auto shrink-0" onClick={retry}>
-          {retryLabel}
-        </Button>
-      </Alert>
+      <LoadErrorAlert
+        errorMessage={loadError}
+        message={loadError}
+        retryLabel={retryLabel}
+        onRetry={retry}
+      />
     );
   }
 

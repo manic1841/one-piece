@@ -37,6 +37,10 @@ interface ProjectionRuleInspectorProps {
   ledgerOptions: ComboboxOption[];
   ruleOptions: ComboboxOption[];
   debtOptions: ComboboxOption[];
+  /** The list behind the current source failed to load; picking would be blind. */
+  sourceUnavailable?: boolean;
+  /** The list behind the current source is still loading; an empty list is not final. */
+  sourceLoading?: boolean;
   /** Ledger codes still unassigned, printed under the picker while editing a ledger source. */
   unassignedCount: number;
   errors: RuleErrors;
@@ -70,6 +74,8 @@ export function ProjectionRuleInspector({
   ledgerOptions,
   ruleOptions,
   debtOptions,
+  sourceUnavailable,
+  sourceLoading,
   unassignedCount,
   errors,
   update,
@@ -240,7 +246,9 @@ export function ProjectionRuleInspector({
                     noneLabel={RULE_LABELS.NO_SOURCE}
                     searchPlaceholder={RULE_LABELS.SOURCE_SEARCH}
                     emptyLabel={RULE_LABELS.SOURCE_NO_MATCH}
-                    disabled={readOnly}
+                    loading={sourceLoading === true}
+                    loadingLabel={RULE_LABELS.SOURCE_LOADING}
+                    disabled={readOnly || sourceUnavailable === true}
                   />
                 </FormControl>
                 {rule.sourceType === 'ledgerCode' && (

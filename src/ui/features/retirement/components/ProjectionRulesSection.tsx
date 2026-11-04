@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { type UseFormReturn } from 'react-hook-form';
 
+import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { PageSection } from '@/ui/components/PageSection';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import { type ComboboxOption, Form } from '@/ui/components/form';
@@ -21,6 +22,7 @@ import {
   type RuleType,
   type RulesForm as RulesFormValue,
 } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
+import { type SourceOptions } from '@/ui/hooks/useSourceOptions';
 import { cn } from '@/ui/utils/cn';
 
 interface ProjectionRulesSectionProps {
@@ -28,8 +30,9 @@ interface ProjectionRulesSectionProps {
   rules: RuleDraftVM[];
   errors: RuleErrorsById;
   readOnly: boolean;
-  ledgerCodes: LedgerCodeItem[];
-  debtAccounts: DebtAccountOption[];
+  /** Picker sources, each carrying its own failure and retry. */
+  ledgerSource: SourceOptions<LedgerCodeItem>;
+  debtSource: SourceOptions<DebtAccountOption>;
   /** Returns the new draft's id so the section can select it. */
   add: (ruleType: RuleType) => string | null;
   remove: (id: string) => void;
@@ -62,6 +65,49 @@ const GROUPS: ReadonlyArray<{
   },
 ];
 
+/** The list a rule's source type picks from; `rule` sources have none. */
+function sourceFor(
+  sourceType: RuleSourceType | '' | undefined,
+  ledger: SourceOptions<LedgerCodeItem>,
+  debt: SourceOptions<DebtAccountOption>,
+): SourceOptions<unknown> | null {
+  if (sourceType === 'debtAccount') return debt;
+  if (sourceType === 'ledgerCode') return ledger;
+  return null;
+}
+
+/** The two picker sources fail independently, so each gets its own retry. */
+function SourceAlerts({
+  ledger,
+  debt,
+}: {
+  ledger: SourceOptions<LedgerCodeItem>;
+  debt: SourceOptions<DebtAccountOption>;
+}) {
+  return (
+    <>
+      {ledger.errorMessage !== null && (
+        <LoadErrorAlert
+          errorMessage={ledger.errorMessage}
+          message={RULE_LABELS.LEDGER_LOAD_FAILED}
+          retryLabel={RULE_LABELS.SOURCE_RETRY}
+          onRetry={ledger.reload}
+          testId="ledger-code-error"
+        />
+      )}
+      {debt.errorMessage !== null && (
+        <LoadErrorAlert
+          errorMessage={debt.errorMessage}
+          message={RULE_LABELS.DEBT_LOAD_FAILED}
+          retryLabel={RULE_LABELS.SOURCE_RETRY}
+          onRetry={debt.reload}
+          testId="debt-account-error"
+        />
+      )}
+    </>
+  );
+}
+
 /**
  * Both sides share one band and one ADD: the side is a field on the rule, so two
  * ADD buttons only said the same thing twice. Rows summarise; clicking one opens
@@ -73,8 +119,8 @@ export function ProjectionRulesSection({
   rules,
   errors,
   readOnly,
-  ledgerCodes,
-  debtAccounts,
+  ledgerSource,
+  debtSource,
   add,
   remove,
   replace,
@@ -87,6 +133,8 @@ export function ProjectionRulesSection({
   hint,
 }: ProjectionRulesSectionProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const ledgerCodes = ledgerSource.items;
+  const debtAccounts = debtSource.items;
   const [editing, setEditing] = useState<{
     id: string;
     mode: 'create' | 'edit';
@@ -136,6 +184,9 @@ export function ProjectionRulesSection({
     usageByCode.set(rule.sourceId, (usageByCode.get(rule.sourceId) ?? 0) + 1);
   }
 
+  const ledgerLabelById = new Map(ledgerCodes.map((code) => [code.code, code.label] as const));
+  const debtLabelById = new Map(debtAccounts.map((account) => [account.id, account.name] as const));
+
   const ledgerOptionsFor = (ruleId: string): ComboboxOption[] =>
     ledgerCodes.map((code) => {
       const others = list.filter(
@@ -157,6 +208,10 @@ export function ProjectionRulesSection({
   const unassignedCount = ledgerCodes.filter((code) => !usageByCode.has(code.code)).length;
   const isEmpty = list.length === 0;
 
+  // The picker behind the open dialog, if the rule even uses a list. Rule
+  // sources come from the draft list, so they are never unavailable.
+  const editingSource = sourceFor(editingRule?.sourceType, ledgerSource, debtSource);
+
   const ruleOptionsFor = (ruleId: string): ComboboxOption[] =>
     list
       .filter((candidate) => candidate.id !== ruleId)
@@ -167,10 +222,10 @@ export function ProjectionRulesSection({
 
   const sourceLabelFor = (rule: RuleDraftVM) => {
     if (rule.sourceType === 'ledgerCode') {
-      return ledgerCodes.find((code) => code.code === rule.sourceId)?.label ?? rule.sourceId;
+      return ledgerLabelById.get(rule.sourceId) ?? rule.sourceId;
     }
     if (rule.sourceType === 'debtAccount') {
-      return debtAccounts.find((account) => account.id === rule.sourceId)?.name ?? rule.sourceId;
+      return debtLabelById.get(rule.sourceId) ?? rule.sourceId;
     }
     if (rule.sourceType === 'rule') {
       return ruleOptionsFor(rule.id).find((option) => option.value === rule.sourceId)?.label ?? '';
@@ -196,6 +251,8 @@ export function ProjectionRulesSection({
         }
       >
         <div className="grid gap-8">
+          <SourceAlerts ledger={ledgerSource} debt={debtSource} />
+
           {isEmpty ? (
             <div className="grid justify-items-start gap-3 py-2">
               <p className="text-sm text-muted-foreground">{RULE_LABELS.EMPTY}</p>
@@ -223,7 +280,8 @@ export function ProjectionRulesSection({
                       data-testid={`${side}-rule-status`}
                     >
                       {sideRules.length}
-                      {errorCount > 0 && ` · ${errorCount} WARNING`}
+                      {errorCount > 0 &&
+                        RULE_LABELS.RULE_WARNING_SUFFIX.replace('{count}', String(errorCount))}
                     </span>
                   </div>
 
@@ -271,6 +329,8 @@ export function ProjectionRulesSection({
                 readOnly={readOnly}
                 ledgerOptions={ledgerOptionsFor(editingRule.id)}
                 debtOptions={debtOptions}
+                sourceUnavailable={editingSource?.errorMessage != null}
+                sourceLoading={editingSource?.loading === true}
                 ruleOptions={ruleOptionsFor(editingRule.id)}
                 unassignedCount={unassignedCount}
                 errors={errors[editingRule.id] ?? {}}

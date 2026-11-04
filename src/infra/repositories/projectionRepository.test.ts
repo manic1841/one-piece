@@ -9,9 +9,15 @@ vi.mock('@/firebase', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => {
   class MockTimestamp {
     private readonly date: Date;
+    // The real class exposes these two, which is exactly why `sanitize` used to
+    // flatten it into a map; keep them so the assertion has teeth.
+    readonly seconds: number;
+    readonly nanoseconds: number;
 
     constructor(date: Date) {
       this.date = date;
+      this.seconds = Math.floor(date.getTime() / 1000);
+      this.nanoseconds = (date.getTime() % 1000) * 1_000_000;
     }
 
     static fromDate(date: Date) {
@@ -25,6 +31,8 @@ vi.mock('firebase/firestore', () => {
 
   return {
     Timestamp: MockTimestamp,
+    // `sanitize` rejects FieldValue, so the module must expose the class.
+    FieldValue: function MockFieldValue() {},
     collection: vi.fn((...args: unknown[]) => {
       const path = args.slice(1).join('/');
       state.calls.push(`collection:${path}`);
@@ -184,6 +192,17 @@ describe('projectionRepository', () => {
     expect(state.calls.indexOf('doc:households/household-1/projections/generated-1')).toBeLessThan(
       state.calls.indexOf('writeBatch'),
     );
+  });
+
+  it('stores createdAt as a Timestamp, not a flattened map', async () => {
+    const { Timestamp } = await import('firebase/firestore');
+    await projectionRepository.createProjectionAtomically(input());
+
+    const payload = batch().set.mock.calls[0]?.[1] as { createdAt: unknown };
+
+    expect(payload.createdAt).toBeInstanceOf(Timestamp);
+    // A flattened Timestamp would carry these two keys as a plain map.
+    expect(Object.keys(payload.createdAt as object)).not.toEqual(['seconds', 'nanoseconds']);
   });
 
   it.each([

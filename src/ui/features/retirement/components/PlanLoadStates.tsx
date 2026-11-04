@@ -3,8 +3,8 @@ import { type ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 import { EmptyState } from '@/ui/components/EmptyState';
+import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { Skeleton } from '@/ui/components/Skeleton';
-import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 
 const SKELETON_ROWS = [0, 1, 2];
@@ -65,12 +65,12 @@ export function PlanLoadStates({
           <ArrowLeft size={16} aria-hidden="true" />
           {labels.BACK_LABEL}
         </Button>
-        <Alert variant="warning">
-          <AlertDescription>{labels.LOAD_ERROR}</AlertDescription>
-          <Button variant="text" className="ml-auto shrink-0" onClick={reload}>
-            {labels.RETRY_ACTION}
-          </Button>
-        </Alert>
+        <LoadErrorAlert
+          errorMessage={errorMessage}
+          message={labels.LOAD_ERROR}
+          retryLabel={labels.RETRY_ACTION}
+          onRetry={reload}
+        />
       </div>
     );
   }

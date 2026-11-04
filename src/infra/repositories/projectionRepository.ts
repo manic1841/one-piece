@@ -1,6 +1,5 @@
 import {
   type DocumentData,
-  Timestamp,
   collection,
   doc,
   getDoc,
@@ -25,7 +24,12 @@ import {
   type ProjectionWriteResult,
 } from '@/domains/retirement/schemas';
 import { db } from '@/firebase';
-import { fromFirestore, isDocumentTooLarge, sanitize } from '@/infra/repositories/firestorePayload';
+import {
+  fromFirestore,
+  isDocumentTooLarge,
+  sanitize,
+  toFirestore,
+} from '@/infra/repositories/firestorePayload';
 
 export type {
   CreateProjectionAtomicallyInput,
@@ -93,10 +97,9 @@ class ProjectionRepository {
     const projectionRef = doc(this.getCollectionRef(householdId));
     const projectionId = projectionRef.id;
 
-    const mainPayload = sanitize({
-      ...projection,
-      createdAt: Timestamp.fromDate(projection.createdAt),
-    }) as DocumentData;
+    // Sanitize the Date-typed object first, then convert: doing it the other way
+    // round hands `sanitize` a `Timestamp`, which it now rejects.
+    const mainPayload = toFirestore(sanitize(projection)) as DocumentData;
     const configPayload = sanitize(config) as DocumentData;
     const sourcePayload = sanitize(source) as DocumentData;
     const annualPayload = sanitize(results) as DocumentData;

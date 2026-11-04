@@ -31,8 +31,8 @@ export default function RetirementPlanCreatePage() {
     fallbackMessage: PLAN_CREATE_PAGE_LABELS.FAILED,
     successMessage: PLAN_CREATE_PAGE_LABELS.CREATED,
   });
-  const { codes: ledgerCodes } = useLedgerCodes();
-  const { accounts: debtAccounts } = useDebtAccountOptions(householdId);
+  const ledgerSource = useLedgerCodes();
+  const debtSource = useDebtAccountOptions(householdId);
   const { isSubmitting } = controller.form.formState;
 
   const backToList = () => void navigate(PLAN_LIST_HREF);
@@ -50,8 +50,8 @@ export default function RetirementPlanCreatePage() {
         controller={controller}
         submitting={isSubmitting}
         readOnly={controller.readOnly}
-        ledgerCodes={ledgerCodes}
-        debtAccounts={debtAccounts}
+        ledgerSource={ledgerSource}
+        debtSource={debtSource}
         header={
           <PageHeader
             crumb={PLAN_CREATE_PAGE_LABELS.CRUMB}

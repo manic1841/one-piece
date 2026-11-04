@@ -2,11 +2,13 @@ import { type RefObject } from 'react';
 
 import { formMessageClass } from '@/ui/components/form';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
+import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { AssumptionsSection } from '@/ui/features/retirement/components/AssumptionsSection';
 import { LifeEventsSection } from '@/ui/features/retirement/components/LifeEventsSection';
 import { OpeningNetWorthSection } from '@/ui/features/retirement/components/OpeningNetWorthSection';
 import { ProjectionRulesSection } from '@/ui/features/retirement/components/ProjectionRulesSection';
 import { WorkspaceNotices } from '@/ui/features/retirement/components/WorkspaceNotices';
+import { type DebtAccountOption } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import {
   type ProjectionWorkspaceStage,
   type WorkspaceAssumptions,
@@ -19,6 +21,7 @@ import {
   type WorkspaceUndo,
 } from '@/ui/features/retirement/types/workspaceTypes';
 import { type SectionStates } from '@/ui/features/retirement/viewmodels/workspaceSectionState.vm';
+import { type SourceOptions } from '@/ui/hooks/useSourceOptions';
 
 interface WorkspaceSetupSectionsProps {
   stage: ProjectionWorkspaceStage;
@@ -36,8 +39,8 @@ interface WorkspaceSetupSectionsProps {
   save: WorkspaceSaveStatus;
   /** Per-band state, so each blocker is explained where the work happens. */
   sectionState: SectionStates;
-  ledgerCodes: Parameters<typeof ProjectionRulesSection>[0]['ledgerCodes'];
-  debtAccounts: Parameters<typeof ProjectionRulesSection>[0]['debtAccounts'];
+  ledgerSource: SourceOptions<LedgerCodeItem>;
+  debtSource: SourceOptions<DebtAccountOption>;
   lifeEventsRef: RefObject<HTMLDivElement | null>;
   revealYear: number | null;
 }
@@ -62,8 +65,8 @@ export function WorkspaceSetupSections({
   calc,
   save,
   sectionState,
-  ledgerCodes,
-  debtAccounts,
+  ledgerSource,
+  debtSource,
   lifeEventsRef,
   revealYear,
 }: WorkspaceSetupSectionsProps) {
@@ -121,8 +124,8 @@ export function WorkspaceSetupSections({
         rules={rules.rules}
         errors={rules.errors}
         readOnly={false}
-        ledgerCodes={ledgerCodes}
-        debtAccounts={debtAccounts}
+        ledgerSource={ledgerSource}
+        debtSource={debtSource}
         add={rules.add}
         remove={rules.remove}
         replace={rules.replace}

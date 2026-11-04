@@ -1,3 +1,5 @@
+import { type ComponentProps } from 'react';
+
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -5,7 +7,11 @@ import { useRuleDrafts } from '@/ui/features/retirement/hooks/useRuleDrafts';
 
 import { ProjectionRulesSection } from './ProjectionRulesSection';
 
-function Harness() {
+type HarnessOverrides = Partial<ComponentProps<typeof ProjectionRulesSection>>;
+
+const emptySource = { items: [], loading: false, errorMessage: null, reload: vi.fn() };
+
+function Harness(overrides: HarnessOverrides) {
   const rules = useRuleDrafts({ revealed: false, onEdit: vi.fn() });
   return (
     <ProjectionRulesSection
@@ -13,8 +19,8 @@ function Harness() {
       rules={rules.rules}
       errors={{}}
       readOnly={false}
-      ledgerCodes={[]}
-      debtAccounts={[]}
+      ledgerSource={emptySource}
+      debtSource={emptySource}
       add={rules.add}
       remove={rules.remove}
       replace={rules.replace}
@@ -23,6 +29,7 @@ function Harness() {
       setRuleType={rules.setRuleType}
       setMethod={rules.setMethod}
       setSourceType={rules.setSourceType}
+      {...overrides}
     />
   );
 }
@@ -104,5 +111,40 @@ describe('ProjectionRulesSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ADD RULE' }));
 
     expect(screen.getByTestId('rule-confirm')).toBeDisabled();
+  });
+
+  it.each([
+    ['debt', 'debt-account-error', 'Debt accounts could not be loaded.'],
+    ['ledger', 'ledger-code-error', 'Ledger codes could not be loaded.'],
+  ] as const)(
+    'surfaces a failed %s read with a retry, on the shared alert shape',
+    (kind, testId, message) => {
+      const retry = vi.fn();
+      const failedSource = { items: [], loading: false, errorMessage: 'boom', reload: retry };
+      render(
+        <Harness
+          {...(kind === 'debt' ? { debtSource: failedSource } : { ledgerSource: failedSource })}
+        />,
+      );
+
+      const alert = screen.getByTestId(testId);
+      expect(alert).toHaveAttribute('role', 'alert');
+      expect(alert).toHaveTextContent(message);
+      // The raw message rides along for debugging without changing the copy.
+      expect(alert).toHaveAttribute('title', 'boom');
+      fireEvent.click(screen.getByRole('button', { name: 'RETRY' }));
+      expect(retry).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  // An in-flight list used to borrow the empty label, so "still loading" and
+  // "nothing to pick" read identically. `states-and-a11y.md` wants the third state.
+  it('shows the source picker as loading rather than empty while the read is in flight', async () => {
+    const pendingSource = { items: [], loading: true, errorMessage: null, reload: vi.fn() };
+    render(<Harness ledgerSource={pendingSource} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'ADD RULE' }));
+
+    expect(await screen.findByTestId('combobox-value')).toHaveTextContent('Loading…');
   });
 });

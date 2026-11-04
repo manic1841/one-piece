@@ -4,22 +4,27 @@ import { transactionRepository } from '@/infra/repositories/transactionRepositor
 const startOfYear = (year: number): Date => new Date(year, 0, 1);
 
 /**
- * Fetches one code's net for one baseline year. The returned map carries its
- * year so callers can merge several years of the same code into one `netByYear`.
+ * One full-year read, nets for every requested code.
+ *
+ * The read is the expensive part and depends only on the year, so callers group
+ * their codes by baseline year instead of paying one identical full-year scan
+ * per code.
  */
-export async function loadLedgerNetForYear(
+export async function loadLedgerNetsForYear(
   householdId: string,
-  ledgerCodeId: string,
   year: number,
-): Promise<Map<number, number>> {
+  ledgerCodeIds: readonly string[],
+): Promise<Map<string, number>> {
   const transactions = await transactionRepository.listByDateRange(
     householdId,
     startOfYear(year),
     startOfYear(year + 1),
   );
 
-  const net = netForLedgerCode(transactions, ledgerCodeId);
-  const map = new Map<number, number>();
-  if (net !== undefined) map.set(year, net);
-  return map;
+  const nets = new Map<string, number>();
+  for (const id of ledgerCodeIds) {
+    const net = netForLedgerCode(transactions, id);
+    if (net !== undefined) nets.set(id, net);
+  }
+  return nets;
 }

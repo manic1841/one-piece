@@ -21,9 +21,20 @@ export function useLoadOnce<T>(
   taskRef.current = task;
   const onValueRef = useRef(onValue);
   onValueRef.current = onValue;
+  const controllerRef = useRef<AbortController | null>(null);
 
+  /**
+   * Latest request wins: a new load (dependency change or an explicit retry)
+   * aborts the one in flight, so its late write-back cannot overwrite the
+   * current value. `useLoadingTask` only abandons runs on unmount by itself.
+   */
   const reload = useCallback(async () => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+
     await run((signal) => taskRef.current(signal), {
+      signal: controller.signal,
       writeBack: (result) => {
         if (result.ok) onValueRef.current(result.value);
       },
@@ -34,6 +45,7 @@ export function useLoadOnce<T>(
 
   useEffect(() => {
     void reload();
+    return () => controllerRef.current?.abort();
   }, [reload]);
 
   return { loading, error, errorMessage, reload };

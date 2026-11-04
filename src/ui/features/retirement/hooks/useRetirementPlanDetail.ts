@@ -17,15 +17,15 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
   const { renamePlan, deletePlan, errorMessage: commandError } = useRetirementPlanCmds(householdId);
   const { plan, planId, setPlan, loading, errorMessage, notFound, reload } =
     usePlanResource(householdId);
-  const { codes } = useLedgerCodes();
-  const { accounts } = useDebtAccountOptions(householdId);
+  const { items: codes } = useLedgerCodes();
+  const debtSource = useDebtAccountOptions(householdId);
 
   const names = useMemo(
     () => ({
       ledger: new Map(codes.map((code) => [code.code, code.label] as const)),
-      debt: new Map(accounts.map((account) => [account.id, account.name] as const)),
+      debt: new Map(debtSource.items.map((account) => [account.id, account.name] as const)),
     }),
-    [accounts, codes],
+    [codes, debtSource.items],
   );
 
   const vm = useMemo(
@@ -67,6 +67,8 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
     errorMessage: errorMessage ?? commandError,
     notFound,
     reload,
+    /** Debt read failure leaves rule source names blank; the page offers a retry. */
+    debtSource,
     rename,
     remove,
   };

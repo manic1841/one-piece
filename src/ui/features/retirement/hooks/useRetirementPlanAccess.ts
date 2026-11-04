@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { useLoadOnce } from '@/ui/features/retirement/hooks/useLoadOnce';
+import { useLoadOnce } from '@/ui/hooks/useLoadOnce';
 
 /**
  * Whether the signed-in user may rename or delete plans. The application layer

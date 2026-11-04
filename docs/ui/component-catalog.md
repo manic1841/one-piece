@@ -40,6 +40,7 @@
 | `src/ui/components/GateSurface.tsx`                     | GateSurface                                                    |
 | `src/ui/components/InlineEditableTitle.tsx`             | InlineEditableTitle                                            |
 | `src/ui/components/ListSectionHeader.tsx`               | ListSectionHeader                                              |
+| `src/ui/components/LoadErrorAlert.tsx`                  | LoadErrorAlert                                                 |
 | `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric                                           |
 | `src/ui/components/Module.tsx`                          | Module                                                         |
 | `src/ui/components/NumberInput.tsx`                     | NumberInput                                                    |
@@ -158,6 +159,11 @@
 
 - **`ErrorBoundary`** — class component，捕捉 render 期錯誤並渲染 `AppFallback`。
   - Props：`children`。**不要用於**：可預期的資料錯誤（那是 Controller 的責任）。
+
+- **`LoadErrorAlert`** — 區段資料載入失敗的 inline warning alert（標題為原始錯誤訊息）＋ 尾端重試鈕。已載入的區段其餘內容保留不清空（ADR-0072：載入失敗是 UNKNOWN，不是 EMPTY）。
+  - Props：`errorMessage`（必填）、`message`（人話說明，如「無法載入債務帳戶」）、`retryLabel`、`onRetry`、`testId?`。
+  - **不要用於**：整頁無法顯示的失敗（用 `PlanLoadStates` 或頁面層 exception）；沒有重試動作的純提示（用 `ui/` 群組的 `alert`）。
+  - 範例：`src/ui/features/retirement/pages/RetirementPlanViewPage.tsx`、`src/ui/features/retirement/components/ListPageScaffold.tsx`
 
 ## 通用呈現
 
@@ -457,8 +463,9 @@
   - **不要用於**：需要自行組合 Radix parts 的場合（用 `ui/select`）。
   - 範例：`src/ui/features/account/pages/AccountForm.tsx`
 - **`Combobox`**（`ComboboxField`）— 可搜尋的單值選欄位，給長到不能捲的清單（科目、帳戶）。與 `SelectField` 同一個 string value 契約，多出 `hint` 與 `group` 讓呼叫端把清單一開就蓋掉的脈絡（已使用次數、未使用／已使用分組）留在選項上。
-  - Props：`options`（必填，`{ value, label, hint?, group? }`）、`value?`、`onChange?`、`onBlur?`、`noneLabel?`、`placeholder?`、`searchPlaceholder?`、`emptyLabel?`、`error?`、`disabled?`、`className?`、`id?`、`name?` 與 `aria-*`。
+  - Props：`options`（必填，`{ value, label, hint?, group? }`）、`value?`、`onChange?`、`onBlur?`、`noneLabel?`、`placeholder?`、`searchPlaceholder?`、`emptyLabel?`、`loading?`、`loadingLabel?`、`error?`、`disabled?`、`className?`、`id?`、`name?` 與 `aria-*`。
   - 變體：「無值」列以 `noneLabel` 表示，emit `''`；`hint` 印在列尾當次要資訊，不參與選取；`group` 決定分區與先後（呼叫端把重要的一組排前面）。
+  - 清單還在載入時傳 `loading` 與 `loadingLabel`：觸發鈕與空清單都改說「載入中」，否則尚未完成的清單會借用 `emptyLabel` 的「沒有符合項」，跟真的沒得選長得一樣（見 [`states-and-a11y.md`](states-and-a11y.md) 三態要求）。
   - 注意：清單列是 cmdk item，`data-disabled` 屬性恆存在（值 `"true"`／`"false"`），所以列樣式（含 `pointer-events`）必須寫成 `data-[disabled=true]:*`。寫成裸 `data-[disabled]:*` 會讓每一列都吃不到點擊，鍵盤仍可用，滑鼠全失效。
   - **不要用於**：5 項以內、不需要搜尋的清單（用 `Select`）；多選（目前沒有共用元件）。
   - 範例：`src/ui/features/retirement/components/ProjectionRuleInspector.tsx`

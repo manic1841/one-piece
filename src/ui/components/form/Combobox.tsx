@@ -38,6 +38,9 @@ export interface ComboboxFieldProps {
   noneLabel?: string;
   searchPlaceholder?: string;
   emptyLabel?: string;
+  /** The option list is still in flight; the trigger and the empty row say so. */
+  loading?: boolean;
+  loadingLabel?: string;
   error?: boolean;
   disabled?: boolean;
   className?: string;
@@ -65,6 +68,8 @@ export const ComboboxField = React.forwardRef<HTMLButtonElement, ComboboxFieldPr
       noneLabel,
       searchPlaceholder,
       emptyLabel,
+      loading,
+      loadingLabel,
       error,
       disabled,
       className,
@@ -76,8 +81,13 @@ export const ComboboxField = React.forwardRef<HTMLButtonElement, ComboboxFieldPr
     const listId = React.useId();
     const normalValue = value ?? '';
     const selected = options.find((option) => option.value === normalValue);
+    // An unfinished list must not borrow the "nothing selected" wording.
     const triggerLabel =
-      normalValue === '' ? (noneLabel ?? placeholder) : (selected?.label ?? normalValue);
+      normalValue === ''
+        ? loading === true && loadingLabel !== undefined
+          ? loadingLabel
+          : (noneLabel ?? placeholder)
+        : (selected?.label ?? normalValue);
 
     const select = (next: string) => {
       onChange?.(next);
@@ -135,7 +145,9 @@ export const ComboboxField = React.forwardRef<HTMLButtonElement, ComboboxFieldPr
             <CommandInput placeholder={searchPlaceholder ?? placeholder} />
             <CommandList id={listId}>
               <CommandEmpty className="text-muted-foreground py-6 text-center text-[13px]">
-                {emptyLabel ?? 'No matches.'}
+                {loading === true
+                  ? (loadingLabel ?? emptyLabel ?? 'Loading…')
+                  : (emptyLabel ?? 'No matches.')}
               </CommandEmpty>
               {noneLabel !== undefined && (
                 <CommandGroup>

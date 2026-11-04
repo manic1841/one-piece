@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
+import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Button } from '@/ui/components/ui/button';
 import { PLAN_DETAIL_LABELS } from '@/ui/constants/retirement/planLabels';
+import { RULE_LABELS } from '@/ui/constants/retirement/setupLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { PlanLoadStates } from '@/ui/features/retirement/components/PlanLoadStates';
 import { RetirementPlanDetail } from '@/ui/features/retirement/components/RetirementPlanDetail';
@@ -18,7 +20,7 @@ export default function RetirementPlanViewPage() {
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId;
   const navigate = useNavigate();
-  const { vm, loading, errorMessage, notFound, reload, rename, remove } =
+  const { vm, loading, errorMessage, notFound, reload, debtSource, rename, remove } =
     useRetirementPlanDetail(householdId);
   const { canManage } = useRetirementPlanAccess(householdId);
 
@@ -86,6 +88,16 @@ export default function RetirementPlanViewPage() {
               </>
             }
           />
+
+          {debtSource.errorMessage !== null && (
+            <LoadErrorAlert
+              errorMessage={debtSource.errorMessage}
+              message={RULE_LABELS.DEBT_LOAD_FAILED}
+              retryLabel={RULE_LABELS.SOURCE_RETRY}
+              onRetry={debtSource.reload}
+              testId="debt-account-error"
+            />
+          )}
 
           <RetirementPlanDetail
             plan={vm}

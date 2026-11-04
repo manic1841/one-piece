@@ -13,10 +13,10 @@ import RetirementPlanEditPage from './RetirementPlanEditPage';
 
 vi.mock('@/ui/contexts/useAuthState');
 vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
-  useLedgerCodes: () => ({ codes: [] }),
+  useLedgerCodes: () => ({ items: [], loading: false, errorMessage: null, reload: vi.fn() }),
 }));
 vi.mock('@/ui/features/retirement/hooks/useDebtAccountOptions', () => ({
-  useDebtAccountOptions: () => ({ accounts: [] }),
+  useDebtAccountOptions: () => ({ items: [], loading: false, errorMessage: null, reload: vi.fn() }),
 }));
 vi.mock('@/ui/features/retirement/hooks/useRetirementPlanCmds', () => ({
   useRetirementPlanCmds: () => ({ createPlan: vi.fn(), updatePlan: vi.fn() }),

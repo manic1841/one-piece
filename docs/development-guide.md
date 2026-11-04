@@ -56,6 +56,7 @@ UI 變更規則。指令與部署見 [operations.md](operations.md)；各功能�
 - **單一職責**: 一個 Use Case 文件只做一件事（例如：`createTransactionUseCase.ts` 只負責建立交易）。
 - **表單一致性**: 表單資料必須先映射到 ViewModel，再由 mapper 轉換成 domain 型別。
 - **驗證一致性**: 所有新表單路徑統一採用 Zod schema，禁止分散式手寫驗證。
+- **時間型別只在邊界轉換**: App 內（domain、application、UI）的時間一律是 `Date`，由 `TimestampSchema` 保證；`firebase/firestore` 的 `Timestamp` 與 `FieldValue` 只准出現在 `src/infra/repositories/`。寫入順序固定為先 `sanitize`（吃 `Date` 物件）再 `toFirestore`，順序顛倒時 `sanitize` 直接拋錯。`serverTimestamp()` 只填稽核欄位，且只在物件未帶原值時使用——備份還原帶原始時點，必須保留。
 - **格式一致性**: Prettier 是格式與 import 排序的單一真相來源，設定在 `.prettierrc`；不手動維護排序。commit 前跑 `pnpm format`。
 
 ## 3. 文件規範

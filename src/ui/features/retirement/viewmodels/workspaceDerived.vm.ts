@@ -15,6 +15,7 @@ import {
   buildProgress,
   buildReadiness,
 } from '@/ui/features/retirement/viewmodels/workspaceReadiness.vm';
+import { formatCurrency } from '@/ui/utils';
 
 interface BuildWorkspaceDerivedOptions {
   assumptions: AssumptionsVM;
@@ -42,9 +43,15 @@ export function buildWorkspaceDerived({
 }: BuildWorkspaceDerivedOptions) {
   const openingResolved =
     opening.amountText.trim() !== '' && openingSchema.safeParse(opening).success;
+  const openingAmount = Number(opening.amountText);
 
   return {
     openingResolved,
+    /** Rendered label, so the page never parses the draft string itself. */
+    openingAmountText:
+      opening.amountText.trim() === '' || !Number.isFinite(openingAmount)
+        ? null
+        : formatCurrency(openingAmount),
     /** Numeric reads of the assumption strings, so render never parses them. */
     birthYear: Number(assumptions.birthYear),
     lifeExpectancy: Number(assumptions.lifeExpectancy),

@@ -74,7 +74,12 @@ const { ledgerCodesMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
-  useLedgerCodes: () => ({ codes: ledgerCodesMock.codes, loading: false }),
+  useLedgerCodes: () => ({
+    items: ledgerCodesMock.codes,
+    loading: false,
+    errorMessage: null,
+    reload: vi.fn(),
+  }),
 }));
 
 const { authMock } = vi.hoisted(() => ({

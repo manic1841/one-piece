@@ -1,12 +1,12 @@
 import { useState } from 'react';
 
 import { listProjectionsUseCase } from '@/application/retirement/use_cases/listProjectionsUseCase';
-import { useLoadOnce } from '@/ui/features/retirement/hooks/useLoadOnce';
 import {
   type ProjectionListRowVM,
   mapProjectionToListRowVM,
 } from '@/ui/features/retirement/viewmodels/projectionList.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
+import { useLoadOnce } from '@/ui/hooks/useLoadOnce';
 
 export function useProjectionList(householdId: string | undefined) {
   const auth = useAuthIdentity();

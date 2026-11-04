@@ -27,6 +27,8 @@ vi.mock('firebase/firestore', () => {
 
   return {
     Timestamp: MockTimestamp,
+    // `sanitize` rejects FieldValue, so the module must expose the class.
+    FieldValue: function MockFieldValue() {},
     serverTimestamp: vi.fn(() => new MockTimestamp(new Date('2026-01-01T00:00:00.000Z'))),
     collection: vi.fn((...args: unknown[]) => {
       const path = args.slice(1).join('/');
