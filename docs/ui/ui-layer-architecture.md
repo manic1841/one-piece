@@ -81,7 +81,9 @@ between domain/application shapes and components.
     map may be imported from `@/domains` by any UI tier.
 8.  **Feature Isolation (components)**: shared components belong in `src/ui/components`; feature **components** must
     not be imported across features. ViewModels are exempt — a ViewModel may be imported by another feature when a
-    second consumer genuinely needs the same projection.
+    second consumer genuinely needs the same projection. The one component exception is the gallery
+    (`features/app/pages/Gallery*`): its job is to show other features' finished components, so it may import any
+    feature's components; other pages under `app` stay bound by the rule.
 9.  **Shared Component Reuse**: before creating a new shared component, extend an existing one in `src/ui/components`
     when it covers the use case. Create a new shared component only when nothing existing can be extended, and migrate
     existing duplicate implementations in the same task.

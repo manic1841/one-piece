@@ -18,8 +18,8 @@
 
 - `primary` 為 teal（暗色底上承擔主要互動色）。
 - 顏色分兩層（見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）：**語意 tone** 表達「資料的意義」，**`chart-*` 類別色板**表達「分類之間的差異」。硬編碼 hex 一律對齊 token。
-- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）改用 `chart-*` 類別色板（下段）。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。**次要脈絡序列**（同一張圖裡不是主體、只提供背景對照的線，例如收支圖上的淨資產）用細虛線（1.2px／`5 4`）而非實線，讓它不與主體爭視覺重量；主體序列維持實線 1.8px。
-- **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-1..7` 為類別色板**：只在「以顏色編碼分類、而非編碼狀態」的並列拆解圖（donut）使用，依資料順序配色；不得用於金額或狀態呈現。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；以顏色編碼分類的拆解圖改用 `chart-*` 類別色板（下段）。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。**次要脈絡序列**（同一張圖裡不是主體、只提供背景對照的線，例如收支圖上的淨資產）用細虛線（1.2px／`5 4`）而非實線，讓它不與主體爭視覺重量；主體序列維持實線 1.8px。
+- **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-*` 類別色板**只用在「以顏色編碼分類、而非編碼狀態」的拆解圖，依資料順序配色；不得用於金額或狀態呈現。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
 - 層級由材質（§3）而非色差承擔。
 - 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現。`destructive` 與 `negative` 同值（來源色板只有一個紅），仍僅用於不可逆動作與錯誤文字。
 - `border-strong` token（比 `border` 亮一階）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免暗色底上邊界消失。
@@ -197,4 +197,5 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
   - **單一數字輸入**：全站數字欄位是單一 `NumberInput`（`src/ui/components/NumberInput.tsx`，form 與 data-table 兩個 barrel 都 re-export），以 `surface` 表達 form／table 兩種表面。兩者**共用高度（34px）與數字處理**（右對齊 mono `tabular-nums`、移除原生 spinner）**，surface 各自保留**——form 用 `rounded-md` + `border-input` + `bg-background`（即 `ui/input` 的樣式），table 用 `rounded-none` + `border-border` + `bg-muted`；共用的只有幾何與數字處理，不是整體外觀。
   - **Mobile**：輸入框聚焦時字級須 ≥ 16px（`text-base`，桌面 `md:text-sm`），避免 iOS Safari 聚焦自動縮放。
   - **Slider**：原生 `input[type=range]` 一律自繪——軌道 `bg-muted`、拇指 `bg-primary` 圓形、focus 走 `ring-ring`。不用瀏覽器的 `accent-color`：原生繪製在各平台長相不一，站內也無從調整。軌道高度沿用 `h-1`，拇指 `h-3 w-3`。
+  - **Hero 金額**：表單裡只有一個數字輸入、且它就是入口欄位時（例如交易金額），該欄可放大為 `h-14` + `text-base md:text-2xl`，讓它成為視覺起點。這是 34px 契約的具名例外，只在 hero 用；同一表單裡的其他數字欄仍走 34px。
   - **單一貨幣符號來源**：`NumberInput` 不內建貨幣符號，`prefix` 由呼叫端提供。金額顯示一律經 `formatCurrency(amount, currency)`：本位幣（TWD）為預設，符號前置（`NT$`、`US$`、`€`、`¥`），0 位小數；非本位幣原幣金額傳入自身幣別，形狀與本位幣一致。

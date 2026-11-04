@@ -19,4 +19,4 @@ One-Piece 的既有契約是「**Color communicates state**」——顏色只在
 
 - 既有 `--chart-2/3/5` 的語意別名取消；`--chart-1` 同時供 `asset` tone 與 donut 第 2 片使用（兩者皆為資料視覺色，接受此一身二用）。
 - 色板不含紅：紅色保留給 `--negative`／`--destructive`，避免分類片被讀成錯誤或負向。
-- 改動集中在一處色板對應，所有 donut（Dashboard 資產組成、portfolio 持倉配置、gallery）一起套用，不需逐圖調整。
+- 改動集中在一處色板對應，所有分類拆解圖（Dashboard 資產組成、portfolio 持倉配置、gallery）一起套用，不需逐圖調整。

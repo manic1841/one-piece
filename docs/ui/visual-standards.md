@@ -18,7 +18,7 @@
 4. **Color communicates state**
 5. **Motion has a purpose**
 
-> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的並列拆解圖（donut）使用 `chart-*` 類別色板；這道例外只適用於分類拆解，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
+> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的拆解圖使用 `chart-*` 類別色板；這道例外只適用於分類編碼，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
 
 Tie-break：若一個做法同時符合與違反多條原則，以序號較小的原則勝出；仍不明確時，選**裝飾較少、新元素較少**的那一個。`development-guide` §4 的六個提問是同一判斷的展開。
 

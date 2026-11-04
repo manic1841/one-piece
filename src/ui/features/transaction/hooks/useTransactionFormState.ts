@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { type z } from 'zod';
 
+import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
 import { buildPreviewDetails } from '@/ui/features/transaction/components/form/transactionFormPreview';
 import { type AllocationItemInput } from '@/ui/features/transaction/types/allocation';
 import {
-  type TransactionFormCategoryOption,
   type TransactionFormOutput,
   type TransactionFormProjectOption,
   type TransactionFormTab,
@@ -44,9 +44,7 @@ interface UseTransactionFormStateParams {
   initialOutput?: TransactionFormOutput | null;
   onSubmit: (output: TransactionFormOutput) => void | Promise<void>;
   projects: TransactionFormProjectOption[];
-  expenseCategoryOptions: TransactionFormCategoryOption[];
-  incomeCategories: TransactionFormCategoryOption[];
-  advancedCategories: TransactionFormCategoryOption[];
+  ledgerCodes: LedgerCodeItem[];
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
 }
 
@@ -55,9 +53,7 @@ export const useTransactionFormState = ({
   initialOutput,
   onSubmit,
   projects,
-  expenseCategoryOptions,
-  incomeCategories,
-  advancedCategories,
+  ledgerCodes,
   loadIncomeAllocationTemplate,
 }: UseTransactionFormStateParams) => {
   // The dialog is mounted on open, so defaults are seeded once from the edited
@@ -119,14 +115,17 @@ export const useTransactionFormState = ({
       buildPreviewDetails({
         preview,
         projects,
-        expenseCategoryOptions,
-        incomeCategories,
-        advancedCategories,
+        ledgerCodes,
       }),
-    [preview, projects, expenseCategoryOptions, incomeCategories, advancedCategories],
+    [preview, projects, ledgerCodes],
   );
 
   const incomeLedgerCode = useWatch({ control: incomeForm.control, name: 'ledgerCode' });
+
+  // The last template this effect wrote, so a re-run caused by something other
+  // than the code (a project list refresh, a tab switch) does not overwrite an
+  // allocation the user has since edited.
+  const appliedTemplateRef = useRef<{ code: string; itemsKey: string } | null>(null);
 
   // Selecting an income ledger code pulls its saved allocation template into the
   // draft. The write-back is async, so it is not a synchronous set-state-in-effect.
@@ -134,32 +133,55 @@ export const useTransactionFormState = ({
     if (activeTab !== 'INCOME') return;
 
     if (!incomeLedgerCode) {
+      appliedTemplateRef.current = null;
       const clearIncomeAllocation = async () => {
-        incomeForm.setValue('triggerAllocation', false);
         incomeForm.setValue('allocationItems', []);
+        incomeForm.setValue('projectId', '');
       };
 
       void clearIncomeAllocation();
       return;
     }
 
+    const applied = appliedTemplateRef.current;
+    if (
+      applied?.code === incomeLedgerCode &&
+      JSON.stringify(incomeForm.getValues('allocationItems')) !== applied.itemsKey
+    ) {
+      return;
+    }
+
     let cancelled = false;
 
     const applyTemplate = async () => {
-      const templateItems = (await loadIncomeAllocationTemplate?.(incomeLedgerCode)) ?? null;
+      const templateItemsRaw = (await loadIncomeAllocationTemplate?.(incomeLedgerCode)) ?? null;
       if (cancelled) return;
       if (incomeForm.getValues('ledgerCode') !== incomeLedgerCode) return;
 
       const projectIds = new Set(projects.map((project) => project.id));
-      const nextItems = (templateItems ?? [])
+      const templateItems = (templateItemsRaw ?? [])
         .filter((item) => projectIds.has(item.projectId))
         .map((item) => ({
           projectId: item.projectId,
           percentage: item.percentage.toString(),
         }));
 
-      incomeForm.setValue('triggerAllocation', nextItems.length > 0);
+      // One project is the same decision as a direct link, so it is normalized
+      // here too; only two or more stay a split.
+      const nextItems = templateItems.length === 1 ? [] : templateItems;
+
+      appliedTemplateRef.current = {
+        code: incomeLedgerCode,
+        itemsKey: JSON.stringify(nextItems),
+      };
       incomeForm.setValue('allocationItems', nextItems);
+      if (templateItems.length === 1) {
+        incomeForm.setValue('projectId', templateItems[0]?.projectId ?? '');
+      } else {
+        // No template (or an emptied one) must not keep the previous category's
+        // project; a split and a direct link stay mutually exclusive.
+        incomeForm.setValue('projectId', '');
+      }
     };
 
     void applyTemplate();

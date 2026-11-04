@@ -18,7 +18,6 @@ vi.mock('@/ui/features/transaction/hooks/useTransactionForm', () => ({
   useTransactionForm: () => ({
     expenseCategoryOptions: [],
     incomeCategories: [],
-    advancedCategories: [],
     allActiveLedgerCodes: [],
     loadIncomeAllocationTemplate: vi.fn(),
     loading: false,

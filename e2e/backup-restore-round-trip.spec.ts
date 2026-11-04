@@ -137,10 +137,11 @@ test('an exported backup can be uploaded back and restores the household', async
   await page.getByRole('button', { name: '新增交易' }).first().click();
   const form = page.getByRole('dialog');
   await expect(form).toBeVisible();
-  await form.getByRole('button', { name: TARGET_PROJECT_NAME }).click();
+  await form.getByPlaceholder('0.00').fill(String(EXPENSE_AMOUNT));
   await form.getByRole('button', { name: '生活費' }).click();
   await pickFirstDetailCategory(form);
-  await form.getByPlaceholder('0.00').fill(String(EXPENSE_AMOUNT));
+  await form.getByTestId('project-mode-toggle').click();
+  await form.getByRole('button', { name: TARGET_PROJECT_NAME }).click();
   await form.getByLabel('日期').fill(EXPENSE_DATE);
   await form.getByPlaceholder('補充這筆支出的脈絡').fill(DESCRIPTION);
   await form.getByRole('button', { name: '送出' }).click();

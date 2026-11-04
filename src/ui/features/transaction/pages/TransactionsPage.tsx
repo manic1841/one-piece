@@ -150,7 +150,6 @@ const Transactions: React.FC = () => {
   const {
     expenseCategoryOptions,
     incomeCategories,
-    advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
     loading: formSubmitting,
@@ -206,12 +205,18 @@ const Transactions: React.FC = () => {
 
   const isFiltered = searchTerm.trim() !== '' || filterType !== TRANSACTION_FILTER_ALL;
 
-  const projectOptions = projects
-    .filter((project) => project.isActive)
-    .map((project) => ({
-      id: project.id,
-      name: project.name,
-    }));
+  // Stable identity: the form's allocation-template effect depends on this list
+  // and would otherwise re-run on every parent render.
+  const projectOptions = useMemo(
+    () =>
+      projects
+        .filter((project) => project.isActive)
+        .map((project) => ({
+          id: project.id,
+          name: project.name,
+        })),
+    [projects],
+  );
 
   return (
     <div className="space-y-6">
@@ -286,7 +291,6 @@ const Transactions: React.FC = () => {
           projects={projectOptions}
           expenseCategoryOptions={expenseCategoryOptions}
           incomeCategories={incomeCategories}
-          advancedCategories={advancedCategories}
           allActiveLedgerCodes={allActiveLedgerCodes}
           loadIncomeAllocationTemplate={loadIncomeAllocationTemplate}
         />
