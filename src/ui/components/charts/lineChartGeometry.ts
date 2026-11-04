@@ -9,7 +9,7 @@ export const LINE_CHART_HEIGHT = 150;
 const PADDING_TOP = 12;
 const PADDING_BOTTOM = 12;
 const DEFAULT_GRID_LINES = 4;
-const DEFAULT_MAX_X_LABELS = 7;
+const DEFAULT_MAX_X_LABELS = 6;
 
 export interface LinePoint {
   /** SVG x, in viewBox units. */

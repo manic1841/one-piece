@@ -1,52 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { RetirementPlanCommandErrorCode } from '@/domains/retirement/retirementPlanErrors';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
 import { createRetirementPlanUseCase } from './createRetirementPlanUseCase';
 
-vi.mock('firebase/firestore', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('firebase/firestore')>();
-  return {
-    ...actual,
-    runTransaction: vi.fn(async (_db, callback: (tx: object) => Promise<unknown>) => callback({})),
-  };
-});
-
 vi.mock('@/application/household/householdPermissionService', () => ({
-  householdPermissionService: {
-    assertWritePermission: vi.fn(),
-  },
+  householdPermissionService: { assertWritePermission: vi.fn() },
 }));
 
-vi.mock('@/infra/repositories/retirementRepository', () => ({
-  retirementRepository: {
-    createPlanAtomically: vi.fn(),
-    getPlanSummaries: vi.fn(),
-  },
+vi.mock('@/infra/repositories/retirementPlanRepository', () => ({
+  retirementPlanRepository: { createPlan: vi.fn() },
 }));
 
 vi.mock('@/firebase', () => ({ db: {} }));
 
-const plan = {
-  name: 'Plan A',
-  isActive: true,
-  autoUpdate: false,
-  currentYear: 2026,
+const auth = { uid: 'u1', email: 'user@example.com', isGlobalAdmin: false };
+
+const assumptions = {
   birthYear: 1990,
   retirementAge: 60,
   lifeExpectancy: 85,
-  currentSavings: 0,
-  salaryGrowthRate: 3,
-  inflationRate: 2,
-  investmentReturnRate: 5,
-  incomes: [],
-  expenses: [],
-  events: [],
+  inflationRate: 0.02,
+  annualReturnRate: 0.05,
 };
 
-const auth = { uid: 'u1', isGlobalAdmin: false };
+function request(overrides: Record<string, unknown> = {}) {
+  return {
+    householdId: 'h1',
+    auth,
+    name: 'Plan',
+    assumptions,
+    projectionRules: [],
+    lifeEvents: [],
+    ...overrides,
+  };
+}
 
 describe('createRetirementPlanUseCase', () => {
   beforeEach(() => {
@@ -54,125 +43,56 @@ describe('createRetirementPlanUseCase', () => {
     vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue();
   });
 
-  it('commits the plan document, children, and active fan-out through one atomic command', async () => {
-    vi.mocked(retirementRepository.getPlanSummaries).mockResolvedValue([
-      { id: 'existing-active-plan', isActive: true },
-    ] as never);
-    vi.mocked(retirementRepository.createPlanAtomically).mockResolvedValue('plan-1');
+  it('asserts write permission and creates the plan', async () => {
+    vi.mocked(retirementPlanRepository.createPlan).mockResolvedValue({ ok: true, id: 'plan-1' });
 
-    const planId = await createRetirementPlanUseCase.execute({
-      householdId: 'household-1',
-      plan,
-      userEmail: 'user@example.com',
-      auth,
-    });
+    const result = await createRetirementPlanUseCase.execute(request());
 
-    expect(planId).toBe('plan-1');
-    expect(retirementRepository.createPlanAtomically).toHaveBeenCalledWith(
+    expect(result).toEqual({ ok: true, id: 'plan-1' });
+    expect(householdPermissionService.assertWritePermission).toHaveBeenCalledWith(
+      'h1',
+      'u1',
+      false,
+    );
+    expect(retirementPlanRepository.createPlan).toHaveBeenCalledWith(
       expect.objectContaining({
-        householdId: 'household-1',
-        plan: expect.objectContaining({ name: 'Plan A', isActive: true }),
+        householdId: 'h1',
         userEmail: 'user@example.com',
-        existingPlans: [expect.objectContaining({ id: 'existing-active-plan' })],
+        plan: expect.objectContaining({ name: 'Plan' }),
       }),
     );
   });
 
-  it('skips the active-plan preflight when the new plan is inactive', async () => {
-    vi.mocked(retirementRepository.createPlanAtomically).mockResolvedValue('plan-2');
+  it('returns NAME_REQUIRED for a blank name without writing', async () => {
+    const result = await createRetirementPlanUseCase.execute(request({ name: '  ' }));
 
-    await createRetirementPlanUseCase.execute({
-      householdId: 'household-1',
-      plan: { ...plan, isActive: false },
-      userEmail: 'user@example.com',
-      auth,
+    expect(result).toEqual({ ok: false, code: 'NAME_REQUIRED' });
+    expect(retirementPlanRepository.createPlan).not.toHaveBeenCalled();
+  });
+
+  it('returns PLAN_INVALID when assumptions fail validation', async () => {
+    const result = await createRetirementPlanUseCase.execute(
+      request({ assumptions: { ...assumptions, retirementAge: 60.5 } }),
+    );
+
+    expect(result).toEqual({ ok: false, code: 'PLAN_INVALID' });
+    expect(retirementPlanRepository.createPlan).not.toHaveBeenCalled();
+  });
+
+  it('propagates PLAN_TOO_LARGE from the repository', async () => {
+    vi.mocked(retirementPlanRepository.createPlan).mockResolvedValue({
+      ok: false,
+      code: 'PLAN_TOO_LARGE',
     });
 
-    expect(retirementRepository.getPlanSummaries).not.toHaveBeenCalled();
-    expect(retirementRepository.createPlanAtomically).toHaveBeenCalledWith(
-      expect.objectContaining({
-        plan: expect.objectContaining({ isActive: false }),
-        existingPlans: [],
-      }),
-    );
+    const result = await createRetirementPlanUseCase.execute(request());
+
+    expect(result).toEqual({ ok: false, code: 'PLAN_TOO_LARGE' });
   });
 
-  it('rejects payloads whose dynamic write count exceeds the limit', async () => {
-    const oversizedPlan = {
-      ...plan,
-      incomes: Array.from({ length: 220 }, (_, index) => incomeFixture(`income-${index}`)),
-      expenses: Array.from({ length: 200 }, (_, index) => expenseFixture(`expense-${index}`)),
-      events: [],
-    };
+  it('propagates a thrown write', async () => {
+    vi.mocked(retirementPlanRepository.createPlan).mockRejectedValue(new Error('boom'));
 
-    await expect(
-      createRetirementPlanUseCase.execute({
-        householdId: 'household-1',
-        plan: oversizedPlan,
-        userEmail: 'user@example.com',
-        auth,
-      }),
-    ).rejects.toMatchObject({ code: RetirementPlanCommandErrorCode.PLAN_TOO_LARGE });
-
-    expect(retirementRepository.createPlanAtomically).not.toHaveBeenCalled();
-  });
-
-  it('wraps transaction failures with a stable error code', async () => {
-    vi.mocked(retirementRepository.createPlanAtomically).mockRejectedValue(
-      new Error('write failed'),
-    );
-
-    await expect(
-      createRetirementPlanUseCase.execute({
-        householdId: 'household-1',
-        plan,
-        userEmail: 'user@example.com',
-        auth,
-      }),
-    ).rejects.toMatchObject({
-      code: RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
-      name: 'RetirementPlanCommandError',
-    });
-  });
-
-  it('propagates permission rejections without touching the repository', async () => {
-    vi.mocked(householdPermissionService.assertWritePermission).mockRejectedValue(
-      new Error('denied'),
-    );
-
-    await expect(
-      createRetirementPlanUseCase.execute({
-        householdId: 'household-1',
-        plan,
-        userEmail: 'user@example.com',
-        auth,
-      }),
-    ).rejects.toThrow('denied');
-    expect(retirementRepository.createPlanAtomically).not.toHaveBeenCalled();
+    await expect(createRetirementPlanUseCase.execute(request())).rejects.toThrow('boom');
   });
 });
-
-function incomeFixture(id: string) {
-  return {
-    id,
-    name: id,
-    type: 'SALARY',
-    startYear: 2026,
-    baseAmount: 1000,
-    growthRate: 0,
-    autoUpdate: false,
-    lifelong: true,
-  };
-}
-
-function expenseFixture(id: string) {
-  return {
-    id,
-    name: id,
-    type: 'FIXED',
-    calculationMode: 'FIXED',
-    baseAmount: 1000,
-    growthRate: 0,
-    startYear: 2026,
-  };
-}

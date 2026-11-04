@@ -1,7 +1,7 @@
 /**
  * Pure transform: household backup JSON from the live v0 era to the current
- * (v1) era so the app's import path can restore it (issue: live backup
- * upgrade). The transform mutates nothing; it returns a new payload.
+ * (schemaVersion 2) format so the app's import path can restore it (issue: live
+ * backup upgrade). The transform mutates nothing; it returns a new payload.
  *
  * Transform scope (grilled 2026-09-27):
  * - household: backfill memberUids from members keys (getHouseholdsByUser
@@ -11,13 +11,14 @@
  *   portfolioConstraints.ts); accountIds is kept for v0 fidelity and is
  *   stripped on read.
  * - retirementPlans: replace the single v0 plan record with the hand-computed
- *   v1 plan below. The plan was computed by hand per the authoritative rules
- *   in migrate-retirement-v1.ts (DERIVED flattening, SALARY_PERCENTAGE
- *   flattening against the salary baseline at the retirement year, event
- *   phases, plan-doc field removal). Incomes omit calculatedFrom: it was dropped
- *   when the old import-side date revival (since deleted, issue #281) turned
- *   its `importedAt` string into a Date, and the omission stays so the
- *   transform's output is frozen.
+ *   plan below. The plan was computed by hand (DERIVED flattening,
+ *   SALARY_PERCENTAGE flattening against the salary baseline at the retirement
+ *   year, event phases, plan-doc field removal). Only assumptions, rules and
+ *   life events survive: the redesign treats a flat-amount translation as
+ *   guesswork (ADR-0089). Incomes omit calculatedFrom: it was dropped when the
+ *   old import-side date revival (since deleted, issue #281) turned its
+ *   `importedAt` string into a Date, and the omission stays so the transform's
+ *   output is frozen.
  *
  * Everything else passes through unchanged: the full-collection parse probe
  * against the real backup confirmed all other collections already match the
@@ -31,6 +32,7 @@ import {
   AccountCategory,
   type AccountCategory as AccountCategoryType,
 } from '../../src/domains/account/types/categories';
+import { createRetirementPlanCreateSchema } from '../../src/domains/retirement/schemas';
 
 type Unknowns = Record<string, unknown>;
 
@@ -69,27 +71,30 @@ export const resolvePortfolioLinks = (
 };
 
 /**
- * The live v0 retirement plan "偉大的航道" (id lGcR485GBAfcl8AWqJyN), recomputed
- * into the v1 flat shape. Amounts come from the migrate-retirement-v1 rules
- * applied to the 2026-09-12 backup:
- * - currentYear 2025, retirement year 2040 (birthYear 1995 + age 45).
- * - Salary baselines projected to 2040 with 3% growth: 妹妹薪資 1,171,172.4,
- *   哥哥薪資 1,463,941.0, all-salary 3,689,158.7.
- * - DERIVED incomes: round(base x 0.4); non-pension streams keep their level
- *   after retirement (retirementAnnual = currentAnnual).
- * - SALARY_PERCENTAGE expenses: round(linked-or-all baseline x percentage);
- *   retirementMultiplier stays (v1 keeps it).
- * - Events keep their FIXED amounts; phases already carry amounts.
- * - Plan doc drops currentSavings / salaryGrowthRate / retirementTransition /
- *   summary (summary used savingsAtRetirement; Recalculate re-derives it).
+ * The live v0 retirement plan "偉大的航道" (id lGcR485GBAfcl8AWqJyN), reduced to
+ * the new model. The flat v0 incomes/expenses are not converted to rules — the
+ * mapping is guesswork (ADR-0089) — so only the persisted assumptions survive.
+ * Rules and life events start empty; the plan is recomputed after import.
+ *
+ * Schema parsing at module load catches drift in the hand-written values.
  */
-export const upgradedRetirementPlan: Unknowns = {
-  id: 'lGcR485GBAfcl8AWqJyN',
+const upgradedRetirementPlanData = createRetirementPlanCreateSchema(2025).parse({
   createdBy: 'manic35153@gmail.com',
   createdAt: '2026-06-05T09:40:49.813Z',
   updatedBy: 'manic35153@gmail.com',
   updatedAt: '2026-06-05T09:40:49.813Z',
   name: '偉大的航道',
+  assumptions: {
+    birthYear: 1995,
+    retirementAge: 45,
+    lifeExpectancy: 100,
+    inflationRate: 0.02,
+    annualReturnRate: 0.06,
+  },
+  projectionRules: [],
+  lifeEvents: [],
+  // v0 fields below stay in the literal for reference; the new schema strips
+  // them when parsing.
   isActive: true,
   autoUpdate: true,
   currentYear: 2025,
@@ -230,9 +235,8 @@ export const upgradedRetirementPlan: Unknowns = {
       id: 'e9249f41-59c9-48d6-abd9-88e2ae375bc0',
       type: 'expense',
       name: '房屋裝修',
-      // v1 keeps the ADR-0035 legacy one-time path (year/amount), but the
-      // phases array is schema-required; the engine normalizes it back to a
-      // single phase from year/amount.
+      // The new schema has no legacy one-time path (ADR-0085); the phases
+      // array is schema-required and the v0 year/amount pair is left unused.
       phases: [],
       year: 2026,
       amount: 500000,
@@ -253,9 +257,15 @@ export const upgradedRetirementPlan: Unknowns = {
       note: '2人',
     },
   ],
+});
+
+/** Plan document written over the single v0 record. */
+export const upgradedRetirementPlan: Unknowns = {
+  id: 'lGcR485GBAfcl8AWqJyN',
+  ...upgradedRetirementPlanData,
 };
 
-/** Replaces the single v0 plan record with the hardcoded v1 plan. */
+/** Replaces the single v0 plan record with the upgraded new-model plan. */
 export const replaceRetirementPlans = (plans: unknown[]): unknown[] => {
   if (plans.length !== 1) {
     throw new Error(`expected exactly 1 retirement plan, found ${plans.length}`);
@@ -279,6 +289,7 @@ export const upgradeHouseholdBackup = (payload: HouseholdBackupPayload): Househo
 
   return {
     ...payload,
+    schemaVersion: 2,
     household: backfillHouseholdMemberUids(payload.household as Unknowns),
     collections: {
       ...payload.collections,
@@ -287,6 +298,7 @@ export const upgradeHouseholdBackup = (payload: HouseholdBackupPayload): Househo
         snapshots,
       })),
       retirementPlans: replaceRetirementPlans(payload.collections.retirementPlans),
+      projections: [],
     },
   };
 };

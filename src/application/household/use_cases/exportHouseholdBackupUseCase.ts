@@ -14,8 +14,9 @@ import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
 import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
+import { projectionRepository } from '@/infra/repositories/projectionRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 export interface ExportHouseholdBackupRequest {
@@ -24,7 +25,7 @@ export interface ExportHouseholdBackupRequest {
 }
 
 export interface HouseholdBackupPayload {
-  schemaVersion: 1;
+  schemaVersion: 2;
   exportedAt: string;
   householdId: string;
   household: unknown;
@@ -46,6 +47,12 @@ export interface HouseholdBackupPayload {
       snapshots: unknown[];
     }>;
     retirementPlans: unknown[];
+    projections: Array<{
+      projection: unknown;
+      config: unknown;
+      source: unknown;
+      annual: unknown;
+    }>;
     transactions: unknown[];
     reports: unknown[];
     allocations: unknown[];
@@ -89,6 +96,7 @@ class ExportHouseholdBackupUseCase {
       portfolios,
       debtAccounts,
       retirementPlans,
+      projections,
       transactions,
       reports,
       allocations,
@@ -101,7 +109,8 @@ class ExportHouseholdBackupUseCase {
       projectRepository.getProjects(householdId, true),
       portfolioRepository.list([householdId]),
       debtAccountRepository.getDebtAccounts(householdId, true),
-      retirementRepository.getPlans(householdId),
+      retirementPlanRepository.listPlans(householdId),
+      projectionRepository.listProjections(householdId),
       transactionRepository.list([householdId]),
       reportRepository.list([householdId]),
       allocationRepository.list([householdId]),
@@ -110,6 +119,15 @@ class ExportHouseholdBackupUseCase {
       intentMappingRepository.list([householdId]),
       financialPeriodRepository.listAll(householdId),
     ]);
+
+    const projectionBundles = await Promise.all(
+      projections.map(async (projection) => ({
+        projection,
+        config: await projectionRepository.getProjectionConfig(householdId, projection.id),
+        source: await projectionRepository.getProjectionSource(householdId, projection.id),
+        annual: await projectionRepository.getProjectionAnnual(householdId, projection.id),
+      })),
+    );
 
     const [accountBundle, projectBundle, portfolioBundle, debtBundle] = await Promise.all([
       Promise.all(
@@ -139,7 +157,7 @@ class ExportHouseholdBackupUseCase {
     ]);
 
     return {
-      schemaVersion: 1,
+      schemaVersion: 2,
       exportedAt: new Date().toISOString(),
       householdId,
       household,
@@ -149,6 +167,7 @@ class ExportHouseholdBackupUseCase {
         portfolios: portfolioBundle,
         debtAccounts: debtBundle,
         retirementPlans,
+        projections: projectionBundles,
         transactions,
         reports,
         allocations,

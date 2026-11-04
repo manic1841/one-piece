@@ -10,8 +10,9 @@ import { householdRepository } from '@/infra/repositories/householdRepository';
 import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
+import { projectionRepository } from '@/infra/repositories/projectionRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 import { HouseholdBackupPayloadSchema } from './backupSchema';
@@ -46,7 +47,7 @@ class ImportHouseholdBackupUseCase {
    * returned value rather than the raw request payload.
    */
   private validateBackup(backup: HouseholdBackupPayload): HouseholdBackupPayload {
-    if (!backup || backup.schemaVersion !== 1) {
+    if (!backup || backup.schemaVersion !== 2) {
       throw new Error('Invalid backup file: unsupported schema version');
     }
 
@@ -71,6 +72,7 @@ class ImportHouseholdBackupUseCase {
       portfolios,
       debtAccounts,
       retirementPlans,
+      projections,
       transactions,
       reports,
       allocations,
@@ -83,7 +85,8 @@ class ImportHouseholdBackupUseCase {
       projectRepository.getProjects(householdId, true),
       portfolioRepository.list([householdId]),
       debtAccountRepository.getDebtAccounts(householdId, true),
-      retirementRepository.getPlans(householdId),
+      retirementPlanRepository.listPlans(householdId),
+      projectionRepository.listProjections(householdId),
       transactionRepository.list([householdId]),
       reportRepository.list([householdId]),
       allocationRepository.list([householdId]),
@@ -99,6 +102,7 @@ class ImportHouseholdBackupUseCase {
       portfolios,
       debtAccounts,
       retirementPlans,
+      projections,
       transactions,
       reports,
       allocations,

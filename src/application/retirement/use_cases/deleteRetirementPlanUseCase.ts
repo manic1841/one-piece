@@ -1,17 +1,11 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
-import {
-  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
-  RetirementPlanCommandError,
-  RetirementPlanCommandErrorCode,
-  estimateRetirementPlanWriteCount,
-} from '@/domains/retirement/retirementPlanErrors';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
-interface DeleteRetirementPlanRequest {
+export interface DeleteRetirementPlanRequest {
   householdId: string;
-  planId: string;
   auth: AuthContext;
+  planId: string;
 }
 
 export class DeleteRetirementPlanUseCase {
@@ -24,31 +18,7 @@ export class DeleteRetirementPlanUseCase {
       auth.isGlobalAdmin,
     );
 
-    try {
-      const writeCount = estimateRetirementPlanWriteCount({
-        staleChildCount:
-          (await retirementRepository.countChildren(householdId, planId, 'incomes')) +
-          (await retirementRepository.countChildren(householdId, planId, 'expenses')),
-        newChildCount: 0,
-        fanOutUpdateCount: 0,
-      });
-      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
-        throw new RetirementPlanCommandError(
-          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
-          'plan write count exceeds the transaction limit',
-        );
-      }
-
-      await retirementRepository.deletePlanAtomically({ householdId, planId });
-    } catch (error: unknown) {
-      if (error instanceof RetirementPlanCommandError) throw error;
-
-      const message = error instanceof Error ? error.message : 'unknown transaction failure';
-      throw new RetirementPlanCommandError(
-        RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
-        message,
-      );
-    }
+    await retirementPlanRepository.deletePlan(householdId, planId);
   }
 }
 

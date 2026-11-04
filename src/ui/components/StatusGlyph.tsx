@@ -1,3 +1,4 @@
+import { STATUS_GLYPH_LABELS } from '@/ui/constants/statusGlyphLabels';
 import { cn } from '@/ui/utils/cn';
 
 export type StatusGlyphType = 'active' | 'verified' | 'waiting' | 'review' | 'error' | 'inactive';
@@ -15,15 +16,6 @@ const glyphMap: Record<StatusGlyphType, string> = {
   review: '!',
   error: '×',
   inactive: '⊘',
-};
-
-const defaultLabelMap: Record<StatusGlyphType, string> = {
-  active: 'ACTIVE',
-  verified: 'VERIFIED',
-  waiting: 'WAITING',
-  review: 'REVIEW',
-  error: 'ERROR',
-  inactive: 'INACTIVE',
 };
 
 const colorMap: Record<StatusGlyphType, string> = {
@@ -44,8 +36,10 @@ export function StatusGlyph({ type, label, className }: StatusGlyphProps) {
         className,
       )}
     >
-      <span className="text-[10px] leading-none">{glyphMap[type]}</span>
-      {(label ?? defaultLabelMap[type]) !== '' && <span>{label ?? defaultLabelMap[type]}</span>}
+      <span className="text-[11px] leading-none">{glyphMap[type]}</span>
+      {(label ?? STATUS_GLYPH_LABELS[type]) !== '' && (
+        <span>{label ?? STATUS_GLYPH_LABELS[type]}</span>
+      )}
     </span>
   );
 }

@@ -1,5 +1,6 @@
 # RWD 斷點契約:單一 md 斷點與置中容器殼
 
+**日期：** 2026-09-11
 **狀態：** 已接受（2026-09）；內容與實作一致化（2026-09-23）
 **規範來源：** [ui-layer-architecture.md](../ui/ui-layer-architecture.md) §6
 

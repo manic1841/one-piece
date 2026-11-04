@@ -24,18 +24,18 @@ const findCategoryLabel = (categories: TransactionFormCategoryOption[], ledgerCo
 export const buildPreviewDetails = (input: {
   preview: TransactionFormOutput | null;
   projects: TransactionFormProjectOption[];
-  expenseCategories: TransactionFormCategoryOption[];
+  expenseCategoryOptions: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
 }) => {
-  const { preview, projects, expenseCategories, incomeCategories, advancedCategories } = input;
+  const { preview, projects, expenseCategoryOptions, incomeCategories, advancedCategories } = input;
 
   if (!preview) return [] as string[];
 
   if (preview.intentType === 'EXPENSE') {
     return [
       findProjectLabel(projects, preview.projectId),
-      findCategoryLabel(expenseCategories, preview.ledgerCode),
+      findCategoryLabel(expenseCategoryOptions, preview.ledgerCode),
       preview.triggerAllocation ? '送出後需分攤' : '直接入帳',
       preview.date,
     ].filter(Boolean);

@@ -4,28 +4,21 @@
 
 ## 測試總覽
 
-| 層級     | 指令                    | 需要模擬器 | 說明                                                |
-| -------- | ----------------------- | ---------- | --------------------------------------------------- |
-| 格式     | `pnpm format`           | 否         | Prettier 自動排版（寫入型，commit 前執行）          |
-| 單元測試 | `pnpm test`             | 否         | happy-dom 環境,驗證 domain、use case 與 UI 元件行為 |
-| 覆蓋率   | `pnpm test:coverage`    | 否         | 單元測試範圍的 text/JSON/HTML 報告                  |
-| 整合測試 | `pnpm test:integration` | 是         | 對 Firebase Emulator 驗證持久化與 security rules    |
-| E2E 測試 | `pnpm test:e2e`         | 是         | Playwright 最小 browser smoke suite,涵蓋關鍵旅程    |
+指令與驗證順序住在 [operations.md](operations.md) §1，本表只定義各層的邊界。
+
+| 層級     | 需要模擬器 | 說明                                                |
+| -------- | ---------- | --------------------------------------------------- |
+| 單元測試 | 否         | happy-dom 環境,驗證 domain、use case 與 UI 元件行為 |
+| 覆蓋率   | 否         | 單元測試範圍的 text/JSON/HTML 報告                  |
+| 整合測試 | 是         | 對 Firebase Emulator 驗證持久化與 security rules    |
+| E2E 測試 | 是         | Playwright 最小 browser smoke suite,涵蓋關鍵旅程    |
 
 ## 單元測試
-
-```bash
-pnpm test
-```
 
 - 執行 `vitest.config.ts`,include `src/**/*.{test,spec}.{ts,tsx}`,排除 `*.integration.test.*`。
 - 不需要 Firebase Emulator;所有 Firebase 依賴以 mock 取代。
 - 慣例:mock 被測 use case 觸及的所有 repository 與 permission service,避免意外真實 I/O。
-- 產生覆蓋率報告:
-
-```bash
-pnpm test:coverage
-```
+- 覆蓋率報告由 `test:coverage` 產生（見 [operations.md](operations.md) §1）。
 
 ### 元件測試 (UI)
 
@@ -49,11 +42,11 @@ pnpm test:coverage
 - `matchMedia` 有實作且預設回報 1024px 視窗,故 `Layout` 的 mobile bottom sheet
   測試以 `stubMobileViewport()` 明確指定行動版視窗,不再依賴環境預設值。
 
-## 整合測試
+逾時維持 vitest 的 5 秒預設值;真正走完整流程的整頁測試(如
+`ProjectionWorkspacePage.test.tsx`)本機個案就接近 4 秒,可在檔案頂端用
+`vi.setConfig({ testTimeout: 20_000 })` 就地放寬,不要為此調高全域值。
 
-```bash
-pnpm test:integration
-```
+## 整合測試
 
 - 執行 `vitest.integration.config.ts`,include `src/**/*.integration.test.{ts,tsx}`。
 - 執行前由 `vitest.integration.setup.ts` 呼叫 `assertEmulatorsAvailable()`，
@@ -149,10 +142,10 @@ pnpm qa:seed
 
 此腳本以固定 doc ID 寫入確定性的財務資料集(projects、accounts、
 ledgerCodes、intent_mappings、allocationTemplates、transactions、
-allocations、debtAccounts、portfolios、retirement_plans 全套子集合,
+allocations、debtAccounts、portfolios、retirementPlans＋projections 全套子文件,
 以及由純 domain calculator 推導出的 project/account/debt/portfolio
 snapshots 與三份財務報表)。腳本可重複執行(upsert,非 append)。
-資料窗口固定在 2025-01～2026-09,確保退休收入流的 sampleYear 與報表
+資料窗口固定在 2025-01～2026-09,確保退休基準的上一個完整年度與報表
 本期都有資料支撐。`operation` 集合不 seed(runtime 重試記錄)。
 
 Monthly close 種子寫入三個期間狀態形狀(見
@@ -310,10 +303,6 @@ tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不
 
 ### 執行方式與邊界
 
-```bash
-pnpm test:e2e
-```
-
 - **只跑 chromium,對 `pnpm dev`(Vite dev server)驅動**:沿用 `vite.config.ts`
   既有的同源 emulator proxy。對 production preview 執行需另補 `preview:` proxy,
   且 build artifact 的正確性已由 `tsc -b` 與 `vite build` 覆蓋,列為 backlog。
@@ -354,12 +343,6 @@ E2E 檔案住在根目錄 `e2e/`(非 `src/`,避免被 Vitest 的 `include` 與 `
 
 ## Docker 環境執行
 
-```bash
-docker compose run --rm app pnpm test
-docker compose run --rm app pnpm test:integration
-docker compose down
-```
-
-`pnpm test` 不需要 emulator;`pnpm test:integration` 會透過 Compose service
-名稱連線到 Firebase Emulator。若直接在 host 執行 integration tests,helper
-會使用 published localhost ports。
+`pnpm test` 不需要 emulator；`pnpm test:integration` 在 compose 網路內透過 service
+名稱連線。完整的 Docker stack、port 與 proxy 設定見
+[operations.md](operations.md#3-docker-開發環境)。

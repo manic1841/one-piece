@@ -1,7 +1,8 @@
 # 開放使用者自建 LedgerCode
 
+**日期：** 2026-08-31
 **狀態：** 已接受（2026-09）
-**規範來源：** [data-structure.md](../data-structure.md) §ledgerCodes；[transaction-flow.md](../transaction-flow.md)
+**規範來源：** [data-structure.md](../data-structure.md) §2；[transaction-flow.md](../transaction-flow.md)
 
 家庭財務會隨人生階段改變，系統預設科目無法覆蓋所有情境，使用者因此需要自建科目，但又不能破壞既有分類結構，所以自建範圍與校驗規則必須明確定義。
 

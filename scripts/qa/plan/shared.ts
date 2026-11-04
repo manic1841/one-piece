@@ -29,8 +29,8 @@ export interface SeedDoc {
 export const QA_SEED_FIXED_NOW = new Date('2026-09-12T00:00:00');
 
 // Fixed data window (docs/qa-seed-data.md §2): every transaction falls in
-// 2025-01 through 2026-09, so the retirement income stream's sampleYear=2025
-// is backed by real entries and all reports sit inside the window.
+// 2025-01 through 2026-09, so report baselines have real entries behind them and
+// all reports sit inside the window.
 export const SEED_WINDOW_START = { year: 2025, month: 1 };
 export const SEED_WINDOW_END = { year: 2026, month: 9 };
 

@@ -6,7 +6,7 @@ Issues and specs live as GitHub issues; use the `gh` CLI. See `docs/agents/issue
 
 ### Triage labels
 
-Use the five canonical triage labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+Use the five canonical triage labels. The label list lives only in `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

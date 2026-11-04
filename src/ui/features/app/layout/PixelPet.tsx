@@ -95,7 +95,7 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
           side="bottom"
           data-testid="navigator-sheet"
           aria-label="Navigator"
-          className="md:hidden rounded-t-2xl"
+          className="md:hidden"
           onOpenAutoFocus={(event) => event.preventDefault()}
           onPointerDownOutside={(event) => {
             const target = event.detail.originalEvent.target;

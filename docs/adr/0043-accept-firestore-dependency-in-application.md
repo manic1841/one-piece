@@ -1,5 +1,6 @@
 # Application 層接受 Firestore 直接依賴
 
+**日期：** 2026-09-11
 **狀態：** 已接受（2026-09）
 **規範來源：** [architecture.md](../architecture.md) §1
 

@@ -56,6 +56,18 @@ for target in "${targets[@]}"; do
   fi
 done
 
+# Flatten directories into the markdown files underneath: the default target is
+# `docs`, so a directory left unexpanded would skip every topic doc and ADR.
+files=()
+for target in "${targets[@]}"; do
+  if [ -d "$target" ]; then
+    while IFS= read -r found; do files+=("$found"); done \
+      < <(find "$target" -type f -name '*.md' | sort)
+  else
+    files+=("$target")
+  fi
+done
+
 pattern='new[-_]design|one-piece-engineering-spec|visual-consistency\.md|page-review-|task-plans\.md|[0-9]{2}_[A-Za-z][A-Za-z0-9_]*\.md|spec[ 　]?[0-9]{1,2}([^0-9]|$)|spec[ 　]?v[0-9]'
 
 raw=$(grep -rniHE "$pattern" "${targets[@]}" || true)
@@ -75,6 +87,36 @@ done <<< "$raw"
 if [ "${#matches[@]}" -gt 0 ]; then
   echo "Permanent docs must not reference the design staging area:"
   printf '%s\n' "${matches[@]}"
+  exit 1
+fi
+
+# Relative links must resolve. ADRs point at their `規範來源` sections and the
+# index points at every topic file; a renamed or deleted doc otherwise leaves a
+# dead link that no other gate catches. Anchors are not verified (a section can
+# be renamed without breaking the target file), only the path.
+broken=()
+for target in "${files[@]}"; do
+  dir=$(dirname "$target")
+  while IFS= read -r link; do
+    [ -z "$link" ] && continue
+    case "$link" in
+      http* | mailto:* | '#'*) continue ;;
+    esac
+    link_path=${link%%#*}
+    [ -z "$link_path" ] && continue
+    case "$link_path" in
+      /*) resolved=".${link_path}" ;;
+      *) resolved="${dir}/${link_path}" ;;
+    esac
+    if [ ! -e "$resolved" ]; then
+      broken+=("${target}: dead link -> ${link}")
+    fi
+  done < <(grep -oE '\]\([^)[:space:]]+\)' "$target" | sed 's/^](//; s/)$//')
+done
+
+if [ "${#broken[@]}" -gt 0 ]; then
+  echo "Permanent docs must not contain dead relative links:"
+  printf '%s\n' "${broken[@]}"
   exit 1
 fi
 

@@ -38,15 +38,24 @@ import {
   ym,
 } from './shared';
 
+const MORTGAGE_START = new Date(2026, 0, 5);
+const MORTGAGE_END = new Date(2036, 0, 5);
+const CAR_LOAN_START = new Date(2026, 3, 10);
+const CAR_LOAN_END = new Date(2031, 3, 10);
+
 export interface MortgageResult {
   mortgageBalance: number;
   interestTotal: number;
   closingByMonth: Record<string, number>;
+  monthlyPayment: number;
+  endDate: Date;
 }
 
 export interface CarLoanResult {
   carBalance: number;
   closingByMonth: Record<string, number>;
+  monthlyPayment: number;
+  endDate: Date;
 }
 
 export const buildMortgageDocs = (b: Builder, txns: InternalTxn[]): MortgageResult => {
@@ -62,7 +71,7 @@ export const buildMortgageDocs = (b: Builder, txns: InternalTxn[]): MortgageResu
       interestRate: MORTGAGE_RATE,
       totalPayment: MORTGAGE_PAYMENT,
       paymentDate,
-      startDate: new Date(2026, 0, 5),
+      startDate: MORTGAGE_START,
       graceEndDate: null,
     });
     interestTotal += calculation.interest;
@@ -130,8 +139,8 @@ export const buildMortgageDocs = (b: Builder, txns: InternalTxn[]): MortgageResu
     originalAmount: MORTGAGE_PRINCIPAL,
     currentBalance: balance,
     interestRate: MORTGAGE_RATE,
-    startDate: new Date(2026, 0, 5),
-    endDate: new Date(2036, 0, 5),
+    startDate: MORTGAGE_START,
+    endDate: MORTGAGE_END,
     monthlyPayment: MORTGAGE_PAYMENT,
     linkedLedgerCode: LEDGER_CODES.LIABILITY_MORTGAGE,
     linkedProjectId: 'proj_housing',
@@ -139,7 +148,13 @@ export const buildMortgageDocs = (b: Builder, txns: InternalTxn[]): MortgageResu
     ...audit(identity),
   });
 
-  return { mortgageBalance: balance, interestTotal, closingByMonth };
+  return {
+    mortgageBalance: balance,
+    interestTotal,
+    closingByMonth,
+    monthlyPayment: MORTGAGE_PAYMENT,
+    endDate: MORTGAGE_END,
+  };
 };
 
 // Car loan (issue #198 Q6): drawdown + vehicle purchase in April
@@ -158,7 +173,7 @@ export const buildCarLoanDocs = (b: Builder, txns: InternalTxn[]): CarLoanResult
       interestRate: CAR_LOAN_RATE,
       totalPayment: CAR_LOAN_PAYMENT,
       paymentDate,
-      startDate: new Date(2026, 3, 10),
+      startDate: CAR_LOAN_START,
       graceEndDate: null,
     });
     const entries = buildDebtPaymentEntries(
@@ -221,15 +236,20 @@ export const buildCarLoanDocs = (b: Builder, txns: InternalTxn[]): CarLoanResult
     originalAmount: CAR_LOAN_PRINCIPAL,
     currentBalance: balance,
     interestRate: CAR_LOAN_RATE,
-    startDate: new Date(2026, 3, 10),
-    endDate: new Date(2031, 3, 10),
+    startDate: CAR_LOAN_START,
+    endDate: CAR_LOAN_END,
     monthlyPayment: CAR_LOAN_PAYMENT,
     linkedLedgerCode: LEDGER_CODES.LIABILITY_LOAN,
     isActive: true,
     ...audit(identity),
   });
 
-  return { carBalance: balance, closingByMonth };
+  return {
+    carBalance: balance,
+    closingByMonth,
+    monthlyPayment: CAR_LOAN_PAYMENT,
+    endDate: CAR_LOAN_END,
+  };
 };
 
 export const buildAccountSnapshotDocs = (b: Builder, txns: InternalTxn[]) => {

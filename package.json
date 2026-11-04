@@ -18,7 +18,7 @@
     "test:coverage": "vitest run --config vitest.config.ts --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
-    "docs:check": "bash scripts/check-doc-references.sh",
+    "docs:check": "bash scripts/check-doc-references.sh && node scripts/check-doc-code-paths.mjs",
     "qa:init": "tsx scripts/qa/bootstrap-emulator-qa.ts",
     "qa:seed": "tsx scripts/qa/seed-qa-data.ts",
     "prepare": "node scripts/install-git-hooks.mjs"

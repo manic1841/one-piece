@@ -1,9 +1,10 @@
 # 財務報表由使用者手動觸發產生
 
+**日期：** 2026-08-31
 **狀態：** 已接受（2026-09 修訂）
-**規範來源：** [financial_report.md](../financial_report.md) §0；[monthly-close.md](../monthly-close.md)
+**規範來源：** [financial_report.md](../financial_report.md) §2；[monthly-close.md](../monthly-close.md) §3
 
-月底結算的四個步驟中，AccountSnapshot 與 PortfolioSnapshot 需要人工確認，自動產生可能在數字未確認前就存入錯誤快照。因此報表產生設計為手動觸發，四步驟全部完成後才開放按鈕。取捨是使用者需要多一個手動操作步驟，無法完全自動化月結流程。
+關帳流程中，AccountSnapshot 與 PortfolioSnapshot 需要人工確認，自動產生可能在數字未確認前就存入錯誤快照。因此報表產生設計為手動觸發，四步驟全部完成後才開放按鈕。取捨是使用者需要多一個手動操作步驟，無法完全自動化月結流程。
 
 就緒判定只檢查四種實體快照是否全部存在，不檢查步驟順序——順序由使用者手動流程保證；非作用中實體不影響判定。
 

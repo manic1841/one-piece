@@ -16,6 +16,7 @@ import PixelPet from './PixelPet';
 import SiteFooter from './SiteFooter';
 import { UserMenu } from './UserMenu';
 import { APP_BRAND } from './brand';
+import { useBottomOverlayInset } from './useBottomOverlayInset';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuthState();
@@ -23,6 +24,7 @@ const Layout: React.FC = () => {
   const { familyName, loadingHousehold } = useHouseholdGuard();
   const petReaction = usePetReaction(userProfile?.householdId);
   const [today, setToday] = useState(() => new Date());
+  useBottomOverlayInset();
 
   useEffect(() => {
     const scheduleNextTick = () => {
@@ -83,7 +85,7 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="material-chrome sticky top-0 z-50 bg-background/75 backdrop-blur-xl backdrop-saturate-150 border-b border-border">
+      <header className="material-chrome sticky top-0 z-50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-3">
           <NavLink
             to="/"
@@ -129,7 +131,9 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1">
+      {/* The emulator banner is fixed at the viewport bottom; this reserves
+          its height plus the safe area so the footer and sticky docks clear it. */}
+      <main className="flex-1 pb-[var(--bottom-overlay,0px)]">
         <div className="max-w-7xl mx-auto p-4 md:p-8">
           <Outlet />
         </div>

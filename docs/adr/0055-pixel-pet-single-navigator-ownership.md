@@ -1,5 +1,6 @@
 # Pixel Pet 單一 Navigator 所有權
 
+**日期：** 2026-09-18
 **狀態：** 已接受（2026-09）
 **規範來源：** [ui-layer-architecture.md](../ui/ui-layer-architecture.md) §6.1、§6.2
 

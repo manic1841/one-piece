@@ -6,6 +6,7 @@ import { CliProgress } from '@/ui/components/CliProgress';
 import { Divider } from '@/ui/components/Divider';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
 import { PageHeader } from '@/ui/components/PageHeader';
+import { PageSection } from '@/ui/components/PageSection';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Toolbar } from '@/ui/components/Toolbar';
 import { BarChart } from '@/ui/components/charts/BarChart';
@@ -73,6 +74,31 @@ const SectionModuleSection: React.FC = () => (
         </div>
       </GalleryModule>
     </div>
+    <GalleryModule label="SECTION STATE">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="border border-border">
+          <PageSection
+            number="01"
+            title="BASELINE"
+            status="error"
+            hint="No closed period covers this date."
+            spacing="compact"
+          />
+        </div>
+        <div className="border border-border">
+          <PageSection
+            number="02"
+            title="ASSUMPTIONS"
+            hint="Birth year is still blank."
+            ariaLabel="Assumptions"
+            spacing="compact"
+          />
+        </div>
+      </div>
+      <GalleryCaption>
+        只有值得回報的狀態才傳 `status`；單純「還沒填」只給 `hint`，不要讓每頁長滿字形。
+      </GalleryCaption>
+    </GalleryModule>
   </GallerySection>
 );
 
@@ -83,6 +109,12 @@ const PageHeaderSection: React.FC = () => (
         title="TRANSACTIONS"
         description="Track and review household financial activity."
         actions={<Button>+ ADD TRANSACTION</Button>}
+      />
+      <PageHeader
+        title="SNAPSHOT"
+        description="Return path with an accessible name on the icon button."
+        onBack={() => {}}
+        backLabel="Back to projections"
       />
       <Toolbar
         actions={

@@ -44,7 +44,7 @@ interface UseTransactionFormStateParams {
   initialOutput?: TransactionFormOutput | null;
   onSubmit: (output: TransactionFormOutput) => void | Promise<void>;
   projects: TransactionFormProjectOption[];
-  expenseCategories: TransactionFormCategoryOption[];
+  expenseCategoryOptions: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
   advancedCategories: TransactionFormCategoryOption[];
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
@@ -55,7 +55,7 @@ export const useTransactionFormState = ({
   initialOutput,
   onSubmit,
   projects,
-  expenseCategories,
+  expenseCategoryOptions,
   incomeCategories,
   advancedCategories,
   loadIncomeAllocationTemplate,
@@ -119,11 +119,11 @@ export const useTransactionFormState = ({
       buildPreviewDetails({
         preview,
         projects,
-        expenseCategories,
+        expenseCategoryOptions,
         incomeCategories,
         advancedCategories,
       }),
-    [preview, projects, expenseCategories, incomeCategories, advancedCategories],
+    [preview, projects, expenseCategoryOptions, incomeCategories, advancedCategories],
   );
 
   const incomeLedgerCode = useWatch({ control: incomeForm.control, name: 'ledgerCode' });

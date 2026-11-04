@@ -15,3 +15,11 @@ export function getErrorMessage(error: unknown, fallback = '發生未知錯誤')
   }
   return fallback;
 }
+
+/** Failure copy for a `useLoadingTask` result; an abort has no thrown value. */
+export function getTaskErrorMessage(
+  result: { ok: false; kind: 'failed' | 'aborted'; error?: unknown },
+  fallback?: string,
+): string {
+  return result.kind === 'failed' ? getErrorMessage(result.error, fallback) : (fallback ?? '');
+}

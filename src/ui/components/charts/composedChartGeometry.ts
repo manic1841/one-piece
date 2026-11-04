@@ -15,7 +15,7 @@ const PADDING_TOP = 16;
 const PADDING_BOTTOM = 16;
 const PADDING_SIDE = 10;
 const GRID_LINE_COUNT = 4;
-const MAX_X_LABELS = 8;
+const MAX_X_LABELS = 6;
 /** Fraction of a column slot the whole bar group occupies. */
 const COLUMN_FILL = 0.7;
 /** Fraction of each bar slot left as a gap between neighbouring bars. */
@@ -39,6 +39,11 @@ export type ComposedLineSeries = {
   axis?: ComposedAxis;
   /** Fill the area between the line and the axis zero baseline. */
   area?: boolean;
+  /**
+   * Render as a thin dashed line. Used for a secondary reference series that must not
+   * compete with the primary one (e.g. net worth while reading a cash-flow composition).
+   */
+  dashed?: boolean;
   /**
    * Per-point baseline for the area fill. Omitted, the area fills down to the axis
    * zero baseline; supplied, the band sits between `values` and this line, which is
@@ -81,6 +86,8 @@ export type ComposedLine = {
   key: string;
   tone: ChartTone;
   path: string;
+  /** Thin dashed stroke instead of a solid one. */
+  dashed?: boolean;
   areaPath?: string;
   /**
    * True when the band's baseline sits **above** its line on screen (a band below zero, or
@@ -119,7 +126,11 @@ interface Scale {
   max: number;
 }
 
-/** Include 0 (bars need a baseline), then pad the range so the extremes breathe. */
+/**
+ * Include 0 (bars need a baseline), then pad the data extremes so they breathe.
+ * A side that is only the 0 baseline is not padded, so all-positive data never
+ * shows a negative tick.
+ */
 const buildScale = (values: number[]): Scale => {
   const min = Math.min(0, ...values);
   const max = Math.max(0, ...values);
@@ -128,7 +139,7 @@ const buildScale = (values: number[]): Scale => {
     return { min: min - pad, max: max + pad };
   }
   const pad = (max - min) * RANGE_PAD;
-  return { min: min - pad, max: max + pad };
+  return { min: min < 0 ? min - pad : min, max: max > 0 ? max + pad : max };
 };
 
 const innerHeight = COMPOSED_CHART_HEIGHT - PADDING_TOP - PADDING_BOTTOM;
@@ -251,6 +262,7 @@ export function buildComposedGeometry(
       key: `line-${seriesIndex}`,
       tone: item.tone,
       path,
+      ...(item.dashed ? { dashed: true } : {}),
       ...(areaPath ? { areaPath } : {}),
       // The gradient is anchored at the band's own line, so a band whose baseline sits
       // above it on screen (below zero, or stacked under another) runs bottom-up.

@@ -50,6 +50,14 @@ interface MobileExpandableRowProps extends Omit<React.HTMLAttributes<HTMLDivElem
   actions?: React.ReactNode;
   /** 展開後內容；提供時整列成為可展開控件。 */
   details?: React.ReactNode;
+  /**
+   * 列點擊是否切換展開（預設 true）。傳 false 時列點擊只交給 `onClick`，展開由
+   * `actions` 裡的獨立控件承擔——用於「選取」與「展開」是兩個意圖的列。
+   */
+  expandOnRowClick?: boolean;
+  /** 受控的展開狀態；未提供時由列自管。 */
+  expanded?: boolean;
+  onExpandedChange?: (next: boolean) => void;
 }
 
 /**
@@ -64,28 +72,44 @@ export const MobileExpandableRow: React.FC<MobileExpandableRowProps> = ({
   actions,
   details,
   className,
+  expandOnRowClick = true,
+  expanded,
+  onExpandedChange,
+  onClick,
+  onKeyDown,
   ...props
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [internalExpanded, setInternalExpanded] = React.useState(false);
   const isExpandable = details !== undefined;
+  const isExpanded = expanded ?? internalExpanded;
 
-  const toggle = () => setIsExpanded((previous) => !previous);
+  const toggle = () => {
+    const next = !isExpanded;
+    setInternalExpanded(next);
+    onExpandedChange?.(next);
+  };
+
+  const activate = (event: React.SyntheticEvent<HTMLDivElement>) => {
+    if (expandOnRowClick) toggle();
+    onClick?.(event as React.MouseEvent<HTMLDivElement>);
+  };
 
   return (
     <div
       role={isExpandable ? 'button' : undefined}
       tabIndex={isExpandable ? 0 : undefined}
       aria-expanded={isExpandable ? isExpanded : undefined}
-      onClick={isExpandable ? toggle : undefined}
+      onClick={isExpandable ? activate : onClick}
       onKeyDown={
         isExpandable
           ? (event) => {
               if (event.target !== event.currentTarget) return;
               if (event.key !== 'Enter' && event.key !== ' ') return;
               event.preventDefault();
-              toggle();
+              activate(event);
+              onKeyDown?.(event);
             }
-          : undefined
+          : onKeyDown
       }
       className={cn(
         mobileDataRowClass,

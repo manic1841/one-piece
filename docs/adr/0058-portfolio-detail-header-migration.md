@@ -1,5 +1,6 @@
 # Portfolio 詳情頁 header 與編輯入口（S1/S12）
 
+**日期：** 2026-09-21
 **狀態：** 已接受（2026-09）
 **規範來源：** [ui-layer-architecture.md](../ui/ui-layer-architecture.md) §7.3/§7.4/§7.6
 

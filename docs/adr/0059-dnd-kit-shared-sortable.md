@@ -2,8 +2,6 @@
 
 **日期：** 2026-09-22
 **狀態：** 已實作（issue #152）
-**對應 issue：** #148（List/Detail responsibility split spec）、#152
-
 **規範來源：** [design-system.md](../ui/design-system.md) §sortable-list
 **對應 issue：** #148（List/Detail responsibility split spec）、#152
 

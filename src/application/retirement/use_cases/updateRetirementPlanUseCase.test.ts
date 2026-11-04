@@ -1,126 +1,160 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import {
-  RetirementPlanCommandError,
-  RetirementPlanCommandErrorCode,
-} from '@/domains/retirement/retirementPlanErrors';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { type RetirementPlan } from '@/domains/retirement/types';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
 import { updateRetirementPlanUseCase } from './updateRetirementPlanUseCase';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
+    assertReadPermission: vi.fn(),
     assertWritePermission: vi.fn(),
   },
 }));
 
-vi.mock('@/infra/repositories/retirementRepository', () => ({
-  retirementRepository: {
-    updatePlanAtomically: vi.fn(),
-    getPlanSummaries: vi.fn(),
+vi.mock('@/infra/repositories/retirementPlanRepository', () => ({
+  retirementPlanRepository: {
+    getPlan: vi.fn(),
+    updatePlan: vi.fn(),
+    deletePlan: vi.fn(),
+    listPlans: vi.fn(),
   },
 }));
 
-const auth = { uid: 'u1', isGlobalAdmin: false };
+vi.mock('@/firebase', () => ({ db: {} }));
+
+const auth = { uid: 'u1', email: 'user@example.com', isGlobalAdmin: false };
+
+const plan: RetirementPlan = {
+  id: 'plan-1',
+  name: 'Old name',
+  assumptions: {
+    birthYear: 1990,
+    retirementAge: 60,
+    lifeExpectancy: 85,
+    inflationRate: 0.02,
+    annualReturnRate: 0.05,
+  },
+  projectionRules: [],
+  lifeEvents: [],
+  createdBy: 'u1',
+  updatedBy: 'u1',
+  createdAt: new Date('2026-01-01T00:00:00Z'),
+  updatedAt: new Date('2026-02-01T00:00:00Z'),
+};
 
 describe('updateRetirementPlanUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(householdPermissionService.assertWritePermission).mockResolvedValue();
-    vi.mocked(retirementRepository.getPlanSummaries).mockResolvedValue([
-      { id: 'plan-2', isActive: true },
-    ] as never);
   });
 
-  it('preflights plans and delegates to the atomic update on activation', async () => {
-    vi.mocked(retirementRepository.updatePlanAtomically).mockResolvedValue();
+  it('changes only the name and updatedAt, leaving birthYear untouched', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
+    vi.mocked(retirementPlanRepository.updatePlan).mockResolvedValue({ ok: true });
 
-    await updateRetirementPlanUseCase.execute({
-      householdId: 'household-1',
-      planId: 'plan-2',
-      updates: { isActive: true },
-      userEmail: 'user@example.com',
+    const before = Date.now();
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: '  New name  ',
       auth,
     });
 
-    expect(retirementRepository.getPlanSummaries).toHaveBeenCalledWith('household-1');
-    expect(retirementRepository.updatePlanAtomically).toHaveBeenCalledWith(
-      expect.objectContaining({
-        householdId: 'household-1',
-        planId: 'plan-2',
-        updates: { isActive: true },
-        existingPlans: [expect.objectContaining({ id: 'plan-2' })],
-      }),
-    );
+    expect(result).toEqual({ ok: true, name: 'New name' });
+    const update = vi.mocked(retirementPlanRepository.updatePlan).mock.calls[0][0];
+    expect(update.plan.name).toBe('New name');
+    expect(update.plan.assumptions).toEqual({
+      birthYear: 1990,
+      retirementAge: 60,
+      lifeExpectancy: 85,
+      inflationRate: 0.02,
+      annualReturnRate: 0.05,
+    });
+    expect(update.plan.updatedAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(update.plan.createdAt).toEqual(plan.createdAt);
+    expect(update.userEmail).toBe('user@example.com');
   });
 
-  it('skips the preflight for non-activation updates', async () => {
-    vi.mocked(retirementRepository.updatePlanAtomically).mockResolvedValue();
+  it('writes a full draft once the birth year is locked to the stored one', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
+    vi.mocked(retirementPlanRepository.updatePlan).mockResolvedValue({ ok: true });
 
-    await updateRetirementPlanUseCase.execute({
-      householdId: 'household-1',
-      planId: 'plan-2',
-      updates: { name: 'Renamed' },
-      userEmail: 'user@example.com',
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: 'Early exit',
+      assumptions: { ...plan.assumptions, retirementAge: 55, lifeExpectancy: 90 },
       auth,
     });
 
-    expect(retirementRepository.getPlanSummaries).not.toHaveBeenCalled();
-    expect(retirementRepository.updatePlanAtomically).toHaveBeenCalledWith(
-      expect.objectContaining({ existingPlans: [] }),
-    );
+    expect(result).toEqual({ ok: true, name: 'Early exit' });
+    const update = vi.mocked(retirementPlanRepository.updatePlan).mock.calls[0][0];
+    expect(update.plan.assumptions).toMatchObject({
+      birthYear: 1990,
+      retirementAge: 55,
+      lifeExpectancy: 90,
+    });
   });
 
-  it('propagates PLAN_NOT_FOUND from the atomic update', async () => {
-    vi.mocked(retirementRepository.updatePlanAtomically).mockRejectedValue(
-      new RetirementPlanCommandError(
-        RetirementPlanCommandErrorCode.PLAN_NOT_FOUND,
-        'Retirement plan not found.',
-      ),
-    );
+  it('rejects a draft that breaks the birth-year cross check', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
 
-    await expect(
-      updateRetirementPlanUseCase.execute({
-        householdId: 'household-1',
-        planId: 'plan-missing',
-        updates: { name: 'Renamed' },
-        userEmail: 'user@example.com',
-        auth,
-      }),
-    ).rejects.toMatchObject({ code: RetirementPlanCommandErrorCode.PLAN_NOT_FOUND });
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: 'Broken',
+      assumptions: { ...plan.assumptions, lifeExpectancy: 40 },
+      auth,
+    });
+
+    expect(result).toEqual({ ok: false, code: 'PLAN_INVALID' });
+    expect(retirementPlanRepository.updatePlan).not.toHaveBeenCalled();
   });
 
-  it('wraps unexpected repository failures with TRANSACTION_FAILED', async () => {
-    vi.mocked(retirementRepository.updatePlanAtomically).mockRejectedValue(
-      new Error('write failed'),
-    );
+  it('rejects a blank name before writing', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
 
-    await expect(
-      updateRetirementPlanUseCase.execute({
-        householdId: 'household-1',
-        planId: 'plan-2',
-        updates: { name: 'Renamed' },
-        userEmail: 'user@example.com',
-        auth,
-      }),
-    ).rejects.toMatchObject({ code: RetirementPlanCommandErrorCode.TRANSACTION_FAILED });
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: '   ',
+      auth,
+    });
+
+    expect(result).toEqual({ ok: false, code: 'NAME_REQUIRED' });
+    expect(retirementPlanRepository.updatePlan).not.toHaveBeenCalled();
   });
 
-  it('propagates permission rejections without touching the repository', async () => {
-    vi.mocked(householdPermissionService.assertWritePermission).mockRejectedValue(
-      new Error('denied'),
-    );
+  it('returns PLAN_NOT_FOUND without writing when the plan is gone', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(null);
 
-    await expect(
-      updateRetirementPlanUseCase.execute({
-        householdId: 'household-1',
-        planId: 'plan-2',
-        updates: { name: 'Renamed' },
-        userEmail: 'user@example.com',
-        auth,
-      }),
-    ).rejects.toThrow('denied');
-    expect(retirementRepository.updatePlanAtomically).not.toHaveBeenCalled();
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: 'New name',
+      auth,
+    });
+
+    expect(result).toEqual({ ok: false, code: 'PLAN_NOT_FOUND' });
+    expect(retirementPlanRepository.updatePlan).not.toHaveBeenCalled();
+  });
+
+  it('propagates a repository failure', async () => {
+    vi.mocked(retirementPlanRepository.getPlan).mockResolvedValue(plan);
+    vi.mocked(retirementPlanRepository.updatePlan).mockResolvedValue({
+      ok: false,
+      code: 'PLAN_TOO_LARGE',
+    });
+
+    const result = await updateRetirementPlanUseCase.execute({
+      householdId: 'h1',
+      planId: 'plan-1',
+      name: 'New name',
+      auth,
+    });
+
+    expect(result).toEqual({ ok: false, code: 'PLAN_TOO_LARGE' });
   });
 });

@@ -1,24 +1,34 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { nameFailureCode } from '@/application/retirement/errors';
 import { type AuthContext } from '@/application/types';
-import {
-  RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT,
-  RetirementPlanCommandError,
-  RetirementPlanCommandErrorCode,
-  estimateRetirementPlanWriteCount,
-} from '@/domains/retirement/retirementPlanErrors';
-import { type RetirementPlanCreate } from '@/domains/retirement/types';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
+import { type LifeEvent } from '@/domains/retirement/lifeEvents';
+import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+import { createRetirementPlanCreateSchema } from '@/domains/retirement/schemas';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
-interface CreateRetirementPlanRequest {
+export interface CreateRetirementPlanRequest {
   householdId: string;
-  plan: RetirementPlanCreate;
-  userEmail: string;
   auth: AuthContext;
+  name: string;
+  assumptions: RetirementAssumptions;
+  projectionRules: ProjectionRule[];
+  lifeEvents: LifeEvent[];
 }
 
+export type CreateRetirementPlanErrorCode =
+  | 'NAME_REQUIRED'
+  | 'NAME_TOO_LONG'
+  | 'PLAN_INVALID'
+  | 'PLAN_TOO_LARGE';
+
+export type CreateRetirementPlanOutcome =
+  | { ok: true; id: string }
+  | { ok: false; code: CreateRetirementPlanErrorCode };
+
 export class CreateRetirementPlanUseCase {
-  async execute(request: CreateRetirementPlanRequest): Promise<string> {
-    const { householdId, plan, userEmail, auth } = request;
+  async execute(request: CreateRetirementPlanRequest): Promise<CreateRetirementPlanOutcome> {
+    const { householdId, auth, name, assumptions, projectionRules, lifeEvents } = request;
 
     await householdPermissionService.assertWritePermission(
       householdId,
@@ -26,40 +36,32 @@ export class CreateRetirementPlanUseCase {
       auth.isGlobalAdmin,
     );
 
-    try {
-      const existingPlans = plan.isActive
-        ? await retirementRepository.getPlanSummaries(householdId)
-        : [];
+    const now = new Date();
+    const userEmail = auth.email ?? auth.uid;
+    const parsed = createRetirementPlanCreateSchema(now.getFullYear()).safeParse({
+      name,
+      assumptions,
+      projectionRules,
+      lifeEvents,
+      createdBy: userEmail,
+      updatedBy: userEmail,
+      createdAt: now,
+      updatedAt: now,
+    });
 
-      // The new plan itself is not among existingPlans, so all of them may
-      // need a fan-out update.
-      const writeCount = estimateRetirementPlanWriteCount({
-        staleChildCount: 0,
-        newChildCount: plan.incomes.length + plan.expenses.length,
-        fanOutUpdateCount: plan.isActive ? existingPlans.length : 0,
-      });
-      if (writeCount > RETIREMENT_PLAN_TRANSACTION_WRITE_LIMIT) {
-        throw new RetirementPlanCommandError(
-          RetirementPlanCommandErrorCode.PLAN_TOO_LARGE,
-          'plan write count exceeds the transaction limit',
-        );
-      }
-
-      return await retirementRepository.createPlanAtomically({
-        householdId,
-        plan,
-        userEmail,
-        existingPlans,
-      });
-    } catch (error: unknown) {
-      if (error instanceof RetirementPlanCommandError) throw error;
-
-      const message = error instanceof Error ? error.message : 'unknown transaction failure';
-      throw new RetirementPlanCommandError(
-        RetirementPlanCommandErrorCode.TRANSACTION_FAILED,
-        message,
-      );
+    if (!parsed.success) {
+      const nameFailure = nameFailureCode(parsed.error.issues);
+      if (nameFailure !== null) return { ok: false, code: nameFailure };
+      return { ok: false, code: 'PLAN_INVALID' };
     }
+
+    const written = await retirementPlanRepository.createPlan({
+      householdId,
+      userEmail,
+      plan: parsed.data,
+    });
+    if (!written.ok) return { ok: false, code: written.code };
+    return { ok: true, id: written.id };
   }
 }
 

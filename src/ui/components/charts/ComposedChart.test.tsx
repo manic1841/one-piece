@@ -31,6 +31,26 @@ describe('ComposedChart', () => {
     expect(container.querySelectorAll('path')).toHaveLength(2);
   });
 
+  it('renders a dashed secondary line thinner than a solid one', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[
+          { kind: 'line', tone: 'primary', values: [1, 3] },
+          { kind: 'line', tone: 'asset', values: [9, 12], dashed: true },
+        ]}
+      />,
+    );
+
+    const paths = [...container.querySelectorAll('path')];
+    expect(paths).toHaveLength(2);
+    expect(paths[0].getAttribute('stroke-dasharray')).toBeNull();
+    expect(paths[1].getAttribute('stroke-dasharray')).toBe('5 4');
+    expect(Number(paths[1].getAttribute('stroke-width'))).toBeLessThan(
+      Number(paths[0].getAttribute('stroke-width')),
+    );
+  });
+
   it('fills every area with its own single-colour gradient', () => {
     const { container } = render(
       <ComposedChart

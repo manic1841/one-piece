@@ -1,26 +1,35 @@
 /**
- * Retirement plan docs: the plan (without the batch-replaceable child
- * collections, ADR-0026/0040) plus incomeStreams/expenseCategories
- * subcollection docs, including the salary import derived from the seeded
- * 2025 salary entries and the mortgage import from the seeded payments.
+ * Retirement plan + one frozen projection.
+ *
+ * The plan carries all three input groups the new model defines (assumptions,
+ * rules, life events). Rules cover every method and all three source kinds:
+ * ledger baselines come from the seeded journal, debt rules reference the seeded
+ * mortgage and car loan, and percentage/growth rules chain off other rules. One
+ * expense rule grows below inflation with `keepsPaceWithInflation`, so the
+ * frozen projection exercises the held branch. The
+ * projection's config, source and annual documents are produced through the
+ * production resolver and engine rather than hand-written, so schema drift and
+ * baseline drift both fail the seed loudly.
+ *
+ * Start year is the year after the seed clock: the resolver needs baseline
+ * years inside the seeded window (2025 salary, 2026 expense codes) (ADR-0089).
  */
 import { z } from 'zod';
 
-import { LEDGER_CODES } from '@/domains/ledger/constants';
+import { ENGINE_VERSION, calculateProjection } from '@/domains/retirement/calculators';
+import { resolveProjectionInput } from '@/domains/retirement/resolveProjectionInput';
 import {
-  RetirementExpenseCategorySchema,
-  RetirementIncomeSourceSchema,
-  RetirementPlanSchema,
+  ProjectionAnnualSchema,
+  ProjectionDocumentSchema,
+  ProjectionSourceSchema,
+  createProjectionConfigSchema,
+  createRetirementPlanCreateSchema,
 } from '@/domains/retirement/schemas';
 
 import {
   type Builder,
-  MORTGAGE_ID,
-  MORTGAGE_PAYMENT,
+  type InternalTxn,
   QA_SEED_FIXED_NOW,
-  SALARY_AMOUNT,
-  SALARY_TOTAL_2025,
-  SAMPLE_YEAR,
   audit,
   auditShape,
   emit,
@@ -28,151 +37,223 @@ import {
 } from './shared';
 
 const PLAN_ID = 'plan_qa_retirement';
+const PROJECTION_ID = 'projection_qa_retirement';
+const CURRENT_YEAR = QA_SEED_FIXED_NOW.getFullYear();
+const START_YEAR = CURRENT_YEAR + 1;
+const BASELINE_YEAR = CURRENT_YEAR - 1;
+const OPENING_NET_WORTH = 3_000_000;
 
-export const buildRetirementDocs = (b: Builder, mortgage: { interestTotal: number }) => {
-  const { identity } = b;
-  const importedAt = QA_SEED_FIXED_NOW.toISOString();
+export type DebtSource = { monthlyPayment: number; endDate: Date };
 
-  const incomes = [
-    RetirementIncomeSourceSchema.parse({
-      id: 'inc_salary',
-      name: '薪資收入',
-      incomeCategory: LEDGER_CODES.INCOME_SALARY,
-      type: 'salary',
-      lifelong: false,
-      startYear: 2026,
-      endYear: 2030,
-      currentAnnual: SALARY_TOTAL_2025,
-      growthRate: 2,
-      calculatedFrom: {
-        ledgerCode: LEDGER_CODES.INCOME_SALARY,
-        sampleYear: SAMPLE_YEAR,
-        totalAmount: SALARY_TOTAL_2025,
-        monthlyAverage: SALARY_AMOUNT,
-        sampleCount: 12,
-        importedAt,
-      },
-    }),
-    RetirementIncomeSourceSchema.parse({
-      id: 'inc_bonus',
-      name: '年終獎金',
-      incomeCategory: undefined,
-      type: 'bonus',
-      lifelong: false,
-      startYear: 2026,
-      endYear: 2030,
-      currentAnnual: Math.round(SALARY_TOTAL_2025 * 1.67),
-      growthRate: 2,
-    }),
-    RetirementIncomeSourceSchema.parse({
-      id: 'inc_pension',
-      name: '勞保年金',
-      incomeCategory: undefined,
-      type: 'pension',
-      lifelong: true,
-      startYear: 2030,
-      currentAnnual: 0,
-      retirementAnnual: 240_000,
-      growthRate: 0,
-    }),
-  ];
+/** `credit - debit` per code and year, the same net the production loader reads. */
+const buildLedgerSources = (txns: InternalTxn[]) => {
+  const sources = new Map<string, { netByYear: Map<number, number> }>();
 
-  const expenses = [
-    RetirementExpenseCategorySchema.parse({
-      id: 'exp_living',
-      name: '日常支出',
-      type: 'general',
-      currentAnnual: 480_000,
-      growthRate: 2,
-      retirementMultiplier: 0.7,
-      startYear: 2026,
-      endYear: null,
-    }),
-    RetirementExpenseCategorySchema.parse({
-      id: 'exp_mortgage',
-      name: '房貸還款',
-      type: 'debt_payment',
-      sourceDebtAccountId: MORTGAGE_ID,
-      includesPrincipal: true,
-      interestOnly: false,
-      currentAnnual: MORTGAGE_PAYMENT * 12,
-      growthRate: 0,
-      retirementMultiplier: 0,
-      startYear: 2026,
-      endYear: 2036,
-      calculatedFrom: {
-        debtAccountId: MORTGAGE_ID,
-        sampleStartYearMonth: '2026-02',
-        sampleEndYearMonth: '2026-09',
-        totalPaid: MORTGAGE_PAYMENT * 8,
-        interestPaid: mortgage.interestTotal,
-        sampleCount: 8,
-        importedAt,
-      },
-    }),
-  ];
+  for (const txn of txns) {
+    const year = Number(txn.yearMonth.slice(0, 4));
+    for (const entry of txn.entries) {
+      let record = sources.get(entry.ledgerCode);
+      if (record === undefined) {
+        record = { netByYear: new Map() };
+        sources.set(entry.ledgerCode, record);
+      }
+      record.netByYear.set(year, (record.netByYear.get(year) ?? 0) + entry.credit - entry.debit);
+    }
+  }
 
-  const plan = RetirementPlanSchema.parse({
-    id: PLAN_ID,
+  return sources;
+};
+
+export const buildRetirementDocs = (
+  b: Builder,
+  txns: InternalTxn[],
+  debtAccounts: Map<string, DebtSource>,
+) => {
+  const plan = createRetirementPlanCreateSchema(CURRENT_YEAR).parse({
     name: 'QA 退休計畫',
-    isActive: true,
-    autoUpdate: false,
-    currentYear: 2026,
-    birthYear: 1985,
-    retirementAge: 45,
-    lifeExpectancy: 85,
-    inflationRate: 2,
-    investmentReturnRate: 5,
-    incomes,
-    expenses,
-    events: [
+    assumptions: {
+      birthYear: 1990,
+      retirementAge: 65,
+      lifeExpectancy: 90,
+      inflationRate: 0.02,
+      annualReturnRate: 0.05,
+    },
+    projectionRules: [
+      {
+        id: 'rule_salary',
+        name: '薪資',
+        ruleType: 'income',
+        method: 'inflation',
+        source: { type: 'ledgerCode', id: 'income:salary' },
+        baselinePolicy: 'specificYear',
+        baselineYear: BASELINE_YEAR,
+        parameters: {},
+        endCondition: { type: 'retirementYearExclusive' },
+      },
+      {
+        id: 'rule_bonus',
+        name: '年終獎金',
+        ruleType: 'income',
+        method: 'percentage',
+        source: { type: 'rule', id: 'rule_salary' },
+        parameters: { ratio: 0.1 },
+        endCondition: { type: 'retirementYearExclusive' },
+      },
+      {
+        id: 'rule_dividend',
+        name: '投資股利',
+        ruleType: 'income',
+        method: 'fixedAmount',
+        parameters: { amount: 12_000 },
+        endCondition: { type: 'specificYear', year: 2060 },
+      },
+      {
+        id: 'rule_living',
+        name: '生活費',
+        ruleType: 'expense',
+        method: 'percentage',
+        source: { type: 'rule', id: 'rule_salary' },
+        parameters: { ratio: 0.4 },
+        endCondition: { type: 'retirementYearExclusive' },
+      },
+      {
+        id: 'rule_housing',
+        name: '居住費',
+        ruleType: 'expense',
+        method: 'percentage',
+        source: { type: 'rule', id: 'rule_salary' },
+        parameters: { ratio: 0.25 },
+        endCondition: { type: 'retirementYearExclusive' },
+      },
+      {
+        id: 'rule_food',
+        name: '餐飲',
+        ruleType: 'expense',
+        method: 'inflation',
+        source: { type: 'ledgerCode', id: 'expense:food' },
+        baselinePolicy: 'specificYear',
+        baselineYear: CURRENT_YEAR,
+        parameters: {},
+        endCondition: { type: 'lifelong' },
+      },
+      {
+        id: 'rule_mortgage',
+        name: '房貸',
+        ruleType: 'expense',
+        method: 'debtAmortization',
+        source: { type: 'debtAccount', id: 'debt_mortgage' },
+        parameters: {},
+      },
+      {
+        id: 'rule_car',
+        name: '車貸',
+        ruleType: 'expense',
+        method: 'debtAmortization',
+        source: { type: 'debtAccount', id: 'debt_car_loan' },
+        parameters: {},
+      },
+      {
+        id: 'rule_medical',
+        name: '醫療',
+        ruleType: 'expense',
+        method: 'growthRate',
+        source: { type: 'rule', id: 'rule_food' },
+        parameters: { rate: 0.06 },
+        endCondition: { type: 'specificAge', age: 85 },
+      },
+      {
+        // Growth below inflation with the clamp on, so QA walks the held branch.
+        id: 'rule_insurance',
+        name: '保險',
+        ruleType: 'expense',
+        method: 'growthRate',
+        source: { type: 'ledgerCode', id: 'expense:food' },
+        parameters: { rate: 0.01 },
+        baselinePolicy: 'specificYear',
+        baselineYear: CURRENT_YEAR,
+        endCondition: { type: 'lifelong' },
+        keepsPaceWithInflation: true,
+      },
+    ],
+    lifeEvents: [
       {
         id: 'evt_renovation',
         type: 'expense',
         name: '房屋修繕',
         phases: [{ name: '一次修繕', startYear: 2028, endYear: 2028, amount: 800_000 }],
       },
+      {
+        id: 'evt_retirement_living',
+        type: 'expense',
+        name: '退休生活費',
+        phases: [
+          { name: '退休後', startYear: 2055, endYear: 2080, amount: 480_000, growthRate: 0.02 },
+        ],
+      },
     ],
-    ...audit(identity),
+    ...audit(b.identity),
   });
 
-  // The plan was already validated by RetirementPlanSchema.parse() above.
-  // The stored plan doc omits the batch-replaceable child collections
-  // (ADR-0026/0040); re-validate the stored shape against the same schema
-  // so future field drift is caught at seed time, not at app read time.
-  const planDoc: Record<string, unknown> = { ...plan };
-  delete planDoc.incomes;
-  delete planDoc.expenses;
-  RetirementPlanSchema.parse({ ...planDoc, incomes: [], expenses: [] });
-  emit(b, z.record(z.string(), z.unknown()), hh(identity, 'retirement_plans'), PLAN_ID, planDoc);
+  emit(b, z.record(z.string(), z.unknown()), hh(b.identity, 'retirementPlans'), PLAN_ID, {
+    id: PLAN_ID,
+    ...plan,
+  });
 
-  // Income/expense subcollection docs: validate with audit fields included,
-  // since the stored shape includes BaseSchema fields the standalone schemas
-  // don't enforce. RetirementIncomeSourceSchema uses superRefine, so we
-  // validate the audit fields separately (the income shape was already
-  // validated by RetirementIncomeSourceSchema.parse() above).
-  const withAudit = z.object(auditShape);
+  const resolved = resolveProjectionInput({
+    assumptions: plan.assumptions,
+    rules: plan.projectionRules,
+    lifeEvents: plan.lifeEvents,
+    startYear: START_YEAR,
+    opening: { amount: OPENING_NET_WORTH, source: 'manual' },
+    ledgerSources: buildLedgerSources(txns),
+    debtAccounts,
+  });
 
-  for (const income of incomes) {
-    const doc = { ...income, ...audit(identity) };
-    withAudit.parse(doc);
-    emit(
-      b,
-      z.record(z.string(), z.unknown()),
-      hh(identity, 'retirement_plans', PLAN_ID, 'incomeStreams'),
-      income.id,
-      doc,
+  if (!resolved.ok) {
+    throw new Error(
+      `QA retirement projection failed to resolve: ${JSON.stringify(resolved.errors)}`,
     );
   }
-  for (const expense of expenses) {
-    const doc = { ...expense, ...audit(identity) };
-    withAudit.parse(doc);
-    emit(
-      b,
-      z.record(z.string(), z.unknown()),
-      hh(identity, 'retirement_plans', PLAN_ID, 'expenseCategories'),
-      expense.id,
-      doc,
-    );
-  }
+
+  const result = calculateProjection(resolved.input);
+
+  emit(
+    b,
+    ProjectionDocumentSchema.extend(auditShape),
+    hh(b.identity, 'projections'),
+    PROJECTION_ID,
+    {
+      ...result.summary,
+      name: 'QA 退休試算',
+      engineVersion: ENGINE_VERSION,
+      ...audit(b.identity),
+    },
+  );
+  emit(
+    b,
+    createProjectionConfigSchema(CURRENT_YEAR),
+    hh(b.identity, 'projections', PROJECTION_ID, 'snapshots'),
+    'config',
+    {
+      startYear: START_YEAR,
+      openingNetWorth: { amount: OPENING_NET_WORTH, source: 'manual' },
+      assumptions: plan.assumptions,
+      projectionRules: plan.projectionRules,
+      lifeEvents: plan.lifeEvents,
+    },
+  );
+  emit(
+    b,
+    ProjectionSourceSchema,
+    hh(b.identity, 'projections', PROJECTION_ID, 'snapshots'),
+    'source',
+    { ruleSources: resolved.ruleSources },
+  );
+  emit(
+    b,
+    ProjectionAnnualSchema,
+    hh(b.identity, 'projections', PROJECTION_ID, 'results'),
+    'annual',
+    { years: result.years },
+  );
 };

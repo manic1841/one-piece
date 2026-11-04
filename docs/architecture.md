@@ -12,6 +12,20 @@
 - **內容**: `types.ts`, `schemas.ts` (Zod), `mappers.ts`。
 - **規則**: 不依賴外部框架或基礎設施；**絕對不依賴於 Application 或 Infrastructure 層。**
 
+#### 目錄結構：預設平放
+
+一個 domain 就是一個資料夾，檔案預設全部平放在該資料夾根層。只有同時符合下列兩條件才開子資料夾：
+
+1. 該群組有 **≥2 個同角色檔案**（單一檔案的群組不開夾）；
+2. 該 domain 已達 **≥10 個檔案**。
+
+其他限制：
+
+- 一個 domain 只選**一個**切分軸線：依子聚合（`auth/user`, `auth/whitelist`）或依角色（`calculators/`, `schemas/`），不可混用。
+- 子資料夾名稱必須是群組的共同性質，不得使用 `logic`、`utils`、`helpers` 這類萬用字。
+- 子資料夾一律以 `index.ts` barrel 對外，外部只 import 資料夾路徑，不深入檔名。
+- 未達門檻的既有子資料夾應攤平；搬移時同步更新所有 import 指定符。
+
 ### 📂 Application (應用層) - `src/application/`
 
 - **職責**: 協調領域對象與基礎設施，實現具體的使用案例 (Use Cases) 或複雜的業務服務 (Application Services)。
@@ -36,14 +50,10 @@
 ### 📂 Presentation (呈現層) - `src/ui/`
 
 - **職責**: UI 渲染與使用者互動。
-- **內容**:
-  - `features/[feature-name]/hooks/`: **控制器 (Controller)**。React 進入點，負責銜接 UI 與核心邏輯。
-  - `contexts/`: UI 自有的 React context 與 provider（Controller 範圍，例如認證狀態）。
-  - `components/`: React 組件。
 - **規則**: Component 只調用 feature Hook (Controller)，不直接觸碰業務邏輯或資料庫。
-  層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
-  UI 不得 import `@/domains`、`@/application`、`@/infra`，也不得 import `firebase/firestore`
-  （跨層實作由 `src/App.tsx` 這個 composition root 注入）。
+
+層級、可觸碰清單、呼叫方向與跨層注入一律以
+[`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準，本文件不重述。
 
 ### 📂 Shared - `src/shared/`
 

@@ -1,59 +1,57 @@
-# Transaction Flow & Intent Mapping Design
+# 交易流程與意圖映射 (Transaction Flow)
 
-## Rationale
+交易以**意圖**為入口：每個意圖對應一組固定的借貸分錄，由映射展開。報表一律從分錄的
+科目計算，不從意圖推導（ADR-0005、ADR-0010）。
 
-The legacy `RecordForm` was a convoluted mess tied to a deprecated `plannedIncome` schema and lacked strict enforcement of the double-entry accounting model at the UI layer.
+本文件只留流程與語意；意圖全集與借貸定義住在 `src/domains/ledger/intentMapping.ts`，
+顯示文案住在 UI 的 constants。
 
-We replaced it with `TransactionForm` and a direct `IntentMapping` flow. This avoids complex conditional logic on the client and strictly defines the debits and credits from a single user intent.
+## 1. 流程
 
-本文件是交易流程、IntentType 映射與 Allocation 操作細節的規範來源。決策的取捨理由見 [ADR-0005](adr/0005-journal-entry-architecture.md)、[ADR-0010](adr/0010-intenttype-three-tier.md)、[ADR-0011](adr/0011-allocation-separate-collection.md)、[ADR-0022](adr/0022-intent-userselect-flag.md)；債務還款另見 [ADR-0014](adr/0014-debt-payment-intenttype.md)。
+1. 表單是純呈現：只擁有本地分頁與草稿狀態，輸出正規化 payload。
+2. 控制器驗證意圖路徑，把它轉成對應的 application 動作。
+3. 收入與支出的科目選項由映射決定；其餘意圖由專屬流程帶入必要欄位。
+4. 一般平衡分錄走交易的建立／更新 use case。
+5. 收入與支出的分配由專屬的複合命令在同一個 transaction 內完成：交易、決定性 id 的
+   分配、來源連結與 operation record 一起成立。只改分配的動作不重建、不刪除財務交易。
+6. 新增收入時查該科目的分配模板；找不到就退回預設模板，再找不到就留空。
+7. 收入分配成功後，同一組比例 upsert 成該科目的模板；既有分配不回寫。
+8. 專案欄位對一般分錄是選填。專案間轉帳目前暫停，但歷史交易仍可讀、仍計入餘額與
+   結算。
 
-## Core Flow
+## 2. 意圖分層
 
-1. **Pure UI Form**: `TransactionForm` is a presentation component only. It owns local tab/form state and emits a normalized `TransactionFormOutput` payload via callback props.
-2. **UI Controller (`useTransactionForm.ts`)**: The feature hook receives `TransactionFormOutput`, validates the selected intent path, and converts it into the correct application action.
-3. **Intent Mapping / Ledger Selection**: Expense and income tabs still derive from `src/domains/ledger/intentMapping.ts` (accounting semantics only; display wording lives in `displayLabels.ts`, see ADR-0046), but the UI now exposes normalized `ledgerCode` and `projectId` fields instead of invoking use cases directly.
-4. **Transaction Use Case / Transfer Use Case**: Standard balanced entries go through `createTransactionUseCase` (create) and `updateTransactionUseCase` (edit). Project-to-project movement previously used `transferBetweenProjectsUseCase`; that feature is currently paused (see [ADR-0042](adr/0042-pause-project-transfer-feature.md)): the UI entry and write use case are removed, while historical TRANSFER transactions remain readable and are still counted in balances and settlement.
-5. **Allocation Trigger**: The income/expense form emits `triggerAllocation` plus allocation items. On create, the UI controller sends the normalized Transaction and Allocation payload to the dedicated composite command, which atomically creates the Transaction, deterministic Allocation, source `allocationId` link, and operation result. Reallocation-only actions use `replaceAllocationUseCase`, which changes only the Allocation desired state and source link atomically; the existing financial Transaction is not recreated or deleted. On edit, `updateTransactionUseCase` uses the same replacement helper while updating the other editable Transaction fields.
-6. **Income Allocation Template Prefill**: When an income `ledgerCode` is selected, the UI controller queries `allocationTemplates` by exact `ledgerCode`; if not found, it falls back to `isDefault == true`; if still not found, allocation stays blank.
-7. **Template Persistence**: After an income allocation is successfully created, the same allocation percentages are upserted into `allocationTemplates` for that `ledgerCode` as a convenience template. Historical allocations are not mutated.
-8. **Project Selection Rule**: `projectId` is optional for regular entries (expense, income, manual). Investment and financing transactions are created by the monthly close securities-trade stage, not this form. Only historical `TRANSFER` transactions carry `fromProjectId` and `toProjectId`; the form no longer creates them ([ADR-0042](adr/0042-pause-project-transfer-feature.md)). 歷史 TRANSFER 交易對某個專案的方向判定：`toProjectId === projectId` 為流入，`fromProjectId === projectId` 為流出。
-9. **Debt Payment Retry Rule**: `DEBT_PAYMENT` is a re-bookable financial command keyed by period × account for the monthly close stage (`monthly-close:{yearMonth}:{debtAccountId}`). The caller creates one idempotency key per user action and reuses it for retries; the Transaction, DebtSnapshot, DebtAccount balance cache, and household operation record commit in one Firestore transaction. A same-key replay with an unchanged payload returns the original result; a changed payload replaces the month's record (previous transaction deleted, snapshot and balance re-derived) inside the same transaction boundary; a zero-amount payload clears the month's record.
-10. **Debt Payment Entry Point**: The form no longer offers a `DEBT_PAYMENT` tab or panel, and repayments are recorded only through the monthly close workflow (its DEBT_REPAYMENT stage, via `monthlyCloseWorkflowUseCase`, which also settles fully-repaid debt accounts). The settlement-prompt dialog in the transaction feature is removed with it.
+- **日常事件**（支出、收入）：表單直接提供。
+- **特殊事件**（固定業務意圖）：情境明確，由專屬流程帶入。投資與融資來自關帳的證券
+  階段；借款入帳來自建立債務；還款只能從關帳的債務階段錄入；轉帳暫停。
+- **不規則事件**（手動分錄）：以上皆不適用時的出口。
 
-## Intent Type Notes
+使用者挑選科目的兩種模式互斥：限定某個前綴底下的科目，或只列自身預設科目加上使用者
+自建科目。系統科目由各自的意圖負責，不在兩者中重複出現。
 
-IntentType 分三層：
+投資、融資與歷史轉帳在交易列表只能檢視、不可編輯；轉帳另無更新流程，避免產生部分
+副作用。
 
-- **日常事件**（`EXPENSE`、`INCOME`）：最常用的進出，表單直接提供。
-- **特殊事件**（固定業務意圖，如 `ASSET_PURCHASE`、`LIABILITY_BORROW`、`LIABILITY_PAYMENT`、`DEBT_PAYMENT`、`TRANSFER`）：情境明確，由專屬流程帶入必要欄位。投資與融資（`INVESTMENT`、`FINANCING`）屬此類，由月度關帳的證券買入／賣出階段帶入，不從表單輸入。
-- **不規則事件**（`MANUAL`）：以上都不適用時的手動分錄。
+## 3. 債務還款
 
-每個意圖對應一組固定的借貸分錄，寫入時由映射展開；報表一律從分錄的 LedgerCode 計算，不從意圖直接推導（ADR-0005）。
+還款是可重下達的財務命令，冪等鍵由期間乘帳戶決定，不含金額與日期。呼叫端每次使用者
+動作產生一個鍵，重試沿用同一個鍵。
 
-意圖讓使用者挑選科目時（`debitUserSelect` / `creditUserSelect`），可選集合由 mapping 決定，兩種模式互斥：
+- 同鍵、payload 不變 → 回傳原結果。
+- payload 改變 → 在同一個 transaction 內刪除前筆、重算快照與餘額。
+- 金額清零 → 清除當月紀錄，語意為本月無還款。
 
-- `allowedDebitPrefix` / `allowedCreditPrefix`：列出該前綴底下的全部科目，等同「這個 category 底下的明細科目」（不動產、薪資、獎金）。
-- `debitCustomOnly` / `creditCustomOnly`：只列該 mapping 自己的預設科目，加上使用者自建的科目（其他支出、其他收入）。系統科目由各自的意圖負責，不在這裡重複出現。
+交易、快照、餘額快取與 operation record 必須同一個 transaction 提交（ADR-0038）。
 
-目前 UI 的實作限制如下：`LIABILITY_BORROW` 由建立 `DebtAccount` 的流程產生，不從 `TransactionForm` 輸入；`TRANSFER` 目前暫停實作（[ADR-0042](adr/0042-pause-project-transfer-feature.md)）；`DEBT_PAYMENT` 不再從表單輸入，僅能透過月度關帳流程的 DEBT_REPAYMENT 階段錄入；`INVESTMENT` 與 `FINANCING` 不從表單輸入，僅能透過月度關帳的證券買入／賣出階段建立（[monthly-close.md](monthly-close.md)），既有交易在交易列表僅供檢視、不可編輯（與 `TRANSFER` 同）；編輯流程暫不支援 `TRANSFER`，以避免尚未具備專用更新流程時產生部分副作用。
+## 4. 分配
 
-`DEBT_PAYMENT` 的付款規則、atomicity、retry 與 operation record 以
-[ADR-0014](adr/0014-debt-payment-intenttype.md)、[ADR-0015](adr/0015-debt-account-balance-derived.md)、[ADR-0017](adr/0017-grace-period-derived-not-stored.md) 與 [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 為準。
+- 收入與支出都支援分配。
+- 開啟分配時，比例合計必須為 100%。
+- 新分配的 id 由來源交易 id 決定。
+- 專案明細必須包含由分配衍生的分錄，即使來源交易沒有專案欄位。
+- 模板只是 UI 輔助，修改模板不改既有分配。
 
-## Allocation Rules (Income / Expense)
+## 5. 新增意圖
 
-Allocation 的資料邊界與獨立集合決策見 [ADR-0011](adr/0011-allocation-separate-collection.md)，欄位結構見 [data-structure.md](data-structure.md)，以下只保留表單與交易流程的操作細節。
-
-- Allocation is supported on both `INCOME` and `EXPENSE` submissions.
-- When `triggerAllocation` is enabled, users must provide project allocation percentages totaling 100%.
-- A newly created Allocation uses its source Transaction ID as its deterministic document ID; the composite create command uses a caller-generated idempotency key separately for retry identity.
-- Project detail records must include allocation-derived entries, even when the source transaction has no `projectId`.
-- `AllocationTemplate` is UI assistance data only. Editing templates does not modify existing `allocations` records.
-
-## Adding New Intents
-
-If you need a new transaction type (like "Entertainment"), don't clutter the UI with new hardcoded components. The flow is two steps:
-
-1. Go into `DEFAULT_INTENT_MAPPINGS`, add the new `IntentType`, and define its debit and credit ledger codes. `EXPENSE` and `INCOME` mappings automatically populate the form's category pickers; other types enter through their dedicated flows.
-2. Add the display wording for the new intent to `INTENT_LABELS` in `src/ui/constants/transaction/displayLabels.ts` (see the UI labeling guideline and ADR-0046). A guard test fails if a domain intent has no display label.
+兩步：在預設映射加入意圖與借貸科目（一般意圖會自動長出分類選項），再補顯示文案。
+缺少顯示文案時守門測試會失敗。

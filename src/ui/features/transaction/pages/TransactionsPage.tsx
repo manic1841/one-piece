@@ -148,7 +148,7 @@ const Transactions: React.FC = () => {
   };
 
   const {
-    expenseCategories,
+    expenseCategoryOptions,
     incomeCategories,
     advancedCategories,
     allActiveLedgerCodes,
@@ -282,7 +282,7 @@ const Transactions: React.FC = () => {
           loading={formSubmitting}
           error={formError}
           projects={projectOptions}
-          expenseCategories={expenseCategories}
+          expenseCategoryOptions={expenseCategoryOptions}
           incomeCategories={incomeCategories}
           advancedCategories={advancedCategories}
           allActiveLedgerCodes={allActiveLedgerCodes}

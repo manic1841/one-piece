@@ -56,6 +56,8 @@ type MetricProps = {
   /** Preformatted change line, e.g. "+6.8% YTD". */
   change?: string;
   changeTone?: MoneyChangeTone;
+  /** Optional trailing control, e.g. a jump link. */
+  action?: React.ReactNode;
   /** Optional test id for the owning tile. */
   testId?: string;
   className?: string;
@@ -68,6 +70,7 @@ export function Metric({
   tone = 'default',
   change,
   changeTone = 'muted',
+  action,
   testId,
   className,
 }: MetricProps) {
@@ -84,6 +87,7 @@ export function Metric({
           {change}
         </span>
       )}
+      {action !== undefined && <span className="mt-2 block">{action}</span>}
     </div>
   );
 }

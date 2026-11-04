@@ -1,142 +1,206 @@
 # 退休系統設計與資料流
 
-本文描述退休系統的核心資料模型、收入導入流程、計算流程與維護規則。
+> 本文件描述退休功能的設計目標與行為契約。欄位形狀、數值範圍與錯誤碼全集住在
+> `src/domains/retirement/`；決策理由見
+> [ADR-0083](adr/0083-projection-is-frozen-plan-is-template.md) 至
+> [ADR-0089](adr/0089-delete-legacy-no-migration.md)。詞彙以 [CONTEXT.md](../CONTEXT.md)
+> 為準。
 
-本文件是退休系統資料模型、流程與存放庫行為的規範來源。收入來源與匯入窗口的取捨理由見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)；子集合、存放庫行為、事件與計畫生命週期見 [ADR-0026](adr/0026-retirement-plan-subcollections.md) 至 [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)；v1 平坦金額欄位（currentAnnual / retirementAnnual / 固定支出）與計算模式退役見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)。欄位清單見 [data-structure.md](data-structure.md)。
+## 1. 目標與範圍
 
-## 1. 系統目標
+退休功能回答一個問題：「照這組假設走到預期壽命，淨資產會怎麼變化？」答案在建立
+當下凍結，之後唯讀，供日後對照同一份假設的不同起算點與期初值。
 
-- 以交易分錄為唯一財務來源，避免重複維護平行收入資料。
-- 用可追蹤的收入流 (`incomeStreams`) 支援退休投影。
-- 保持 Domain 純邏輯，將資料存取留在 Application/Infra。
+系統由兩個獨立實體組成：
 
-## 2. 資料模型
+- **計畫（Plan）**：可重複使用的假設模板，只裝假設、規則與人生事件三個輸入群組，
+  不快取任何結果。
+- **投影（Projection）**：一次計算的凍結事實，建立後唯讀。結果、設定快照與基準引用
+  只存在這裡。
 
-### 2.1 退休計畫主文件
+兩者互不依賴：建立投影不需要先存計畫，刪除計畫也不影響既有投影。計算只由使用者明確
+觸發，每次產生新投影，不覆寫舊的。
 
-路徑：`households/{householdId}/retirement_plans/{planId}`
+退休功能**不取代實際記帳**：假設與規則描述未來情境，實際分錄仍以交易與關帳流程為準。
+投影的期初與規則基準取自會計資料，但計算結果不回寫任何會計集合。
 
-主文件保留假設參數、事件、快取摘要與 `isActive`。收入與支出類別由子集合管理；其結構見 [ADR-0026](adr/0026-retirement-plan-subcollections.md)。
+## 2. 寫入與生命週期
 
-- **同一 household 僅允許一筆 `isActive=true`**，由 create/update transaction 內的 active fan-out 原子維護（[ADR-0036](adr/0036-single-active-retirement-plan.md)、[ADR-0040](adr/0040-retirement-plan-atomic-writes.md)）。
-- **新建計畫預設狀態**：household 尚無計畫時，首個建立的計畫為 `isActive=true`；之後建立的計畫一律 `isActive=false`，不自動取代現有 active。使用者可在清單頁將任一非 active 計畫設為 active，此時 fan-out 會原子地把其他計畫降為非 active（issue #264）。
-- **複製計畫**：完整複製子集合與事件，但新計畫預設 `isActive=false`，不昨接釋放原 active（[ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)）。
-- 計畫不存在時操作回傳 `PLAN_NOT_FOUND`。
+計畫是單一文件，寫入只有建立與整份更新。生日建立後不可變；更新沒有 partial 版本。假設以
+整個物件覆蓋，因此更新時把生日原值一起寫回，不依賴部分合併。
+驗證由取得時鐘的 use case 負責，repository 只搬運資料並在寫入前擋下超過上限的 payload。
 
-### 2.2 收入流子集合
+投影是主文件加三份固定子文件（設定快照、基準引用、逐年結果），只能原子建立，沒有整份
+update。唯一例外是改名：只改主文件的名稱，不重算、不動快照。刪除在單一 batch 內子先
+主後硬刪。四份文件各自受同一份大小上限約束。
 
-路徑：`households/{householdId}/retirement_plans/{planId}/incomeStreams/{incomeStreamId}`
+## 3. 假設
 
-收入流以會計科目、收入類型、目前/退休兩個金額欄位與來源統計描述；v1 不再有計算模式（見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)），v2 再移除 `importedFrom` / `autoUpdate` / `startYearMode` / `endYearMode`（見 issue #133）：`currentAnnual` 為 `number | null`（null = 情境專用流，退休前貢獻 0），年份連動由遷移腳本解析為具體年份。分錄來源、樣本年度與過期更新見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 至 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。欄位詳見 [data-structure.md](data-structure.md)。
+假設是五個必填純量，沒有預設值。年齡純推導（當下年度減生日），不落庫；「今年」由呼叫
+端注入，讓驗證在當下才有意義。允許今年出生、允許已退休。比率一律存小數，百分號只存在
+UI。數值範圍與交叉檢查集中在 domain 的 bounds 與 schema。
 
-### 2.3 支出類別子集合
+既有計畫不會因為時間推移被夾取：讀取只做結構檢查，時序交叉檢查留給「使用該計畫」的
+use case。不合法時以穩定錯誤碼失敗，直到下一次寫入為止。
 
-路徑：`households/{householdId}/retirement_plans/{planId}/expenseCategories/{expenseCategoryId}`
+## 4. 規則
 
-支出類別以固定 `currentAnnual`（今日水準）與 `retirementMultiplier`（退休後水準）描述，IMMEDIATE 適用；可由一般設定或 DebtAccount 匯入產生。本金/利息的計算語意見 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)，模式退役見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)，欄位詳見 [data-structure.md](data-structure.md)。
+規則是陣列。`source` 只回答「數字從哪來」，`ruleType` 只回答「算進收入還是支出」，
+兩者正交，不檢查科目前綴。來源三選一：科目淨額、另一條規則的同年金額（比例用）、債務
+帳戶的月付。金額一律為正，方向由 `ruleType` 決定。
 
-### 2.4 事件模型（分段設定）
+Method 決定成長方式：通膨、自訂成長率、比例、固定金額、債務攤還。收入允許前四種，支出
+五種全允許；比例必須引用另一條規則，債務攤還必須引用債務帳戶且沒有結束條件。
 
-事件支援 `phases[]` 以描述不同人生階段的固定金額與選擇性年成長率；phase 不再宣告計算模式或百分比。
+需要起算基準的成長規則要指定 `baselinePolicy`（上一完整年度或特定年度）。引用另一條
+規則時起算值就是被參照規則的當年金額，成長只套一次，因此不接受 `baselinePolicy`。
 
-phase 形狀與驗證：
+起算值靠該年度的交易淨額求得。交易查詢以年度為單位，同一年度下所有被引用的帳本代碼
+共用同一次讀取後再各自淨額化，不逐一代碼重掃整年；同一代碼跨兩個起算年度時則各讀一
+次，兩年的值都保留。
 
-- 欄位：`name`、`startYear`、`endYear`、`amount`（必填）、`growthRate?`（缺省 = 計畫通膨率）。
-- 驗證規則：`endYear >= startYear`；`amount` 必填。違反時 schema 直接拒絞。
-- **舊版相容**：帶 `year` + `amount` 而無 `phases` 的舊事件，讀取時視為單段 phase（`startYear = endYear = year`）（[ADR-0035](adr/0035-legacy-single-event-compatibility.md)）；新寫入一律使用 `phases[]`。
+參照可跨收入／支出、可指向停用規則（金額視為 0）、可被多條規則共用，但不得指向自己。
+懸空參照與環在 schema 階段就擋下。
 
-取捨理由見 [ADR-0034](adr/0034-event-phases-segmented.md) 與 [ADR-0035](adr/0035-legacy-single-event-compatibility.md)。
+規則可開啟「維持實質價值」（`keepsPaceWithInflation`）：開啟後該規則的實質值逐年不減。
+作法是每年取「Method 算出的金額」與「上一年最終值 ×（1 + 通膨率）」的較大者，因此通膨
+為負時同一式子表現為上限而不是下限。第一年沒有上一年可比，不套用；clamp 只在結束條件
+之內生效，結束後照樣是 0。clamp 後的值就是該年的最終值，被其他規則參照時餵的是這個值。
+UI 只對以成長率、比例或固定金額計算的 Method 顯示勾選框。
 
-## 3. 收入導入流程
+結束條件四選一：退休年前、特定年齡、特定年份、終身。債務攤還的結束年取自債務的結束
+日期（含該年，整年計），只保留實際現金流出，沒有本金／利息旗標。
 
-分錄來源與年化規則見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 與 [ADR-0024](adr/0024-retirement-income-import-annualized.md)；過期偵測與更新確認見 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md)。
+收合後的期間完全早於投影起點時無輸出、不算錯；整段債務期間落在起點之前則產生警告。
 
-導入來源：`Transaction.entries`
+## 5. 人生事件
 
-樣本窗口：**上一個完整年度**（`lastFullYear = 當前年份 - 1`）
+事件是沒有來源、金額由使用者自行輸入的現金流。「有沒有 source」就是事件與規則的分界；
+同一筆現金流只能落在其中一側，避免重複計入。
 
-步驟：
+事件由一至多個 Phase 組成，Phase 必須依起始年升冪且不得重疊。Phase 可跨越退休年，是否
+落在投影期內由解析期判定。事件不能被比例規則參照，事件 id 與規則 id 不檢查跨群組碰撞。
+工作區新增事件時一併建立一個以退休年為起訖的 Phase，事件不會以零個 Phase 落地，使用者
+只需要改年份與金額。清單的順序由「事件最早 Phase 的起年」決定、Phase 由起年升冪，排序
+只在年份打到滿位時才重排，半打的年份不會讓列在使用者游標下跳走。
 
-1. 查詢 `lastFullYear` 整年的 `transactions`（1月1日～12月31日）
-2. 展開每筆 `entries`
-3. 篩選 `ledgerCode` 以 `income:` 開頭的分錄
-4. 依 `ledgerCode` 分組後加總 `(credit - debit)`
-5. 計算年化金額並建立對應 `incomeStream`
+拖曳 bar 換列就是改事件的隸屬：只要指標換到別的列就算，不必同時拖過一整年。鍵盤使用
+者改隸屬則走 inspector 的「所屬事件」選欄，效果與拖曳相同：Phase 的年份原樣搬到新事件，
+新事件原本沒有的空白字段也照樣留白。
 
-輸出欄位與 metadata 對應見 [data-structure.md](data-structure.md)；相關取捨理由見 [ADR-0023](adr/0023-retirement-income-from-entries-only.md) 與 [ADR-0024](adr/0024-retirement-income-import-annualized.md)。
+時間軸只顯示目前視窗的年份，視窗以平移鈕移動，單年與五年各一組步階，到邊界時
+該方向的鈕停用。退休年以虛線標記，圖例寫在提示文字下方，年份軸只放年份本身。bar 超出
+視窗的那一端畫成虛線斷面並加一個箭頭，表示它其實還在延伸；完全落在視窗外的 bar 不渲
+染。bar 依收入／支出取語意色，上頭寫 Phase 名稱。
 
-過期偵測與批次更新依 [ADR-0025](adr/0025-retirement-sample-window-auto-shift.md) 執行：頁面顯示 banner，使用者確認後才批次更新。v2 收入層級的 `autoUpdate` 旗標已移除（issue #133）：計畫層級 Auto Update 是唯一開關，同步目標為帶有匯入統計（`calculatedFrom.ledgerCode` + `sampleYear`）的收入流。
+## 6. 基準解析
 
-## 3.5 期初餘額與重算流程
+解析器是純函式，不碰 Firestore；來源資料由呼叫端備妥。它依規則圖的拓撲順序逐條展開，
+直接產出引擎輸入。
 
-- 投影期初餘額不是手動輸入的獨立資料：取自最近已關帳期間的 BALANCE_SHEET 報表淨資產（資產總計 − 負債總計），與 Dashboard 錨定共用同一條計算路徑（見 [financial_report.md](financial_report.md) 第 4 節；取捨理由見 [ADR-0053](adr/0053-dashboard-report-anchored.md) 與 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)）。
-- 解析錨點：依 `yearMonth` 排序 persisted reports，取最新且期間狀態為 CLOSED 的月份；無已關帳期間時無法重算，必須先完成月度關帳。
-- 期初淨資產與錨定月份存入 summary（`startingNetWorth` / `anchorYearMonth`），讓輸出可標注來源期間。
+**期初餘額**可取自最新已關帳期間的資產負債表淨資產，或使用者手動輸入。前者記錄錨定
+月份，後者不記、可完全繞過「沒有已關帳期間」的限制。期初每次計算重新解析、不凍結進
+計畫；重開關帳使某月不再是已關帳時，跳過該月改取更早期間並發出警告。
 
-## 4. 債務還款導入流程
+從既有投影預填工作區時，報表來源的期初**重新解析**，不複製投影凍結的快照值；解析不到
+就把期初留空並示警，不退回舊值。
 
-啟用帳戶範圍與本金/利息模式分別見 [ADR-0032](adr/0032-debt-import-active-only.md) 與 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)。
+**規則基準**以科目為鍵，取該年淨額絕對值。該年沒有分錄即失敗，不降級為 0；基準年度由規則自己的設定決定，也不往回找有分錄的年度。同一科目
+可被多條規則共用，各規則各自解析自己的年度。淨額一律取絕對值，不檢查科目方向。
 
-導入來源：`DebtAccount` + `DebtSnapshot`
+**錯誤與警告共用同一個型別與陣列**，以嚴重度區分。錯誤讓整次解析失敗、不落庫；警告
+只呈現，不阻擋儲存。所有錯誤一次收集後回傳，使用者不必修一輪重算一輪。錯誤碼全集見
+`src/domains/retirement/errorCodes.ts`。
 
-步驟：
+解析端不處理破產。
 
-1. 掃描所有 `isActive=true` 的 DebtAccount
-2. 每個 DebtAccount 建立一筆 `type=debt_payment` 的退休支出類別
-3. 讀取 DebtAccount 的 `name`、`monthlyPayment`、`startDate/endDate`
-4. 讀取最近 12 個月 DebtSnapshot，彙總 `totalPaid` 與 `interestPaid`
-5. 建立固定支出項目並寫入 `expenseCategories`
+## 7. 引擎
 
-`includesPrincipal` 與 `interestOnly` 的計算規則見本節上方；取捨理由見 [ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)。
+引擎是同步、純的函式，只認數字與年份，不認識 Method、來源或 Firestore，也不呼叫時鐘。
+輸入不變量（整數、連續年度、非負金額、首年不晚於末年）違反時丟 `RangeError`；呼叫端
+在寫入前已完成驗證，引擎不重算、不排序、也不防禦。
 
-## 5. Repository 行為
+每年以期初餘額計算報酬，再加流入、減流出得到期末。破產後**繼續算到期滿**，負餘額照套
+報酬，不歸零、不停止。過程不捨入，輸出四捨五入到整數元，負零正規化為 0。
 
-存放庫與 Use Case 的規則集中在下表，取捨理由見各自 ADR：
+輸出含逐年明細與 summary。summary 的三個可缺值欄位以 `null` 表示，不以 `0` 當缺值。
+退休年落在投影期之前或之後各有明確語意，不臆造數字。空年份陣列合法。
 
-| 行為                          | 規則                                                                                                                                                                                         | 取捨理由                                                   |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 摘要查詢避免 N+1              | `getPlanSummaries` 只讀計畫主文件的快取摘要，與 `getPlan` 分開，不為每個計畫讀子集合                                                                                                         | [ADR-0029](adr/0029-plan-summaries-avoid-n-plus-1.md)      |
-| income/expense 子集合整批替換 | 整批替換而非逐筆 diff                                                                                                                                                                        | [ADR-0030](adr/0030-retirement-update-batch-replace.md)    |
-| 刪除順序（歷史；已原子化）    | 子集合先行、主文件最後                                                                                                                                                                       | [ADR-0031](adr/0031-retirement-delete-order.md)            |
-| active plan 唯一性            | 同一 household 至多一筆 `isActive=true`                                                                                                                                                      | [ADR-0036](adr/0036-single-active-retirement-plan.md)      |
-| 新建計畫預設狀態              | household 首個計畫 `isActive=true`，之後建立的計畫 `isActive=false`；清單頁可手動將非 active 計畫設為 active                                                                                 | issue #264                                                 |
-| 複製後預設非啟用              | 新計畫 `isActive=false`                                                                                                                                                                      | [ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md) |
-| 寫入原子邊界、上限與併發      | create/update/delete/duplicate 全在單一 transaction 內；preflight（schema 驗證）在 transaction 外先做；單次寫入上限 400 筆，超過回 `PLAN_TOO_LARGE`；transaction 失敗回 `TRANSACTION_FAILED` | [ADR-0040](adr/0040-retirement-plan-atomic-writes.md)      |
+引擎導出 `ENGINE_VERSION`，只在輸出語意改變時遞增；版本低於現行值的已存投影視為過舊，
+只在檢視時提示，不自動重算。
 
-目前對應的主要操作包括 `getPlan/getPlans`、`getPlanSummaries`、`countChildren`、`createPlanAtomically`、`updatePlanAtomically`、`deletePlanAtomically` 與 `DuplicateRetirementPlanUseCase`；create/update/delete/duplicate 的寫入一律走 [ADR-0040](adr/0040-retirement-plan-atomic-writes.md) 的單一 transaction 邊界。
+## 8. 工作區與唯讀檢視
 
-## 6. UI 操作
+`/retirement/new` 是空白工作區。選擇投影起點是純 state 的 dialog，掛在投影清單的
+NEW PROJECTION 與工作區的 CHANGE PLAN 兩處，不進 URL；選定才導航——空白留在無 query 的路徑。
 
-- 收入頁面提供「Import from Ledger」按鈕（上一完整年度匯入行為不變）。
-- 支出頁面提供「匯入債務還款」與「Import from Ledger」按鈕。
-- 計畫清單頁以系統表格呈現：欄位為 Name、Retirement Age、Final Net Worth、Status；active 計畫置頂（其餘維持 repository 的 updatedAt 由新到舊），並以列左緣品牌色條與文字狀態徽章（使用中／未使用）凸顯——顏色只是輔助，不可作為唯一訊號。點擊列進入計畫詳情，Duplicate 與 Set as active（僅非 active 計畫）為列尾圖示動作，New Plan 留在頁首；未重新計算的計畫 Final Net Worth 顯示「—」（無 fallback 值）。空／載入／錯誤三態沿用共用元件（EmptyState／Skeleton／inline Alert + 重試）。
-- Projection 摘要為快取：Recalculate 時重新推導 netWorthAtRetirement（退休年期初淨資產）與 finalNetWorth（投影期末淨資產），不使用遷移腳本。
-- 事件頁為分段編輯：可新增多個 phase，每段設定 Start/End Year 與金額（必填）、可選 Growth Rate（留空代表隨計畫通膨）；phase 以 repeater 編輯（`md` 以上為欄位對齊的單列、行動版為兩欄堆疊區塊，不橫向捲動），各欄位共用系統表單欄位與樣式。
-- 事件清單列顯示該事件的**終身費用總和**（每個 phase 逐年以自身成長率或計畫通膨成長後加總），並在金額下方註記 phase 數量（僅分段事件）；收入事件以 `+`、支出事件以 `-` 標示。
-- 收入頁每筆收入只有一組金額欄位：目前年金額（匯入時唯讀帶入；null = 情境專用流，顯示「—」帶 Import from Ledger 提示，退休前貢獻 0）與退休年金額（可編輯）。
-- 收入對話框為 v2 形狀（issue #133）：Type、唯讀 Current Annual、可編輯 Retirement Annual、Growth（Advanced 展開明確成長率）、Start/End Year 與 Lifelong 收進 Advanced；無 Source 選擇器、Ledger Code、Sample Year、收入層級 Auto Update、試算預覽與連動退休年 Badge（計畫層級 Auto Update 是唯一開關）。
-- 支出對話框以 Duration 顯示期間：未設定 End Year 即 Lifelong，設定後顯示 Until {endYear}；Debt Payment 的 End Year 保留在主表單。Start/End Year 收進 Advanced 展開區（Start Year 預設當前年度，無 2100 預設值）。
-- 支出成長率預設跟隨計畫通膨並顯示「Using plan inflation: {rate}%」，Advanced 展開後才能輸入明確成長率（留空 = 計畫通膨，0 = 明確 0%）；目前年支出一般支出可編輯，Debt 匯入值為系統推導唯讀，退休後費用比例（%）維持必填。
-- Projection Results：
-  - 現金流圖以共用 `ComposedChart` 呈現：收入帶與投資報酬帶**堆疊**在零以上（投資報酬帶畫在收入帶之上，值為收入＋投資報酬，`baselineValues` 即收入線）、支出帶在零以下，各帶為單色資料歸屬漸層；再加上淨現金流線（primary，左軸）與淨資產線（`savings`，右軸，`asset` 藍，逐年遞增）；淨資產即投影期末餘額，與其他序列同源。圖例與 tooltip 皆逐序列列出收入／投資報酬／支出／淨現金流／淨資產。
-  - Overview 另有獨立的淨資產軌跡圖（單一淨資產面積線，標出退休年與歸零線）。
-  - 明細表走系統 data-table（桌面）與 `MobileExpandableRow`（行動版），逐年以列展開顯示當年收入明細與支出明細。
-  - 明細表額外顯示 `投資收益` 欄位（與 `收入` 分開）。
-  - Mobile（<md）不使用橫向捲動表格（issue #138）：每年為 compact row，Year 與 Savings（收盤淨資產）固定顯示，其餘欄位（Age、Status、Income、Expense、投資收益、Net）與收支明細在展開區，閱讀順序與桌面一致；md+ 維持系統表格。
-- 收入匯入結果以 `incomeCategory` 對齊：
-  - 已存在相同 `incomeCategory`：更新既有項目（保留原 id）
-  - 不存在：新增項目
-- 債務匯入結果以 `sourceDebtAccountId` 對齊：
-  - 已存在相同 `sourceDebtAccountId`：更新既有項目（保留原 id）
-  - 不存在：新增項目
-- 退休詳情頁為單頁 Scenario Workspace（2026-09-20 #120；2026-10 改為分頁，issue #264）：頂部分為三個底線式 Tabs，全 viewport 適用；行動版分頁列可橫向捲動（不堆疊）。
-  - **Overview**：Outcome（退休時資產／最低資產年份／是否破產，以 MetricGroup 排版非卡片）、Current Financial State、淨資產軌跡圖、關鍵風險（退休年／破產年／最低資產年／預期壽命終點，皆由既有資料直接列出）。
-  - **Projection**：現金流投影圖與年度明細。
-  - **Plan Setup**：Scenario Assumptions、Income、Living Expenses、Life Events。
-  - 桌面切換分頁會卸載未顯示的分頁（本地編輯狀態不保留）；無投影結果時，Overview 與 Projection 顯示單一空狀態（前往每月關帳）。
+計畫清單（`/retirement/plans`）的入口是投影清單 header 的 PLANS 與起點 dialog 的
+「Manage plans」，不進全域導覽：計畫是投影的模板，附屬於同一個任務。
 
-## 7. 驗證重點
+計畫可直接在
+`/retirement/plans/new` 建立——只有名稱與三組輸入，沒有期初、起算年與預覽，因為計畫不快取
+結果；建立成功後導向該計畫的檢視頁。另一條寫入路徑仍是從工作區或投影的 SAVE AS PLAN，
+它不必離開當下的情境。
 
-驗證應由 domain schema 與相關 ADR 驅動：收入金額欄位與支出攤平見 [ADR-0057](adr/0057-retirement-v1-flat-amount-fields.md)，事件格式與相容性見 [ADR-0034](adr/0034-event-phases-segmented.md)／[ADR-0035](adr/0035-legacy-single-event-compatibility.md)，債務匯入見 [ADR-0032](adr/0032-debt-import-active-only.md)／[ADR-0033](adr/0033-debt-expense-principal-interest-mode.md)，計畫生命週期見 [ADR-0036](adr/0036-single-active-retirement-plan.md)／[ADR-0037](adr/0037-retirement-plan-duplicate-inactive.md)。
+計畫檢視頁的人生事件時間軸以**最早階段的起年**為起點，計畫內沒有事件時退回當下年度。
 
-匯入測試仍應覆蓋收入只取 `income:*`、使用 `(credit - debit)`、保留來源 metadata，以及目標年度沒有資料時保留原金額並留下警告等現行實作行為。
+工作區在單一路由內走 setup → preview 兩階段，換階段不換路由，草稿共用同一份記憶體。
+計算**不**落地；只有儲存 dialog 的 SAVE 才寫 Firestore。預覽保留設定摘要，一般編輯返回
+setup（只丟棄結果，不動草稿）；退休年齡是唯一可在預覽中比較並套用的設定。
+
+退休年齡比較是**試算，不是編輯**：切換年齡只產生另一組數字，草稿不動，按下套用才寫
+回。比較並列目前與試算兩欄，涵蓋破產年份、最終淨資產與退休當下淨資產；差值只在年齡
+真的不同時出現。最早可持續的年齡可一鍵跳過去；任一試算失敗時在該筆的比較欄標記並在表格
+下方顯示原因，並以失敗字樣取代最早年齡。年齡以左右方向鍵或前後鈕逐步移動，變更以
+polite live region 播報；年齡只在目前假設推得出的區間內移動，兩端停用。
+
+儲存 dialog 只有名稱與 SAVE／Cancel：名稱依序預填上次儲存值、套用的計畫名稱，皆無時
+預填帶時間戳的預設值；不可留空；儲存中停在 dialog，失敗在原處顯示錯誤與重試。成功後
+關閉、留在預覽、顯示成功提示與前往檢視頁連結。
+
+名稱輸入在計畫表單與兩個存檔入口（存投影、存為計畫）之間共用同一個**名稱欄位**：空白
+一律先去頭尾空白再判必填，失敗訊息留在原處，成功才收掉當下的對話框。名稱只是被收集的
+字串，欄位不認識它命名的是計畫還是投影。
+
+檢視頁整頁唯讀，唯一例外是名稱的 inline 編輯。分頁依序為結論、趨勢、設定快照（標籤文字
+以 `PROJECTION_VIEW_LABELS` 為準，本節不複寫）。
+**淨資產一律以年初為基準**：結論句的退休當下淨資產、最低淨資產、年度表格的淨資產欄與年度面板
+的淨資產都是該年年初值。引擎因此在年初餘額上取最低點，同一年在任何位置都只有一個數字，「年初
+vs 年末」的落差不會出現在畫面上。
+
+投影趨勢是同一個圖位、**單選的兩種檢視**：「淨資產」與「收支結構」，預設淨資產（它是這頁的
+結論，不與收支線爭同一塊畫布）。兩張圖都可以點選年份，垂直標記共用同一個優先序
+（轉負 > 選取 > 退休，一格只留一條）。檢視切換不重設選取年份；工作區預覽頁與檢視頁用同一個圖位。
+收支檢視裡的淨資產線是**脈絡而非主體**，因此走細虛線；淨資產檢視則用它自己當主角（實線加面積）。
+
+金額語意只給**淨額**：淨資產變動依正負上色，淨資產轉負時上警示色並以字重承擔層級，非負時
+維持前景色加字重；收入、支出、投資收益等毛額與展開列的四項一律 muted，不與淨額爭色。
+
+**淨資產變動 = 流入 − 流出 + 投資報酬**，即引擎的期末餘額增額，不是會計意義的淨現金流
+（後者不含報酬，見 [financial_report.md](financial_report.md) §6）。報酬算進去，變動欄才與
+淨資產線、破產判定同向，恆等式 `期末 − 年初 = 變動` 也才成立。趨勢圖的變動線因此等於
+「收入＋報酬疊帶的頂 − 支出帶」，與堆疊帶自洽。
+
+版本過舊時在 header 下方顯示 warning 與重算入口，重算會把設定快照預載回工作區並清掉 query。
+
+兩個清單固定三態：載入用 skeleton、失敗用 warning alert 加重試、找不到用空狀態加回
+清單。投影清單依建立時間降冪，計畫清單依最後更新降冪；都是單欄排序，不新增索引。
+
+## 9. 備份
+
+投影的四份文件一起進出，缺任何一份即為不完整備份，由 payload schema 擋下。還原沿用
+備份內原 id 與 audit 欄位，不重算；版本過舊只在檢視時提示。覆蓋式還原的刪除清單包含
+投影，順序子先主後。備份格式與涵蓋範圍見 [data-structure.md](data-structure.md) §4。
+
+## 10. 驗證分層
+
+驗證分三層，只在兩個寫入邊界（存計畫、建立投影）共用同一份 schema：
+
+| 層          | 負責                                 |
+| ----------- | ------------------------------------ |
+| Domain      | 形狀、參數範圍、組合、參照存在性、環 |
+| Application | 科目存在性、文件大小、batch 原子性   |
+| 引擎        | 只驗輸入不變量                       |
+
+測試清單不抄在文件裡；行為契約的驗收住在 `src/domains/retirement/**/*.test.ts` 與
+`src/application/retirement/**/*.integration.test.ts`。

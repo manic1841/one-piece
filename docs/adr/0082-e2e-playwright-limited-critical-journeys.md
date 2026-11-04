@@ -10,7 +10,7 @@
 
 - **不導入 E2E。** 拒絕：跨頁面、跨層的旅程（例如登入 → 記帳 → 月結 → 報表）沒有單一層級的測試能覆蓋，缺少這層就無法在部署前確認「使用者真的走得完」。
 - **Cypress。** 拒絕：Playwright 的 `webServer`、跨 context、trace viewer 與 CI headless 支援更契合本專案「少量、穩定、只在 gate 跑」的定位。
-- **擴大 E2E 覆蓋（貸款、退休匯入、offline、跨瀏覽器引擎）。** 拒絕：E2E 較慢且 flaky 成本高，擴張會把維護負擔從「數字正確」轉移到「瀏覽器相容」，與風險分布相反；這些列為 backlog，需要時再逐條評估。
+- **擴大 E2E 覆蓋（貸款、投影計算、offline、跨瀏覽器引擎）。** 拒絕：E2E 較慢且 flaky 成本高，擴張會把維護負擔從「數字正確」轉移到「瀏覽器相容」，與風險分布相反；這些列為 backlog，需要時再逐條評估。
 - **對 production preview 而非 dev server 跑。** 拒絕：emulator 同源 proxy 只掛在 Vite `server:`，對 preview 需另補 `preview:` proxy；而「build artifact 有沒有壞」已由 `tsc -b` 與 `vite build` 覆蓋，E2E 的價值是旅程走得通。
 - **驅動應用登入頁做 `signInWithPassword`。** 拒絕：應用登入頁只提供 Google popup，沒有 email/password 表單可走；Auth emulator 也不模擬 Google 帳號選擇。改以 Auth emulator REST 取得 session 後注入 SDK 儲存——代價是綁定 SDK 的儲存格式（`firebaseLocalStorageDb`），故登入斷言改為驗證「登入後畫面的可見性」（白名單進得去、白名單外被擋），而非登入流程本身。
 

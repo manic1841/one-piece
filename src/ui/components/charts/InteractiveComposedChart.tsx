@@ -17,6 +17,8 @@ type InteractiveComposedChartProps = {
   height?: number;
   showLabels?: boolean;
   ariaLabel: string;
+  /** Optional activation of a column (click, Enter, Space). */
+  onPointClick?: (index: number) => void;
   className?: string;
 };
 
@@ -41,6 +43,7 @@ export function InteractiveComposedChart({
   height = 200,
   showLabels = true,
   ariaLabel,
+  onPointClick,
   className,
 }: InteractiveComposedChartProps) {
   const count = labels.length;
@@ -67,6 +70,7 @@ export function InteractiveComposedChart({
           plotHeight={height}
           points={points}
           ariaLabel={ariaLabel}
+          onActivate={onPointClick}
           className="absolute inset-0 flex cursor-crosshair items-stretch outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           resolveIndex={resolveIndex}
         >

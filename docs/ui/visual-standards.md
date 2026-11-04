@@ -67,12 +67,7 @@ Page Header 規則：
 
 ## 頁面寬度
 
-桌面版以固定最大內容寬度置中。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。
-
-頁面依用途分兩類：
-
-- **資料密集頁**（Transactions、Accounts、Debt、Reports）：可使用完整內容寬度。
-- **閱讀 / 情境頁**（Retirement、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度，避免長行。容器上限屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
+桌面版以固定最大內容寬度置中，全站所有頁面共用同一個容器，頁面**不另外設定寬度**（不寫頁面層級的 `max-w-*`）。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。
 
 原則：
 
@@ -103,13 +98,26 @@ Page Header 規則：
 
 ## 進階設定 (Advanced Settings)
 
-複雜設定預設隱藏，收在 `Advanced` 展開鈕之後（例：Retirement 的 Growth / Start Year / End Year）。
+複雜設定預設隱藏，收在 `Advanced` 展開鈕之後（例：交易表單的進階欄位；退休規則的參數只隨所選 Method 出現，不預先鋪滿）。
 
 原則：
 
 > **Default path simple. Advanced path powerful.**
 
 不要把 domain complexity 全部丟給使用者。
+
+### 欄位順序與上下層揭露 (Field Order & Disclosure)
+
+選取 Phase 的編輯器若同時修改它所屬的 Event，桌機以並列的 Event / Phase 區域呈現，避免把必要欄位藏在收合層級，也讓窄欄位不被整個頁寬拉長；行動版依 Event → Phase 的閱讀順序垂直堆疊。兩者都屬於同一個選取細節，不重複顯示摘要列。
+
+其他「剛選中的東西」與「它的上層」編輯面板仍遵循以下順序：
+
+1. **選中的東西先出現**——它是這個面板存在的理由。
+2. **上層物件收在上方的揭露列**，摘要行右側以單行小字顯示識別值，點開才出現欄位。
+3. **上層欄位有錯誤時強制展開**，訊息不得藏在收起的區域裡。
+4. 上層的值若已由摘要行呈現，面板標題與描述不再重述一次。
+
+揭露列只用在「同一筆編輯的上下層」，與上面的 `Advanced`（同一層的選填欄位）是兩件事。
 
 ## 工作流 (Workflow)
 
@@ -233,7 +241,7 @@ Financial Reports 三張表是一個**沒有欄名標題列的單表**，由資�
 Detail 頁把低頻決策的資訊收在可摺疊面板與列展開之後，讓主結論（summary）先被讀到：
 
 - **區塊級折疊**：次要 section 可整段收進可摺疊面板，面板標題即 section 標題，**預設展開**；展開狀態**不持久**（切換檢視即重置）。
-- **列展開**：同一份資料的「彙總列 → 該列明細」用**列展開**承擔。彙總列是唯一的互動列（chevron 置於標籤**左側**、`aria-expanded`），展開顯示該列明細；展開中的列不加 hover 底色，明細列一律不得有 hover 呈現。
+- **列展開**：同一份資料的「彙總列 → 該列明細」用**列展開**承擔。彙總列是唯一的互動列（chevron 置於標籤**左側**、`aria-expanded`），展開顯示該列明細；展開中的列不加 hover 底色，明細列一律不得有 hover 呈現。**chevron 與整列是同一個意圖**：兩者行為一致（選取＋切換展開），不得讓相鄰的兩個目標給出不同結果；chevron 命中區至少 32px。
 - **權威值優先**：每月彙總以已結算的快照為權威，缺快照時退回該月明細合計；SUMMARY 固定為最近 12 個月合計，實體餘額取最新快照並獨立於 summary 呈現（專案詳情以 hero 數字承擔），兩者都不隨展開狀態跳動。
 - **可推導的聚合不另開表**：能由明細推導的聚合（如支出分類）不另開表格，改由展開明細承擔。
 - 行動版以可展開的 grouped row 呈現同一組資料，不另做第二套結構。
@@ -247,6 +255,7 @@ Mobile 不是 Desktop 縮小，而是相同資訊階層的不同排版。
 - Table → compact rows / grouped list。
 - Secondary information 可收進 Accordion。
 - Primary action 保持容易觸及。
+- 底部固定列（sticky dock）以 `--bottom-overlay`（由 shell 量測系統級固定浮層髮布，無浮層時為 `0`）加上 `env(safe-area-inset-bottom)` 讓位，永不與固定浮層或 home indicator 重疊；高度不得寫死。
 - Reading order 與 Desktop 一致（見「響應式原則」）。
 
 行動版導覽由 Pixel Pet 獨家擁有，契約見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
@@ -349,7 +358,7 @@ Reading order 不變。斷點與導覽切換契約見 [`ui-layer-architecture.md
 工程師 Review 時看到以下情況，優先視為 drift：
 
 - ❌ **Card everywhere**——每個區塊都套 Card。
-- ❌ **Excessive rounded corners**——`rounded-xl` / `rounded-2xl` / pill everything。
+- ❌ **Excessive rounded corners**——`rounded-xl` / pill everything。
 - ❌ **Shadow everywhere**。
 - ❌ **彩色代表資料類型**。
 - ❌ **大型 icon / illustration**。
