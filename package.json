@@ -21,6 +21,7 @@
     "docs:check": "bash scripts/check-doc-references.sh && node scripts/check-doc-code-paths.mjs",
     "qa:init": "tsx scripts/qa/bootstrap-emulator-qa.ts",
     "qa:seed": "tsx scripts/qa/seed-qa-data.ts",
+    "demo:backup": "tsx scripts/qa/export-demo-backup.ts",
     "prepare": "node scripts/install-git-hooks.mjs"
   },
   "pre-commit": [
