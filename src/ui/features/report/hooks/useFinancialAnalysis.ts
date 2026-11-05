@@ -3,14 +3,13 @@ import { useEffect, useState } from 'react';
 import {
   type AnalysisRange,
   type FinancialAnalysis,
-  getFinancialAnalysisUseCase,
-} from '@/application/report/use_cases/getFinancialAnalysisUseCase';
+  getFinancialAnalysisWorkflow,
+} from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 import { buildReportAnalysisVM, buildReportSummaryVM } from '../viewmodels/reportAnalysis.vm';
-
-const LOAD_ERROR = '無法載入分析資料';
 
 export function useFinancialAnalysis(householdId: string, range: AnalysisRange) {
   const auth = useAuthIdentity();
@@ -21,7 +20,7 @@ export function useFinancialAnalysis(householdId: string, range: AnalysisRange) 
   useEffect(() => {
     // A newer range must not be overwritten by an in-flight older response.
     const controller = new AbortController();
-    void run(() => getFinancialAnalysisUseCase.execute({ householdId, auth, range }), {
+    void run(() => getFinancialAnalysisWorkflow.execute({ householdId, auth, range }), {
       signal: controller.signal,
       writeBack: (result) => setAnalysis(result.ok ? result.value : null),
     });
@@ -33,7 +32,7 @@ export function useFinancialAnalysis(householdId: string, range: AnalysisRange) 
     summaryVM: analysis ? buildReportSummaryVM(analysis) : null,
     analysisVM: analysis ? buildReportAnalysisVM(analysis) : null,
     loading,
-    errorMessage: error === null ? null : LOAD_ERROR,
+    errorMessage: error === null ? null : REPORT_ANALYSIS_LABELS.LOAD_ERROR,
     reload: () => setReloadNonce((nonce) => nonce + 1),
   };
 }

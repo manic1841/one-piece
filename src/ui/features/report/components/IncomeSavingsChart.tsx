@@ -2,18 +2,12 @@ import { useState } from 'react';
 
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
-import {
-  type ComposedReferenceLine,
-  type ComposedSeries,
-} from '@/ui/components/charts/composedChartGeometry';
+import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
-import {
-  type IncomeChartVM,
-  type IncomeSeriesKey,
-  unclosedRunStarts,
-} from '../viewmodels/reportAnalysis.vm';
+import { type IncomeChartVM, type IncomeSeriesKey } from '../viewmodels/reportAnalysis.vm';
+import { unclosedReferenceLines } from './unclosedMarkers';
 
 interface IncomeSavingsChartProps {
   points: IncomeChartVM[];
@@ -46,11 +40,7 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
       return next;
     });
 
-  const referenceLines: ComposedReferenceLine[] = unclosedRunStarts(points).map((index) => ({
-    index,
-    tone: 'warning',
-    label: REPORT_ANALYSIS_LABELS.UNCLOSED_MARKER,
-  }));
+  const referenceLines = unclosedReferenceLines(points);
 
   const barSeries: ComposedSeries[] = [
     ...(active.has('income')
@@ -97,32 +87,37 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
           return { title: point.label, value, meta };
         })}
         height={isDesktop ? 240 : 160}
-        // The lower line owns the x labels; without it this chart must draw them.
+        // The lower savings line owns the x labels while it is visible.
         showLabels={!savingsVisible}
         ariaLabel={REPORT_ANALYSIS_LABELS.INCOME_ARIA(visibleLabels.join('、'))}
         onPointClick={activate}
       />
 
       {savingsVisible && (
-        <InteractiveComposedChart
-          labels={labels}
-          series={[
-            {
-              kind: 'line',
-              tone: 'asset',
-              values: points.map((point) => point.savingsRate),
-            },
-          ]}
-          points={points.map((point) => ({
-            title: point.label,
-            value: `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}`,
-          }))}
-          // The bar chart above already labels these runs; keep the markers without repeats.
-          referenceLines={referenceLines.map(({ index, tone }) => ({ index, tone }))}
-          height={96}
-          ariaLabel={REPORT_ANALYSIS_LABELS.SAVINGS_RATE}
-          onPointClick={activate}
-        />
+        <div className="mt-3 border-t border-border pt-3">
+          <p className="mb-1 font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
+            {REPORT_ANALYSIS_LABELS.SAVINGS_RATE_UNIT}
+          </p>
+          <InteractiveComposedChart
+            labels={labels}
+            series={[
+              {
+                kind: 'line',
+                tone: 'asset',
+                values: points.map((point) => point.savingsRate),
+              },
+            ]}
+            points={points.map((point) => ({
+              title: point.label,
+              value: `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}`,
+            }))}
+            // The bar chart above already labels each run.
+            referenceLines={referenceLines.map(({ index, tone }) => ({ index, tone }))}
+            height={96}
+            ariaLabel={REPORT_ANALYSIS_LABELS.SAVINGS_RATE}
+            onPointClick={activate}
+          />
+        </div>
       )}
 
       <ChartLegend

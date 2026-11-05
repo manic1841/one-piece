@@ -130,18 +130,23 @@ interface Scale {
 }
 
 /**
- * Include 0 (bars need a baseline), then pad the data extremes so they breathe.
- * A side that is only the 0 baseline is not padded, so all-positive data never
- * shows a negative tick.
+ * Bars need a 0 baseline; line-only charts do not, and anchoring them at 0
+ * flattens small moves on a high base (a balance-sheet trend, a savings rate),
+ * so those scale to the data instead. Either way the extremes are padded.
  */
-const buildScale = (values: number[]): Scale => {
-  const min = Math.min(0, ...values);
-  const max = Math.max(0, ...values);
+const buildScale = (values: number[], includeZero: boolean): Scale => {
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values);
+  const min = includeZero ? Math.min(0, dataMin) : dataMin;
+  const max = includeZero ? Math.max(0, dataMax) : dataMax;
   if (min === max) {
     const pad = Math.abs(max || 1) * 0.1;
     return { min: min - pad, max: max + pad };
   }
   const pad = (max - min) * RANGE_PAD;
+  if (!includeZero) return { min: min - pad, max: max + pad };
+  // A side that is only the 0 baseline is not padded, so all-positive data
+  // never shows a negative tick.
   return { min: min < 0 ? min - pad : min, max: max > 0 ? max + pad : max };
 };
 
@@ -152,6 +157,10 @@ const yFor = (value: number, scale: Scale): number => {
   const ratio = (value - scale.min) / (scale.max - scale.min);
   return PADDING_TOP + (1 - ratio) * innerHeight;
 };
+
+/** The zero line, kept inside the plot when the domain does not include 0. */
+const clampedZeroY = (scale: Scale): number =>
+  Math.min(PADDING_TOP + innerHeight, Math.max(PADDING_TOP, yFor(0, scale)));
 
 const gridValueAt = (scale: Scale, index: number): number => {
   const ratio = index / (GRID_LINE_COUNT - 1);
@@ -186,8 +195,9 @@ export function buildComposedGeometry(
     .filter((item) => item.axis === 'right')
     .flatMap((item) => defined(item.values));
 
-  const leftScale = leftValues.length > 0 ? buildScale(leftValues) : undefined;
-  const rightScale = rightValues.length > 0 ? buildScale(rightValues) : undefined;
+  const hasBars = series.some((item) => item.kind === 'bar');
+  const leftScale = leftValues.length > 0 ? buildScale(leftValues, hasBars) : undefined;
+  const rightScale = rightValues.length > 0 ? buildScale(rightValues, hasBars) : undefined;
   const primaryScale = leftScale ?? rightScale;
   if (!primaryScale) return EMPTY_LAYOUT;
 
@@ -234,7 +244,7 @@ export function buildComposedGeometry(
 
   const lines: ComposedLine[] = lineSeries.map((item, seriesIndex) => {
     const scale = scaleOf(item.axis ?? 'left');
-    const zeroY = yFor(0, scale);
+    const zeroY = clampedZeroY(scale);
     const coords = labels.map((_, index) => {
       const value = item.values[index];
       const baseline = item.baselineValues?.[index];
@@ -283,9 +293,9 @@ export function buildComposedGeometry(
                 .join(' ');
           const line = segment
             .map(
-            (point, index) =>
-              `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${(point.y ?? 0).toFixed(2)}`,
-          )
+              (point, index) =>
+                `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${(point.y ?? 0).toFixed(2)}`,
+            )
             .join(' ');
           return `${line} ${baselineEdge} Z`;
         })
@@ -344,7 +354,9 @@ export function buildComposedGeometry(
     gridLines,
     leftLabels: leftScale ? buildAxisLabels(leftScale) : [],
     rightLabels: rightScale ? buildAxisLabels(rightScale) : [],
-    ...(leftScale ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) } : {}),
+    ...(leftScale && leftScale.min <= 0 && leftScale.max >= 0
+      ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) }
+      : {}),
     referenceLines: referenceLines
       .filter((line) => line.index >= 0 && line.index < count)
       .map((line) => ({

@@ -4,35 +4,35 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { EmptyState } from '@/ui/components/EmptyState';
 import { FilterStrip } from '@/ui/components/FilterStrip';
+import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { PageSection } from '@/ui/components/PageSection';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
-import {
-  ANALYSIS_ANCHORS,
-  REPORT_ANALYSIS_LABELS,
-} from '@/ui/constants/report/reportCenterLabels';
+import { ANALYSIS_ANCHORS, REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { IncomeSavingsChart } from '@/ui/features/report/components/IncomeSavingsChart';
 import { NetCashFlowChart } from '@/ui/features/report/components/NetCashFlowChart';
 import { NetWorthTrendChart } from '@/ui/features/report/components/NetWorthTrendChart';
 import { useFinancialAnalysis } from '@/ui/features/report/hooks/useFinancialAnalysis';
 import {
+  ANALYSIS_RANGES,
   type AnalysisRange,
+  DEFAULT_RANGE,
   type NetWorthSeriesKey,
+  type SeriesParam,
 } from '@/ui/features/report/viewmodels/reportAnalysis.vm';
 
-const RANGES: readonly AnalysisRange[] = ['1y', '3y', '5y', 'all'];
-const DEFAULT_RANGE: AnalysisRange = '3y';
-
 const parseRange = (raw: string | null): AnalysisRange =>
-  raw !== null && (RANGES as readonly string[]).includes(raw) ? (raw as AnalysisRange) : DEFAULT_RANGE;
+  raw !== null && ANALYSIS_RANGES.includes(raw as AnalysisRange)
+    ? (raw as AnalysisRange)
+    : DEFAULT_RANGE;
 
 const parseSeries = (raw: string | null): NetWorthSeriesKey[] => {
-  if (raw === 'assets') return ['assets'];
-  if (raw === 'debt') return ['liabilities'];
+  const series = raw as SeriesParam | null;
+  if (series === 'assets') return ['assets'];
+  if (series === 'debt') return ['liabilities'];
   return [];
 };
 
@@ -108,17 +108,18 @@ const ReportAnalysisPage: React.FC = () => {
       <PageHeader
         title={REPORT_ANALYSIS_LABELS.TITLE}
         crumb={REPORT_ANALYSIS_LABELS.CRUMB}
+        backLabel={REPORT_ANALYSIS_LABELS.BACK}
         onBack={() => navigate('/reports')}
         description={analysisVM?.description}
       />
 
       {errorMessage !== null && (
-        <Alert variant="warning">
-          <AlertDescription>{REPORT_ANALYSIS_LABELS.LOAD_ERROR}</AlertDescription>
-          <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
-            {REPORT_ANALYSIS_LABELS.RETRY_ACTION}
-          </Button>
-        </Alert>
+        <LoadErrorAlert
+          errorMessage={errorMessage}
+          message={REPORT_ANALYSIS_LABELS.LOAD_ERROR}
+          retryLabel={REPORT_ANALYSIS_LABELS.RETRY_ACTION}
+          onRetry={() => void reload()}
+        />
       )}
 
       {loading && (
@@ -154,7 +155,8 @@ const ReportAnalysisPage: React.FC = () => {
               )}
               {analysisVM.unclosedNote !== null && (
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <StatusGlyph type="review" label={analysisVM.unclosedNote.text} />
+                  <StatusGlyph type="review" label="" />
+                  <span>{analysisVM.unclosedNote.text}</span>
                   {analysisVM.unclosedNote.showHistoryLink && (
                     <Button variant="text" onClick={() => navigate('/reports')}>
                       {REPORT_ANALYSIS_LABELS.UNCLOSED_HISTORY_LINK}
@@ -177,7 +179,7 @@ const ReportAnalysisPage: React.FC = () => {
               />
             </AnalysisSection>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-10">
               <AnalysisSection
                 id={ANALYSIS_ANCHORS.INCOME}
                 title={REPORT_ANALYSIS_LABELS.INCOME_SECTION}
@@ -208,7 +210,7 @@ const ReportAnalysisPage: React.FC = () => {
 
             <div>
               <Button variant="text" onClick={() => navigate('/reports')}>
-                {REPORT_ANALYSIS_LABELS.BACK} →
+                ← {REPORT_ANALYSIS_LABELS.BACK}
               </Button>
             </div>
           </>

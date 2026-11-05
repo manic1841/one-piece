@@ -4,7 +4,7 @@ import { type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { type FinancialReport } from '@/domains/report/schemas';
 import { ReportType } from '@/domains/report/schemas';
 
-import { getFinancialAnalysisUseCase } from './getFinancialAnalysisUseCase';
+import { getFinancialAnalysisWorkflow } from './getFinancialAnalysisWorkflow';
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {
@@ -88,9 +88,9 @@ const period = (yearMonth: string, status: FinancialPeriod['status']): Financial
 });
 
 const run = (range: '1y' | '3y' | '5y' | 'all' = 'all') =>
-  getFinancialAnalysisUseCase.execute({ householdId: 'h1', auth, range });
+  getFinancialAnalysisWorkflow.execute({ householdId: 'h1', auth, range });
 
-describe('getFinancialAnalysisUseCase', () => {
+describe('getFinancialAnalysisWorkflow', () => {
   beforeEach(() => {
     listReportsMock.mockReset();
     listPeriodsMock.mockReset();
@@ -108,7 +108,6 @@ describe('getFinancialAnalysisUseCase', () => {
     const result = await run();
 
     expect(result.anchor).toEqual({ yearMonth: '2026-03', closed: false });
-    expect(result.cutoff).toBe('2026-03');
     expect(result.kpis.assets).toBe(1000);
     expect(result.kpis.netWorth).toBe(900);
     expect(result.kpis.liabilities).toBe(100);

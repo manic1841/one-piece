@@ -2,7 +2,7 @@ import {
   type AnalysisRange,
   type FinancialAnalysis,
   type FinancialAnalysisKpis,
-} from '@/application/report/use_cases/getFinancialAnalysisUseCase';
+} from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
 import { type MoneyTone } from '@/ui/components/moneyTone';
 import {
   ANALYSIS_ANCHORS,
@@ -16,13 +16,19 @@ import { formatMonthLabel } from '@/ui/utils/date';
 
 import { formatReportPeriodDisplay, parseReportPeriod } from './reportHistory.vm';
 
+export { ANALYSIS_RANGES } from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
 export type { AnalysisRange };
+
+export const DEFAULT_RANGE: AnalysisRange = '3y';
 
 export type NetWorthSeriesKey = 'netWorth' | 'assets' | 'liabilities';
 export type IncomeSeriesKey = 'income' | 'expense' | 'savingsRate';
+export type SummaryKpiKey = 'totalAssets' | 'netWorth' | 'totalLiabilities' | 'savingsRate';
+/** `?series=` values: the two context lines the KPI links preselect. */
+export type SeriesParam = 'assets' | 'debt';
 
 export interface SummaryKpiVM {
-  key: string;
+  key: SummaryKpiKey;
   label: string;
   valueText: string;
   tone: MoneyTone;
@@ -86,16 +92,15 @@ const periodTextOf = (yearMonth: string | null): string => {
 };
 
 const savingsRateText = (value: number | null): string =>
-  value === null ? REPORT_ANALYSIS_LABELS.DASH : formatPercentage(value, 1);
+  value === null ? DASH : formatPercentage(value, 1);
 
-const kpiValue = (value: number | null): string =>
-  value === null ? DASH : formatCurrency(value);
+const kpiValue = (value: number | null): string => (value === null ? DASH : formatCurrency(value));
 
-const analysisHref = (anchor: string, series?: string): string =>
+const analysisHref = (anchor: string, series?: SeriesParam): string =>
   `${ANALYSIS_PATH}${series === undefined ? '' : `?series=${series}`}#${anchor}`;
 
 const summaryKpi = (
-  key: string,
+  key: SummaryKpiKey,
   label: string,
   valueText: string,
   href: string,
@@ -179,19 +184,28 @@ export const buildReportAnalysisVM = (analysis: FinancialAnalysis): ReportAnalys
     netCashFlowText: formatCurrency(point.netCashFlow),
   }));
 
-  // Section headers show the anchor period; a block without a report at the anchor shows none.
-  const atAnchor = <T extends { yearMonth: string }>(points: T[]): T | undefined =>
-    analysis.anchor === null ? undefined : points.find((p) => p.yearMonth === analysis.anchor?.yearMonth);
+  // Section headers name the anchor period so the bare value cannot be misread.
+  const latestTextAtAnchor = <T extends { yearMonth: string }>(
+    points: T[],
+    value: (point: T) => string,
+  ): string | null => {
+    const point =
+      analysis.anchor === null
+        ? undefined
+        : points.find((p) => p.yearMonth === analysis.anchor?.yearMonth);
+    return point === undefined ? null : `${point.yearMonth} · ${value(point)}`;
+  };
 
   const unclosed = analysis.unclosedMonths;
   const unclosedNote =
     unclosed.length === 0
       ? null
       : {
+          // The description already says the count, so the note only names the months.
           text:
             unclosed.length > 6
-              ? `${REPORT_ANALYSIS_LABELS.UNCLOSED_NOTE_PREFIX}${REPORT_ANALYSIS_LABELS.UNCLOSED_OVERFLOW_SUFFIX(unclosed[0], unclosed.length)}`
-              : `${REPORT_ANALYSIS_LABELS.UNCLOSED_NOTE_PREFIX}${unclosed.join('、')}`,
+              ? REPORT_ANALYSIS_LABELS.UNCLOSED_OVERFLOW_SUFFIX(unclosed[0], unclosed.length)
+              : unclosed.join('、'),
           showHistoryLink: unclosed.length > 6,
         };
 
@@ -210,24 +224,17 @@ export const buildReportAnalysisVM = (analysis: FinancialAnalysis): ReportAnalys
     netWorth: {
       points: netWorthPoints,
       insufficient: netWorthPoints.length < 2,
-      latestText: atAnchor(netWorthPoints)?.netWorthText ?? null,
+      latestText: latestTextAtAnchor(netWorthPoints, (point) => point.netWorthText),
     },
     income: {
       points: incomePoints,
       insufficient: incomePoints.length < 2,
-      latestText: atAnchor(incomePoints)?.savingsRateText ?? null,
+      latestText: latestTextAtAnchor(incomePoints, (point) => point.savingsRateText),
     },
     cashFlow: {
       points: cashFlowPoints,
       insufficient: cashFlowPoints.length < 2,
-      latestText: atAnchor(cashFlowPoints)?.netCashFlowText ?? null,
+      latestText: latestTextAtAnchor(cashFlowPoints, (point) => point.netCashFlowText),
     },
   };
 };
-
-/** First index of every contiguous unclosed run, for the chart's warning markers. */
-export const unclosedRunStarts = (points: readonly { unclosed: boolean }[]): number[] =>
-  points.flatMap((point, index) => {
-    if (!point.unclosed) return [];
-    return index === 0 || !points[index - 1]?.unclosed ? [index] : [];
-  });

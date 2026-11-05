@@ -2,18 +2,18 @@ import { useState } from 'react';
 
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
-import {
-  type ComposedReferenceLine,
-  type ComposedSeries,
-} from '@/ui/components/charts/composedChartGeometry';
+import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
-import {
-  type NetWorthChartVM,
-  type NetWorthSeriesKey,
-  unclosedRunStarts,
-} from '../viewmodels/reportAnalysis.vm';
+import { type NetWorthChartVM, type NetWorthSeriesKey } from '../viewmodels/reportAnalysis.vm';
+import { unclosedReferenceLines } from './unclosedMarkers';
+
+const SERIES_KEYS: Record<string, NetWorthSeriesKey> = {
+  [REPORT_ANALYSIS_LABELS.NET_WORTH]: 'netWorth',
+  [REPORT_ANALYSIS_LABELS.TOTAL_ASSETS]: 'assets',
+  [REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES]: 'liabilities',
+};
 
 interface NetWorthTrendChartProps {
   points: NetWorthChartVM[];
@@ -73,11 +73,7 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
       : []),
   ];
 
-  const referenceLines: ComposedReferenceLine[] = unclosedRunStarts(points).map((index) => ({
-    index,
-    tone: 'warning',
-    label: REPORT_ANALYSIS_LABELS.UNCLOSED_MARKER,
-  }));
+  const referenceLines = unclosedReferenceLines(points);
 
   const visibleLabels = [
     active.has('netWorth') ? REPORT_ANALYSIS_LABELS.NET_WORTH : null,
@@ -91,21 +87,25 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
         labels={points.map((point) => point.label)}
         series={series}
         referenceLines={referenceLines}
-        points={points.map((point) => ({
-          title: point.label,
-          value: active.has('netWorth')
-            ? `${REPORT_ANALYSIS_LABELS.NET_WORTH} ${point.netWorthText}`
-            : REPORT_ANALYSIS_LABELS.DASH,
-          meta: [
-            active.has('netWorth') ? null : `${REPORT_ANALYSIS_LABELS.NET_WORTH} ${point.netWorthText}`,
-            active.has('assets') ? `${REPORT_ANALYSIS_LABELS.TOTAL_ASSETS} ${point.assetsText}` : null,
+        points={points.map((point) => {
+          // Hidden series stay out of the tooltip entirely.
+          const visible = [
+            active.has('netWorth')
+              ? `${REPORT_ANALYSIS_LABELS.NET_WORTH} ${point.netWorthText}`
+              : null,
+            active.has('assets')
+              ? `${REPORT_ANALYSIS_LABELS.TOTAL_ASSETS} ${point.assetsText}`
+              : null,
             active.has('liabilities')
               ? `${REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES} ${point.liabilitiesText}`
               : null,
-          ]
-            .filter((part): part is string => part !== null)
-            .join(' · '),
-        }))}
+          ].filter((part): part is string => part !== null);
+          return {
+            title: point.label,
+            value: visible[0] ?? REPORT_ANALYSIS_LABELS.DASH,
+            meta: visible.slice(1).join(' · '),
+          };
+        })}
         height={isDesktop ? 320 : 200}
         ariaLabel={REPORT_ANALYSIS_LABELS.NET_WORTH_ARIA(visibleLabels.join('、'))}
         onPointClick={(index) => {
@@ -121,13 +121,7 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
         ]}
         active={visibleLabels}
         onToggle={(label) => {
-          const key = (
-            {
-              [REPORT_ANALYSIS_LABELS.NET_WORTH]: 'netWorth',
-              [REPORT_ANALYSIS_LABELS.TOTAL_ASSETS]: 'assets',
-              [REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES]: 'liabilities',
-            } as Record<string, NetWorthSeriesKey>
-          )[label];
+          const key = SERIES_KEYS[label];
           if (key !== undefined) toggle(key);
         }}
       />

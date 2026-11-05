@@ -6,8 +6,8 @@ import ReportAnalysisPage from './ReportAnalysisPage';
 
 const mockExecute = vi.hoisted(() => vi.fn());
 
-vi.mock('@/application/report/use_cases/getFinancialAnalysisUseCase', () => ({
-  getFinancialAnalysisUseCase: { execute: mockExecute },
+vi.mock('@/application/report/use_cases/getFinancialAnalysisWorkflow', () => ({
+  getFinancialAnalysisWorkflow: { execute: mockExecute },
 }));
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
@@ -26,7 +26,6 @@ const analysis = (overrides: Record<string, unknown> = {}) => ({
     savingsRate: 12.5,
     anchorClosed: false,
   },
-  cutoff: '2026-03',
   unclosedMonths: ['2026-03'],
   range: '3y',
   availableRanges: ['1y', '3y'],
@@ -81,8 +80,8 @@ describe('ReportAnalysisPage', () => {
     renderPage();
 
     // Net worth and savings rate exist at the anchor (2026-03); savings rate is null there.
-    expect(await screen.findByText('NT$900')).toBeInTheDocument();
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    expect(await screen.findByText('2026-03 · NT$900')).toBeInTheDocument();
+    expect(screen.getByText('2026-03 · —')).toBeInTheDocument();
   });
 
   it('scrolls to the deep-linked section once the analysis resolves', async () => {
@@ -122,6 +121,50 @@ describe('ReportAnalysisPage', () => {
     expect(screen.getByRole('button', { name: '總負債' })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('keeps a hidden series out of the tooltip', async () => {
+    renderPage('/reports/analysis?series=debt');
+
+    const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
+    fireEvent.click(screen.getByRole('button', { name: '淨資產' }));
+    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+
+    const tooltip = await screen.findByText(/總負債 NT\$/);
+    expect(tooltip.textContent).not.toContain('淨資產');
+  });
+
+  it('keeps the cash-flow chart mounted when its only series is toggled off', async () => {
+    renderPage();
+
+    expect(await screen.findByRole('slider', { name: /淨現金流/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '淨現金流' }));
+
+    await waitFor(() => {
+      const updated = screen.getByRole('slider', { name: /淨現金流/ });
+      expect(updated.getAttribute('aria-label')).not.toContain('顯示：淨現金流');
+    });
+  });
+
+  it('formats a negative savings rate', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('slider', { name: /收支與儲蓄率/ });
+    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+
+    expect(await screen.findByText(/-25\.0%/)).toBeInTheDocument();
+  });
+
+  it('keeps the month labels when the savings series is toggled off', async () => {
+    renderPage();
+
+    await screen.findByText('收支與儲蓄率');
+    const before = screen.getAllByText('JAN 2026').length;
+
+    fireEvent.click(screen.getByRole('button', { name: '儲蓄率' }));
+
+    expect(screen.getAllByText('JAN 2026').length).toBe(before);
+  });
+
   it('reads values through the keyboard tooltip', async () => {
     renderPage();
 
@@ -148,7 +191,7 @@ describe('ReportAnalysisPage', () => {
     await screen.findByText('淨資產趨勢');
     // One marker per chart, at the first month of each contiguous run.
     expect(screen.getAllByText('未關帳').length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText('未關帳月份：2026-03')).toBeInTheDocument();
+    expect(screen.getByText('2026-03')).toBeInTheDocument();
   });
 
   it('collapses a long unclosed note and links back to the history', async () => {
@@ -168,7 +211,7 @@ describe('ReportAnalysisPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('未關帳月份：2025-01 起等 7 期')).toBeInTheDocument();
+    expect(await screen.findByText('2025-01 起等 7 期')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '查看報表歷史' }));
     expect(await screen.findByText('REPORT LIST')).toBeInTheDocument();
   });
@@ -215,11 +258,20 @@ describe('ReportAnalysisPage', () => {
     expect(screen.getByRole('button', { name: '重試' })).toBeInTheDocument();
   });
 
-  it('stacks the two side-by-side sections below lg and keeps the drilldown period', async () => {
+  it('puts the income and cash-flow sections side by side in one wrapper', async () => {
     renderPage();
 
     await screen.findByText('收支與儲蓄率');
-    const income = screen.getByText('收支與儲蓄率').closest('section')?.parentElement;
-    expect(income?.parentElement?.className).toContain('lg:grid-cols-2');
+    const income = screen.getByText('收支與儲蓄率').closest('section');
+    const cashFlow = screen.getAllByText('淨現金流')[0]?.closest('section');
+    expect(income?.parentElement?.parentElement).toBe(cashFlow?.parentElement?.parentElement);
+  });
+
+  it('shows a skeleton while loading', async () => {
+    mockExecute.mockReturnValue(new Promise(() => {}));
+
+    renderPage();
+
+    expect(await screen.findByText('載入分析中…')).toBeInTheDocument();
   });
 });

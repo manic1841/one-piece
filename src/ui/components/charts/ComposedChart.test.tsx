@@ -20,6 +20,13 @@ describe('ComposedChart', () => {
     expect(screen.getByText('C')).toBeDefined();
   });
 
+  it('renders without a scale when every series is hidden', () => {
+    const { container } = render(<ComposedChart labels={['A', 'B']} series={[]} />);
+
+    expect(container.querySelector('svg')).toBeDefined();
+    expect(screen.queryByText('A')).toBeNull();
+  });
+
   it('draws an area path when a line requests one', () => {
     const { container } = render(
       <ComposedChart

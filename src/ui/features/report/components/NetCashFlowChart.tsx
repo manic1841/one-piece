@@ -2,11 +2,11 @@ import { useState } from 'react';
 
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
-import { type ComposedReferenceLine } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
-import { type CashFlowChartVM, unclosedRunStarts } from '../viewmodels/reportAnalysis.vm';
+import { type CashFlowChartVM } from '../viewmodels/reportAnalysis.vm';
+import { unclosedReferenceLines } from './unclosedMarkers';
 
 interface NetCashFlowChartProps {
   points: CashFlowChartVM[];
@@ -14,17 +14,10 @@ interface NetCashFlowChartProps {
 }
 
 /** 淨現金流：零基準柱，正值向上、負值向下，方向由顏色承擔。 */
-export const NetCashFlowChart: React.FC<NetCashFlowChartProps> = ({
-  points,
-  onPointActivate,
-}) => {
+export const NetCashFlowChart: React.FC<NetCashFlowChartProps> = ({ points, onPointActivate }) => {
   const isDesktop = useIsDesktop();
   const [visible, setVisible] = useState(true);
-  const referenceLines: ComposedReferenceLine[] = unclosedRunStarts(points).map((index) => ({
-    index,
-    tone: 'warning',
-    label: REPORT_ANALYSIS_LABELS.UNCLOSED_MARKER,
-  }));
+  const referenceLines = unclosedReferenceLines(points);
 
   return (
     <div className="space-y-3">
@@ -50,7 +43,9 @@ export const NetCashFlowChart: React.FC<NetCashFlowChartProps> = ({
             : REPORT_ANALYSIS_LABELS.DASH,
         }))}
         height={isDesktop ? 240 : 160}
-        ariaLabel={REPORT_ANALYSIS_LABELS.CASH_FLOW_ARIA(visible ? REPORT_ANALYSIS_LABELS.NET_CASH_FLOW : '')}
+        ariaLabel={REPORT_ANALYSIS_LABELS.CASH_FLOW_ARIA(
+          visible ? REPORT_ANALYSIS_LABELS.NET_CASH_FLOW : '',
+        )}
         onPointClick={(index) => {
           const point = points[index];
           if (point !== undefined) onPointActivate(point.yearMonth);

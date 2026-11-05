@@ -132,5 +132,4 @@ describe('buildReportHistoryVM', () => {
     expect(byPeriod['2026-05']).toBeNull();
     expect(byPeriod['2026-06']).toMatchObject({ text: 'IN PROGRESS' });
   });
-
 });

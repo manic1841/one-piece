@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 
 import { EmptyState } from '@/ui/components/EmptyState';
 import { FilterStrip } from '@/ui/components/FilterStrip';
+import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { PageSection } from '@/ui/components/PageSection';
 import { Skeleton } from '@/ui/components/Skeleton';
+import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { sectionTitleClass } from '@/ui/components/eyebrow';
-import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import {
   REPORT_ANALYSIS_LABELS,
@@ -52,20 +53,32 @@ const ReportListPage: React.FC = () => {
         title={REPORT_SUMMARY_LABELS.SECTION_TITLE}
         spacing="compact"
         action={
-          <Button variant="text" onClick={() => navigate('/reports/analysis')}>
-            {REPORT_SUMMARY_LABELS.VIEW_ANALYSIS} →
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+            {summaryVM !== null && (
+              <>
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {summaryVM.periodText}
+                </span>
+                {summaryVM.unclosed && (
+                  <StatusGlyph type="review" label={REPORT_SUMMARY_LABELS.UNCLOSED} />
+                )}
+              </>
+            )}
+            <Button variant="text" onClick={() => navigate('/reports/analysis')}>
+              {REPORT_SUMMARY_LABELS.VIEW_ANALYSIS} →
+            </Button>
+          </div>
         }
       >
         {summaryLoading ? (
           <Skeleton className="h-16 w-full" />
         ) : summaryError !== null ? (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <span>{REPORT_ANALYSIS_LABELS.LOAD_ERROR}</span>
-            <Button variant="text" onClick={() => void reloadSummary()}>
-              {REPORT_ANALYSIS_LABELS.RETRY_ACTION}
-            </Button>
-          </div>
+          <LoadErrorAlert
+            errorMessage={summaryError}
+            message={REPORT_ANALYSIS_LABELS.LOAD_ERROR}
+            retryLabel={REPORT_ANALYSIS_LABELS.RETRY_ACTION}
+            onRetry={() => void reloadSummary()}
+          />
         ) : summaryVM === null ? (
           <p className="text-sm text-muted-foreground">{REPORT_SUMMARY_LABELS.MISSING}</p>
         ) : (
@@ -83,12 +96,12 @@ const ReportListPage: React.FC = () => {
       )}
 
       {errorMessage && (
-        <Alert variant="warning">
-          <AlertDescription>{REPORT_LIST_LABELS.LOAD_ERROR}</AlertDescription>
-          <Button variant="text" className="ml-auto shrink-0" onClick={() => void reload()}>
-            {REPORT_LIST_LABELS.RETRY_ACTION}
-          </Button>
-        </Alert>
+        <LoadErrorAlert
+          errorMessage={errorMessage}
+          message={REPORT_LIST_LABELS.LOAD_ERROR}
+          retryLabel={REPORT_LIST_LABELS.RETRY_ACTION}
+          onRetry={() => void reload()}
+        />
       )}
 
       {!loading && !errorMessage && (

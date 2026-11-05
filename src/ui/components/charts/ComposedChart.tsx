@@ -217,7 +217,8 @@ export function ComposedChart({
         {children?.(layout)}
       </div>
 
-      {showLabels && xLabelIndices.length > 0 && (
+      {/* With every series hidden the geometry returns an empty layout, so there are no columns to anchor labels to. */}
+      {showLabels && layout.columns.length > 0 && (
         <div className="relative mt-2 h-4">
           {xLabelIndices.map((index, position) => (
             <span

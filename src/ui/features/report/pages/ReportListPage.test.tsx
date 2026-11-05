@@ -29,8 +29,8 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
 }));
 
 const mockAnalysis = vi.hoisted(() => vi.fn());
-vi.mock('@/application/report/use_cases/getFinancialAnalysisUseCase', () => ({
-  getFinancialAnalysisUseCase: { execute: mockAnalysis },
+vi.mock('@/application/report/use_cases/getFinancialAnalysisWorkflow', () => ({
+  getFinancialAnalysisWorkflow: { execute: mockAnalysis },
 }));
 
 const analysisResult = (overrides: Record<string, unknown> = {}) => ({
@@ -43,7 +43,6 @@ const analysisResult = (overrides: Record<string, unknown> = {}) => ({
     savingsRate: 12.5,
     anchorClosed: true,
   },
-  cutoff: '2026-06',
   unclosedMonths: [],
   range: '3y',
   availableRanges: ['1y'],
@@ -133,7 +132,9 @@ describe('ReportListPage', () => {
     // Summary: the anchor period and its four figures.
     const assets = await screen.findByRole('link', { name: '總資產，前往淨資產趨勢' });
     expect(assets).toHaveTextContent('NT$600,000');
-    expect(assets).toHaveTextContent('2026 年 6 月');
+    // The shared period sits outside the links, in the section header only.
+    expect(assets).not.toHaveTextContent('2026 年 6 月');
+    expect(screen.getAllByText('2026 年 6 月')).toHaveLength(1);
     expect(screen.getByRole('link', { name: '淨資產，前往淨資產趨勢' })).toHaveTextContent(
       'NT$450,000',
     );
@@ -185,14 +186,14 @@ describe('ReportListPage', () => {
 
     const assets = await screen.findByRole('link', { name: '總資產，前往淨資產趨勢' });
     expect(assets.getAttribute('href')).toBe('/reports/analysis?series=assets#net-worth');
-    expect(
-      screen.getByRole('link', { name: '總負債，前往淨資產趨勢' }).getAttribute('href'),
-    ).toBe('/reports/analysis?series=debt#net-worth');
+    expect(screen.getByRole('link', { name: '總負債，前往淨資產趨勢' }).getAttribute('href')).toBe(
+      '/reports/analysis?series=debt#net-worth',
+    );
     expect(screen.getByRole('link', { name: '儲蓄率，前往收支分析' }).getAttribute('href')).toBe(
       '/reports/analysis#income',
     );
     expect(screen.getByRole('link', { name: '儲蓄率，前往收支分析' })).toHaveTextContent('—');
-    expect(screen.getAllByText('未關帳')).toHaveLength(4);
+    expect(screen.getAllByText('未關帳')).toHaveLength(1);
     expect(screen.getByText(/查看完整分析/)).toBeInTheDocument();
   });
 

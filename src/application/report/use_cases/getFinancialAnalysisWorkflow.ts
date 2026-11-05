@@ -49,8 +49,6 @@ export interface FinancialAnalysisKpis {
 export interface FinancialAnalysis {
   anchor: { yearMonth: string; closed: boolean } | null;
   kpis: FinancialAnalysisKpis;
-  /** The anchor month: the range end and the date the analysis is cut off at. */
-  cutoff: string | null;
   /** Distinct not-closed months inside the range, oldest first. */
   unclosedMonths: string[];
   range: AnalysisRange;
@@ -74,6 +72,18 @@ const toMonthCode = (yearMonth: string): number => {
 
 const savingsRateOf = (income: number, expense: number): number | null =>
   income > 0 ? ((income - expense) / income) * 100 : null;
+
+/** Drawable points for one block: in range, oldest first, each marked closed or not. */
+const collectPoints = <TReport extends FinancialReport, TPoint extends AnalysisPointBase>(
+  reports: TReport[],
+  closedMonths: Set<string>,
+  inRange: (month: string) => boolean,
+  map: (report: TReport, closed: boolean) => TPoint,
+): TPoint[] =>
+  reports
+    .filter((report) => inRange(report.yearMonth))
+    .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
+    .map((report) => map(report, closedMonths.has(report.yearMonth)));
 
 type BalanceSheetReport = Extract<FinancialReport, { type: typeof ReportType.BALANCE_SHEET }>;
 type IncomeReport = Extract<FinancialReport, { type: typeof ReportType.INCOME_STATEMENT }>;
@@ -113,11 +123,7 @@ const buildAvailableRanges = (
   return ANALYSIS_RANGES.filter((range) => [...representative.values()].includes(range));
 };
 
-const cutRange = (
-  months: string[],
-  anchorYearMonth: string,
-  range: AnalysisRange,
-): string[] => {
+const cutRange = (months: string[], anchorYearMonth: string, range: AnalysisRange): string[] => {
   const anchorCode = toMonthCode(anchorYearMonth);
   if (range === 'all') {
     return months.filter((month) => toMonthCode(month) <= anchorCode);
@@ -134,7 +140,7 @@ const cutRange = (
  * 對應報表型別的月份，不檢查財務期間狀態（與儀表板的已關帳錨定刻意不同）；
  * 範圍終點固定錨點（最新有資產負債表的期間）。
  */
-export class GetFinancialAnalysisUseCase {
+export class GetFinancialAnalysisWorkflow {
   private readonly listPeriods = new ListFinancialPeriodsUseCase();
 
   async execute({
@@ -174,7 +180,6 @@ export class GetFinancialAnalysisUseCase {
       return {
         anchor: null,
         kpis: EMPTY_KPIS,
-        cutoff: null,
         unclosedMonths: [],
         range,
         availableRanges: [],
@@ -186,16 +191,41 @@ export class GetFinancialAnalysisUseCase {
 
     const anchor = anchorReport.yearMonth;
     const anchorClosed = closedMonths.has(anchor);
-    const drawableMonths = [
-      ...new Set(reports.map((report) => report.yearMonth)),
-    ].sort((a, b) => toMonthCode(a) - toMonthCode(b));
+    const drawableMonths = [...new Set(reports.map((report) => report.yearMonth))].sort(
+      (a, b) => toMonthCode(a) - toMonthCode(b),
+    );
 
-    const inRange = (month: string): boolean =>
-      cutRange([month], anchor, range).length > 0;
+    const inRange = (month: string): boolean => cutRange([month], anchor, range).length > 0;
 
-    const netWorthPoints = this.buildNetWorthPoints(byType.balanceSheet, closedMonths, inRange);
-    const incomePoints = this.buildIncomePoints(byType.income, closedMonths, inRange);
-    const cashFlowPoints = this.buildCashFlowPoints(byType.cashFlow, closedMonths, inRange);
+    const netWorthPoints = collectPoints(
+      byType.balanceSheet,
+      closedMonths,
+      inRange,
+      (report, closed) => ({
+        yearMonth: report.yearMonth,
+        closed,
+        netWorth: report.data.assets.total - report.data.liabilities.total,
+        assets: report.data.assets.total,
+        liabilities: report.data.liabilities.total,
+      }),
+    );
+    const incomePoints = collectPoints(byType.income, closedMonths, inRange, (report, closed) => ({
+      yearMonth: report.yearMonth,
+      closed,
+      income: report.data.incomeTotal,
+      expense: report.data.expenseTotal,
+      savingsRate: savingsRateOf(report.data.incomeTotal, report.data.expenseTotal),
+    }));
+    const cashFlowPoints = collectPoints(
+      byType.cashFlow,
+      closedMonths,
+      inRange,
+      (report, closed) => ({
+        yearMonth: report.yearMonth,
+        closed,
+        netCashFlow: report.data.netCashChange,
+      }),
+    );
 
     const anchorIncome = byType.income.find((report) => report.yearMonth === anchor);
     const unclosedMonths = [
@@ -216,7 +246,6 @@ export class GetFinancialAnalysisUseCase {
           : null,
         anchorClosed,
       },
-      cutoff: anchor,
       unclosedMonths,
       range,
       availableRanges: buildAvailableRanges(drawableMonths, anchor, range),
@@ -225,55 +254,6 @@ export class GetFinancialAnalysisUseCase {
       cashFlowPoints,
     };
   }
-
-  private buildNetWorthPoints(
-    reports: BalanceSheetReport[],
-    closedMonths: Set<string>,
-    inRange: (month: string) => boolean,
-  ): NetWorthAnalysisPoint[] {
-    return reports
-      .filter((report) => inRange(report.yearMonth))
-      .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
-      .map((report) => ({
-        yearMonth: report.yearMonth,
-        closed: closedMonths.has(report.yearMonth),
-        netWorth: report.data.assets.total - report.data.liabilities.total,
-        assets: report.data.assets.total,
-        liabilities: report.data.liabilities.total,
-      }));
-  }
-
-  private buildIncomePoints(
-    reports: IncomeReport[],
-    closedMonths: Set<string>,
-    inRange: (month: string) => boolean,
-  ): IncomeAnalysisPoint[] {
-    return reports
-      .filter((report) => inRange(report.yearMonth))
-      .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
-      .map((report) => ({
-        yearMonth: report.yearMonth,
-        closed: closedMonths.has(report.yearMonth),
-        income: report.data.incomeTotal,
-        expense: report.data.expenseTotal,
-        savingsRate: savingsRateOf(report.data.incomeTotal, report.data.expenseTotal),
-      }));
-  }
-
-  private buildCashFlowPoints(
-    reports: CashFlowReport[],
-    closedMonths: Set<string>,
-    inRange: (month: string) => boolean,
-  ): CashFlowAnalysisPoint[] {
-    return reports
-      .filter((report) => inRange(report.yearMonth))
-      .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
-      .map((report) => ({
-        yearMonth: report.yearMonth,
-        closed: closedMonths.has(report.yearMonth),
-        netCashFlow: report.data.netCashChange,
-      }));
-  }
 }
 
-export const getFinancialAnalysisUseCase = new GetFinancialAnalysisUseCase();
+export const getFinancialAnalysisWorkflow = new GetFinancialAnalysisWorkflow();

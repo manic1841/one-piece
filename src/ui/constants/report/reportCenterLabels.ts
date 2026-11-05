@@ -76,11 +76,11 @@ export const REPORT_ANALYSIS_LABELS = {
   INCOME: '收入',
   EXPENSE: '支出',
   SAVINGS_RATE: '儲蓄率',
+  SAVINGS_RATE_UNIT: '儲蓄率 %',
   NET_CASH_FLOW: '淨現金流',
   SAVINGS_FORMULA: '儲蓄率 = (收入 − 支出) ÷ 收入，以損益表為準，不等於現金流。',
   CASH_FLOW_HINT: '淨現金流是現金基礎，與上方的應計收支不同。',
   UNCLOSED_MARKER: '未關帳',
-  UNCLOSED_NOTE_PREFIX: '未關帳月份：',
   UNCLOSED_OVERFLOW_SUFFIX: (first: string, count: number) => `${first} 起等 ${count} 期`,
   UNCLOSED_HISTORY_LINK: '查看報表歷史',
   INSUFFICIENT: '此範圍內不足 2 期',
@@ -89,7 +89,7 @@ export const REPORT_ANALYSIS_LABELS = {
   NET_WORTH_ARIA: (visible: string) => `淨資產趨勢，顯示：${visible}`,
   INCOME_ARIA: (visible: string) => `收支與儲蓄率，顯示：${visible}`,
   CASH_FLOW_ARIA: (visible: string) => `淨現金流，顯示：${visible}`,
-  DASH: '—',
+  DASH: REPORT_SUMMARY_LABELS.MISSING,
 } as const;
 
 export const REPORT_DETAIL_LABELS = {
