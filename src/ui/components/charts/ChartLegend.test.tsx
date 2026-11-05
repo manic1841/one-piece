@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import { ChartLegend } from './ChartLegend';
 
@@ -34,5 +34,27 @@ describe('ChartLegend', () => {
     expect(container.querySelector('span[aria-hidden="true"]')?.getAttribute('style')).toContain(
       'hsl(var(--primary))',
     );
+  });
+
+  it('renders pressed toggle buttons when a toggle handler is supplied', () => {
+    const onToggle = vi.fn();
+    render(
+      <ChartLegend
+        items={[
+          { label: 'NET WORTH', tone: 'asset' },
+          { label: 'ASSETS', tone: 'neutral' },
+        ]}
+        active={['NET WORTH']}
+        onToggle={onToggle}
+      />,
+    );
+
+    const on = screen.getByRole('button', { name: 'NET WORTH' });
+    const off = screen.getByRole('button', { name: 'ASSETS' });
+    expect(on.getAttribute('aria-pressed')).toBe('true');
+    expect(off.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(off);
+    expect(onToggle).toHaveBeenCalledWith('ASSETS');
   });
 });

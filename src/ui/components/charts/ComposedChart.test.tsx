@@ -157,6 +157,32 @@ describe('ComposedChart', () => {
     expect(screen.queryByRole('img')).toBeNull();
   });
 
+  it('breaks a line path at null values instead of drawing through zero', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B', 'C', 'D']}
+        series={[{ kind: 'line', tone: 'asset', values: [1, null, 3, 4] }]}
+      />,
+    );
+
+    const path = container.querySelector('path')?.getAttribute('d') ?? '';
+    expect(path.match(/M/g)).toHaveLength(2);
+    expect(path).not.toContain('L10.00 null');
+  });
+
+  it('colours bars by sign when asked', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[{ kind: 'bar', tone: 'positive', toneBySign: true, values: [10, -10] }]}
+      />,
+    );
+
+    const rects = [...container.querySelectorAll('rect')];
+    expect(rects[0].getAttribute('fill')).toBe('hsl(var(--positive))');
+    expect(rects[1].getAttribute('fill')).toBe('hsl(var(--negative))');
+  });
+
   it('labels the plot for assistive tech when no overlay is present', () => {
     render(<ComposedChart labels={['A']} series={SERIES} ariaLabel="Cash flow" />);
 

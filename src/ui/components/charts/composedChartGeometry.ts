@@ -29,13 +29,16 @@ export type ComposedBarSeries = {
   kind: 'bar';
   tone: ChartTone;
   values: number[];
+  /** Bars below zero use the `negative` tone instead of `tone`. */
+  toneBySign?: boolean;
   axis?: ComposedAxis;
 };
 
 export type ComposedLineSeries = {
   kind: 'line';
   tone: ChartTone;
-  values: number[];
+  /** A null value breaks the path at that column. */
+  values: (number | null)[];
   axis?: ComposedAxis;
   /** Fill the area between the line and the axis zero baseline. */
   area?: boolean;
@@ -95,7 +98,7 @@ export type ComposedLine = {
    * to run bottom-up then, or full strength would land on the baseline instead of the line.
    */
   areaFlipped?: boolean;
-  points: { xRatio: number; topRatio: number }[];
+  points: { xRatio: number; topRatio: number; isEmpty?: boolean }[];
 };
 
 export type ComposedChartLayout = {
@@ -174,10 +177,14 @@ export function buildComposedGeometry(
   const count = labels.length;
   if (count === 0) return EMPTY_LAYOUT;
 
+  const defined = (values: (number | null)[]): number[] =>
+    values.filter((value): value is number => value !== null);
   const leftValues = series
     .filter((item) => (item.axis ?? 'left') === 'left')
-    .flatMap((item) => item.values);
-  const rightValues = series.filter((item) => item.axis === 'right').flatMap((item) => item.values);
+    .flatMap((item) => defined(item.values));
+  const rightValues = series
+    .filter((item) => item.axis === 'right')
+    .flatMap((item) => defined(item.values));
 
   const leftScale = leftValues.length > 0 ? buildScale(leftValues) : undefined;
   const rightScale = rightValues.length > 0 ? buildScale(rightValues) : undefined;
@@ -206,7 +213,7 @@ export function buildComposedGeometry(
       const height = Math.abs(valueY - zeroY);
       bars.push({
         key: `bar-${seriesIndex}-${index}`,
-        tone: item.tone,
+        tone: item.toneBySign === true && value < 0 ? 'negative' : item.tone,
         columnIndex: index,
         x: Number(
           (
@@ -229,34 +236,68 @@ export function buildComposedGeometry(
     const scale = scaleOf(item.axis ?? 'left');
     const zeroY = yFor(0, scale);
     const coords = labels.map((_, index) => {
+      const value = item.values[index];
       const baseline = item.baselineValues?.[index];
       return {
         x: centerAt(index),
-        y: yFor(item.values[index] ?? 0, scale),
+        y: value === null || value === undefined ? null : yFor(value, scale),
         baselineY: baseline === undefined ? zeroY : yFor(baseline, scale),
       };
     });
-    const path = coords
-      .map(
-        (point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
+    // Null values break the path; each contiguous run becomes its own subpath.
+    const segments: (typeof coords)[] = [];
+    let current: typeof coords = [];
+    for (const point of coords) {
+      if (point.y === null) {
+        if (current.length > 0) segments.push(current);
+        current = [];
+      } else {
+        current.push(point);
+      }
+    }
+    if (current.length > 0) segments.push(current);
+
+    const path = segments
+      .map((segment) =>
+        segment
+          .map(
+            (point, index) =>
+              `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${(point.y ?? 0).toFixed(2)}`,
+          )
+          .join(' '),
       )
       .join(' ');
-    const first = coords[0];
-    const last = coords[coords.length - 1];
-    // Trace the baseline point by point when it varies: a stacked band's baseline is
-    // another line, and closing with a single straight segment would cut across it and let
-    // the band bleed into the one below. A flat baseline needs only its two corners.
-    const flatBaseline = coords.every((point) => point.baselineY === first.baselineY);
-    const baselineEdge = flatBaseline
-      ? `L${last.x.toFixed(2)} ${last.baselineY.toFixed(2)} L${first.x.toFixed(2)} ${first.baselineY.toFixed(2)}`
-      : [...coords]
-          .reverse()
-          .map((point) => `L${point.x.toFixed(2)} ${point.baselineY.toFixed(2)}`)
-          .join(' ');
-    const areaPath = item.area ? `${path} ${baselineEdge} Z` : undefined;
-    const meanLineY = coords.reduce((total, point) => total + point.y, 0) / coords.length;
+    const areaPaths = item.area
+      ? segments.map((segment) => {
+          const first = segment[0];
+          const last = segment[segment.length - 1];
+          // Trace the baseline point by point when it varies: a stacked band's baseline is
+          // another line, and closing with a single straight segment would cut across it and
+          // let the band bleed into the one below. A flat baseline needs only its two corners.
+          const flatBaseline = segment.every((point) => point.baselineY === first.baselineY);
+          const baselineEdge = flatBaseline
+            ? `L${last.x.toFixed(2)} ${last.baselineY.toFixed(2)} L${first.x.toFixed(2)} ${first.baselineY.toFixed(2)}`
+            : [...segment]
+                .reverse()
+                .map((point) => `L${point.x.toFixed(2)} ${point.baselineY.toFixed(2)}`)
+                .join(' ');
+          const line = segment
+            .map(
+            (point, index) =>
+              `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${(point.y ?? 0).toFixed(2)}`,
+          )
+            .join(' ');
+          return `${line} ${baselineEdge} Z`;
+        })
+      : [];
+    const areaPath = areaPaths.length > 0 ? areaPaths.join(' ') : undefined;
+    const definedCoords = coords.filter((point) => point.y !== null);
+    const meanLineY =
+      definedCoords.reduce((total, point) => total + (point.y ?? 0), 0) /
+      Math.max(1, definedCoords.length);
     const meanBaselineY =
-      coords.reduce((total, point) => total + point.baselineY, 0) / coords.length;
+      definedCoords.reduce((total, point) => total + point.baselineY, 0) /
+      Math.max(1, definedCoords.length);
 
     return {
       key: `line-${seriesIndex}`,
@@ -269,7 +310,8 @@ export function buildComposedGeometry(
       ...(areaPath ? { areaFlipped: meanBaselineY < meanLineY } : {}),
       points: coords.map(({ x, y }) => ({
         xRatio: Number((x / COMPOSED_CHART_WIDTH).toFixed(4)),
-        topRatio: Number((y / COMPOSED_CHART_HEIGHT).toFixed(4)),
+        topRatio: Number(((y ?? zeroY) / COMPOSED_CHART_HEIGHT).toFixed(4)),
+        ...(y === null ? { isEmpty: true } : {}),
       })),
     };
   });
@@ -281,7 +323,7 @@ export function buildComposedGeometry(
     });
     lines.forEach((line) => {
       const point = line.points[index];
-      if (point) candidates.push(point.topRatio);
+      if (point !== undefined && point.isEmpty !== true) candidates.push(point.topRatio);
     });
     return {
       index,

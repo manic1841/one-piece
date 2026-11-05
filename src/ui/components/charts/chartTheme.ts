@@ -8,7 +8,9 @@ export type ChartTone =
   /** Investment return: `--warning` (amber). */
   | 'investment'
   /** Long-horizon stock (net worth): `--chart-1` (blue). */
-  | 'asset';
+  | 'asset'
+  /** Provisional-data markers: `--warning` (amber). */
+  | 'warning';
 
 /** SVG stroke/fill colors, kept as token references so the palette stays in one place. */
 export const CHART_TONE_COLOR: Record<ChartTone, string> = {
@@ -18,6 +20,7 @@ export const CHART_TONE_COLOR: Record<ChartTone, string> = {
   neutral: 'hsl(var(--border-strong))',
   investment: 'hsl(var(--warning))',
   asset: 'hsl(var(--chart-1))',
+  warning: 'hsl(var(--warning))',
 };
 
 /** Background utilities for solid bars and legend swatches. */
@@ -28,6 +31,7 @@ export const CHART_TONE_FILL: Record<ChartTone, string> = {
   neutral: 'bg-border-strong',
   investment: 'bg-warning/70',
   asset: 'bg-chart-1/70',
+  warning: 'bg-warning/70',
 };
 
 /**

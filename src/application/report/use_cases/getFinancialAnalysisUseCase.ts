@@ -1,0 +1,279 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
+import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
+import { type AuthContext } from '@/application/types';
+import { type FinancialReport, ReportType } from '@/domains/report/schemas';
+
+export const ANALYSIS_RANGES = ['1y', '3y', '5y', 'all'] as const;
+export type AnalysisRange = (typeof ANALYSIS_RANGES)[number];
+
+const RANGE_MONTHS: Record<Exclude<AnalysisRange, 'all'>, number> = {
+  '1y': 12,
+  '3y': 36,
+  '5y': 60,
+};
+
+interface AnalysisPointBase {
+  yearMonth: string;
+  /** The period is closed. A missing period record counts as not closed. */
+  closed: boolean;
+}
+
+export interface NetWorthAnalysisPoint extends AnalysisPointBase {
+  netWorth: number;
+  assets: number;
+  liabilities: number;
+}
+
+export interface IncomeAnalysisPoint extends AnalysisPointBase {
+  income: number;
+  expense: number;
+  /** Null when `income <= 0`; a negative rate is a legitimate result. */
+  savingsRate: number | null;
+}
+
+export interface CashFlowAnalysisPoint extends AnalysisPointBase {
+  netCashFlow: number;
+}
+
+export interface FinancialAnalysisKpis {
+  yearMonth: string | null;
+  assets: number | null;
+  netWorth: number | null;
+  liabilities: number | null;
+  /** Null without a same-month income statement, or when income is not positive. */
+  savingsRate: number | null;
+  anchorClosed: boolean | null;
+}
+
+export interface FinancialAnalysis {
+  anchor: { yearMonth: string; closed: boolean } | null;
+  kpis: FinancialAnalysisKpis;
+  /** The anchor month: the range end and the date the analysis is cut off at. */
+  cutoff: string | null;
+  /** Distinct not-closed months inside the range, oldest first. */
+  unclosedMonths: string[];
+  range: AnalysisRange;
+  /** Ranges that select a different set of months, in `ANALYSIS_RANGES` order. */
+  availableRanges: AnalysisRange[];
+  netWorthPoints: NetWorthAnalysisPoint[];
+  incomePoints: IncomeAnalysisPoint[];
+  cashFlowPoints: CashFlowAnalysisPoint[];
+}
+
+export interface GetFinancialAnalysisRequest {
+  householdId: string;
+  auth: AuthContext;
+  range: AnalysisRange;
+}
+
+const toMonthCode = (yearMonth: string): number => {
+  const [year, month] = yearMonth.split('-').map(Number);
+  return year * 12 + (month - 1);
+};
+
+const savingsRateOf = (income: number, expense: number): number | null =>
+  income > 0 ? ((income - expense) / income) * 100 : null;
+
+type BalanceSheetReport = Extract<FinancialReport, { type: typeof ReportType.BALANCE_SHEET }>;
+type IncomeReport = Extract<FinancialReport, { type: typeof ReportType.INCOME_STATEMENT }>;
+type CashFlowReport = Extract<FinancialReport, { type: typeof ReportType.CASH_FLOW }>;
+
+const isBalanceSheet = (report: FinancialReport): report is BalanceSheetReport =>
+  report.type === ReportType.BALANCE_SHEET;
+
+const isIncome = (report: FinancialReport): report is IncomeReport =>
+  report.type === ReportType.INCOME_STATEMENT;
+
+const isCashFlow = (report: FinancialReport): report is CashFlowReport =>
+  report.type === ReportType.CASH_FLOW;
+
+const EMPTY_KPIS: FinancialAnalysisKpis = {
+  yearMonth: null,
+  assets: null,
+  netWorth: null,
+  liabilities: null,
+  savingsRate: null,
+  anchorClosed: null,
+};
+
+/** One range per distinct set of months, preferring the requested range for its set. */
+const buildAvailableRanges = (
+  drawableMonths: string[],
+  anchorYearMonth: string,
+  requestedRange: AnalysisRange,
+): AnalysisRange[] => {
+  const representative = new Map<string, AnalysisRange>();
+  for (const range of ANALYSIS_RANGES) {
+    const signature = cutRange(drawableMonths, anchorYearMonth, range).join(',');
+    if (!representative.has(signature) || range === requestedRange) {
+      representative.set(signature, range);
+    }
+  }
+  return ANALYSIS_RANGES.filter((range) => [...representative.values()].includes(range));
+};
+
+const cutRange = (
+  months: string[],
+  anchorYearMonth: string,
+  range: AnalysisRange,
+): string[] => {
+  const anchorCode = toMonthCode(anchorYearMonth);
+  if (range === 'all') {
+    return months.filter((month) => toMonthCode(month) <= anchorCode);
+  }
+  const startCode = anchorCode - (RANGE_MONTHS[range] - 1);
+  return months.filter((month) => {
+    const code = toMonthCode(month);
+    return code >= startCode && code <= anchorCode;
+  });
+};
+
+/**
+ * 歷史財務分析：把已產生報表組裝成三組可畫期間與 KPI。每個區塊只取自己有
+ * 對應報表型別的月份，不檢查財務期間狀態（與儀表板的已關帳錨定刻意不同）；
+ * 範圍終點固定錨點（最新有資產負債表的期間）。
+ */
+export class GetFinancialAnalysisUseCase {
+  private readonly listPeriods = new ListFinancialPeriodsUseCase();
+
+  async execute({
+    householdId,
+    auth,
+    range,
+  }: GetFinancialAnalysisRequest): Promise<FinancialAnalysis> {
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
+
+    const [reports, periods] = await Promise.all([
+      listReportsUseCase.execute({ householdId, auth }),
+      this.listPeriods.execute({ householdId }),
+    ]);
+    const closedMonths = new Set(
+      periods.filter((period) => period.status === 'CLOSED').map((period) => period.yearMonth),
+    );
+
+    const byType = {
+      balanceSheet: reports.filter(isBalanceSheet),
+      income: reports.filter(isIncome),
+      cashFlow: reports.filter(isCashFlow),
+    };
+
+    const anchorReport = byType.balanceSheet.reduce<BalanceSheetReport | null>(
+      (latest, report) =>
+        latest === null || toMonthCode(report.yearMonth) > toMonthCode(latest.yearMonth)
+          ? report
+          : latest,
+      null,
+    );
+
+    if (anchorReport === null) {
+      return {
+        anchor: null,
+        kpis: EMPTY_KPIS,
+        cutoff: null,
+        unclosedMonths: [],
+        range,
+        availableRanges: [],
+        netWorthPoints: [],
+        incomePoints: [],
+        cashFlowPoints: [],
+      };
+    }
+
+    const anchor = anchorReport.yearMonth;
+    const anchorClosed = closedMonths.has(anchor);
+    const drawableMonths = [
+      ...new Set(reports.map((report) => report.yearMonth)),
+    ].sort((a, b) => toMonthCode(a) - toMonthCode(b));
+
+    const inRange = (month: string): boolean =>
+      cutRange([month], anchor, range).length > 0;
+
+    const netWorthPoints = this.buildNetWorthPoints(byType.balanceSheet, closedMonths, inRange);
+    const incomePoints = this.buildIncomePoints(byType.income, closedMonths, inRange);
+    const cashFlowPoints = this.buildCashFlowPoints(byType.cashFlow, closedMonths, inRange);
+
+    const anchorIncome = byType.income.find((report) => report.yearMonth === anchor);
+    const unclosedMonths = [
+      ...new Set([...netWorthPoints, ...incomePoints, ...cashFlowPoints].map((p) => p.yearMonth)),
+    ]
+      .filter((month) => !closedMonths.has(month))
+      .sort((a, b) => toMonthCode(a) - toMonthCode(b));
+
+    return {
+      anchor: { yearMonth: anchor, closed: anchorClosed },
+      kpis: {
+        yearMonth: anchor,
+        assets: anchorReport.data.assets.total,
+        netWorth: anchorReport.data.assets.total - anchorReport.data.liabilities.total,
+        liabilities: anchorReport.data.liabilities.total,
+        savingsRate: anchorIncome
+          ? savingsRateOf(anchorIncome.data.incomeTotal, anchorIncome.data.expenseTotal)
+          : null,
+        anchorClosed,
+      },
+      cutoff: anchor,
+      unclosedMonths,
+      range,
+      availableRanges: buildAvailableRanges(drawableMonths, anchor, range),
+      netWorthPoints,
+      incomePoints,
+      cashFlowPoints,
+    };
+  }
+
+  private buildNetWorthPoints(
+    reports: BalanceSheetReport[],
+    closedMonths: Set<string>,
+    inRange: (month: string) => boolean,
+  ): NetWorthAnalysisPoint[] {
+    return reports
+      .filter((report) => inRange(report.yearMonth))
+      .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
+      .map((report) => ({
+        yearMonth: report.yearMonth,
+        closed: closedMonths.has(report.yearMonth),
+        netWorth: report.data.assets.total - report.data.liabilities.total,
+        assets: report.data.assets.total,
+        liabilities: report.data.liabilities.total,
+      }));
+  }
+
+  private buildIncomePoints(
+    reports: IncomeReport[],
+    closedMonths: Set<string>,
+    inRange: (month: string) => boolean,
+  ): IncomeAnalysisPoint[] {
+    return reports
+      .filter((report) => inRange(report.yearMonth))
+      .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
+      .map((report) => ({
+        yearMonth: report.yearMonth,
+        closed: closedMonths.has(report.yearMonth),
+        income: report.data.incomeTotal,
+        expense: report.data.expenseTotal,
+        savingsRate: savingsRateOf(report.data.incomeTotal, report.data.expenseTotal),
+      }));
+  }
+
+  private buildCashFlowPoints(
+    reports: CashFlowReport[],
+    closedMonths: Set<string>,
+    inRange: (month: string) => boolean,
+  ): CashFlowAnalysisPoint[] {
+    return reports
+      .filter((report) => inRange(report.yearMonth))
+      .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
+      .map((report) => ({
+        yearMonth: report.yearMonth,
+        closed: closedMonths.has(report.yearMonth),
+        netCashFlow: report.data.netCashChange,
+      }));
+  }
+}
+
+export const getFinancialAnalysisUseCase = new GetFinancialAnalysisUseCase();

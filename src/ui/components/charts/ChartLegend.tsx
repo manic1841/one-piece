@@ -16,11 +16,21 @@ type ChartLegendProps = {
   items: ChartLegendItem[];
   /** `horizontal` = inline swatch row (bar charts); `vertical` = label/value rows (donuts). */
   orientation?: 'horizontal' | 'vertical';
+  /** When supplied, each item becomes an `aria-pressed` toggle button. */
+  onToggle?: (label: string) => void;
+  /** Labels currently switched on; defaults to every item. Ignored without `onToggle`. */
+  active?: readonly string[];
   className?: string;
 };
 
-/** Chart legend. */
-export function ChartLegend({ items, orientation = 'horizontal', className }: ChartLegendProps) {
+/** Chart legend, optionally acting as a series toggle. */
+export function ChartLegend({
+  items,
+  orientation = 'horizontal',
+  onToggle,
+  active,
+  className,
+}: ChartLegendProps) {
   const swatch = (item: ChartLegendItem) => (
     <span
       aria-hidden="true"
@@ -29,37 +39,79 @@ export function ChartLegend({ items, orientation = 'horizontal', className }: Ch
     />
   );
 
+  const isActive = (item: ChartLegendItem) => active === undefined || active.includes(item.label);
+  const interactive = onToggle !== undefined;
+  const toggleProps = (item: ChartLegendItem) =>
+    interactive
+      ? {
+          type: 'button' as const,
+          'aria-pressed': isActive(item),
+          onClick: () => onToggle(item.label),
+        }
+      : {};
+
   if (orientation === 'vertical') {
     return (
       <div className={cn('grid gap-3', className)}>
-        {items.map((item) => (
-          <div
-            key={item.label}
-            className="grid grid-cols-[10px_1fr_auto] items-center gap-2.5 text-xs"
-          >
-            {swatch(item)}
-            <span className="truncate text-muted-foreground">{item.label}</span>
-            {item.value !== undefined && (
-              <span className="font-mono tabular-nums text-foreground">{item.value}</span>
-            )}
-          </div>
-        ))}
+        {items.map((item) =>
+          interactive ? (
+            <button
+              key={item.label}
+              {...toggleProps(item)}
+              className={cn(
+                'grid min-h-8 grid-cols-[10px_1fr_auto] items-center gap-2.5 text-left text-xs',
+                !isActive(item) && 'opacity-50',
+              )}
+            >
+              {swatch(item)}
+              <span className="truncate text-muted-foreground">{item.label}</span>
+              {item.value !== undefined && (
+                <span className="font-mono tabular-nums text-foreground">{item.value}</span>
+              )}
+            </button>
+          ) : (
+            <div
+              key={item.label}
+              className="grid grid-cols-[10px_1fr_auto] items-center gap-2.5 text-xs"
+            >
+              {swatch(item)}
+              <span className="truncate text-muted-foreground">{item.label}</span>
+              {item.value !== undefined && (
+                <span className="font-mono tabular-nums text-foreground">{item.value}</span>
+              )}
+            </div>
+          ),
+        )}
       </div>
     );
   }
 
   return (
     <div className={cn('flex flex-wrap gap-4', className)}>
-      {items.map((item) => (
-        <span
-          key={item.label}
-          className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground"
-        >
-          {swatch(item)}
-          {item.label}
-          {item.value !== undefined && <span className="text-foreground">{item.value}</span>}
-        </span>
-      ))}
+      {items.map((item) => {
+        const content = (
+          <>
+            {swatch(item)}
+            {item.label}
+            {item.value !== undefined && <span className="text-foreground">{item.value}</span>}
+          </>
+        );
+        const sharedClass =
+          'inline-flex min-h-8 items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground';
+        return interactive ? (
+          <button
+            key={item.label}
+            {...toggleProps(item)}
+            className={cn(sharedClass, 'px-1', !isActive(item) && 'opacity-50')}
+          >
+            {content}
+          </button>
+        ) : (
+          <span key={item.label} className={sharedClass}>
+            {content}
+          </span>
+        );
+      })}
     </div>
   );
 }

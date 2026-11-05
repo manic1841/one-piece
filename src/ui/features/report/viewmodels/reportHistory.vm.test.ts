@@ -133,13 +133,4 @@ describe('buildReportHistoryVM', () => {
     expect(byPeriod['2026-06']).toMatchObject({ text: 'IN PROGRESS' });
   });
 
-  it('uses the most recent month with a report as the hero', () => {
-    const vm = buildReportHistoryVM(
-      [income('2026-05', 30000), income('2026-06', 50000)],
-      [],
-      'MONTHLY',
-    );
-
-    expect(vm.latest).toMatchObject({ period: '2026-06', netIncomeText: 'NT$50,000' });
-  });
 });

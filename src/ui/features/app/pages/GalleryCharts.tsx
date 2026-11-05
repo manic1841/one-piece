@@ -104,6 +104,62 @@ const NET_WORTH_POINTS = [
   { title: 'SEP 2026', value: 'NT$4,812,430', meta: '+8.42% YTD' },
 ];
 
+const SIGNED_LABELS = ['APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP'];
+const SIGNED_VALUES = [32000, -8000, 45000, 6000, -12300, 27000];
+
+const SignedCashFlowModule: React.FC = () => {
+  const [hidden, setHidden] = React.useState<string[]>([]);
+  const toggle = (label: string) =>
+    setHidden((current) =>
+      current.includes(label) ? current.filter((item) => item !== label) : [...current, label],
+    );
+
+  return (
+    <GalleryModule label="COMPOSED CHART · SIGNED BARS · NULL GAP · TOGGLEABLE LEGEND">
+      <ChartHead value="-NT$12,300" meta="SEP 2026" tone="negative" />
+      <InteractiveComposedChart
+        labels={SIGNED_LABELS}
+        series={[
+          ...(hidden.includes('NET WORTH')
+            ? []
+            : [
+                {
+                  kind: 'line' as const,
+                  tone: 'asset' as const,
+                  values: [42000, 38000, null, 51000, 39600, 31200],
+                },
+              ]),
+          ...(hidden.includes('NET CASH FLOW')
+            ? []
+            : [
+                {
+                  kind: 'bar' as const,
+                  tone: 'positive' as const,
+                  toneBySign: true,
+                  values: SIGNED_VALUES,
+                },
+              ]),
+        ]}
+        points={SIGNED_LABELS.map((label, index) => ({
+          title: `${label} 2026`,
+          value: `NT$${(SIGNED_VALUES[index] ?? 0).toLocaleString()}`,
+        }))}
+        height={180}
+        ariaLabel="Signed monthly cash flow with detail"
+      />
+      <ChartLegend
+        className="mt-4"
+        active={['NET WORTH', 'NET CASH FLOW'].filter((label) => !hidden.includes(label))}
+        onToggle={toggle}
+        items={[
+          { label: 'NET WORTH', tone: 'asset' },
+          { label: 'NET CASH FLOW', tone: 'positive' },
+        ]}
+      />
+    </GalleryModule>
+  );
+};
+
 const ChartHead: React.FC<{ value: string; meta: string; tone?: MoneyTone }> = ({
   value,
   meta,
@@ -192,6 +248,8 @@ const LineChartSection: React.FC = () => (
           ]}
         />
       </GalleryModule>
+
+      <SignedCashFlowModule />
 
       <GalleryModule label="DONUT CHART · ASSET ALLOCATION">
         <DonutChart segments={ALLOCATION} centerLabel="100%" ariaLabel="Asset allocation" />
