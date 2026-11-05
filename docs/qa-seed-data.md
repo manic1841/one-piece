@@ -43,3 +43,34 @@
 seam test 驗證組合順序與跨 builder 一致性（確定性、薪水與分配雙向連結、journal 平衡、
 窗口不變式、快照與分錄的對應關係）。per-builder 的文件數與鍵存在性不另測——emit 的
 schema 驗證已即時守住漂移。
+
+## 6. 展示環境（live）
+
+seed 只寫 emulator（`applyEmulatorEnv` 強制指向本機埠、身分寫死 `qa_household`）。
+live 的展示家戶改走備份：`pnpm demo:backup` 用同一份 plan 產生 `schemaVersion: 2` 的
+備份 JSON，再由使用者在 live 以正常的還原流程匯入。腳本不連 Firestore，不需要服務
+帳號。
+
+```bash
+pnpm demo:backup -- --household <householdId> --uid <ownerUid> --email <ownerEmail>
+```
+
+預設輸出 `examples/demo-backup.json`（gitignore：檔案帶 live uid、email 與餘額）。
+
+`--household` 是 live 家戶 id，`--uid` 是該家戶 owner 帳號的 Auth uid（Firebase
+Console → Authentication，或 `node scripts/admin/list-users.js`），`--email` 是同一個
+帳號的 email。匯入位置是 `/settings/backup` 的「還原備份」。
+
+- identity 換成 live 擁有者，`createdBy`/`updatedBy` 與 household 的 owner 成員因此
+  是真人；還原會覆寫 household 文件，這是成員得以保留的原因。
+- 純組裝在 `scripts/qa/demoBackup.ts`，CLI 只負責參數與寫檔；`src/test/demoBackup.test.ts`
+  鎖住 plan→payload 的完整對應（每份 seed 文件都要落地），並要求結果通過
+  `HouseholdBackupPayloadSchema`，漂移在寫檔前失敗。`--dry-run` 只組裝與驗證，
+  `--force` 才覆蓋既有檔案。
+- 窗口仍固定在 2025-01～2026-09。展示日與窗口末端的落差不是壞資料：`2026-09` 是
+  「尚未開始」的關帳目標月，展示就從那裡開始。
+- 第一次匯入後立刻從 live 匯出一份備份；每場展示結束以該檔還原，覆蓋觀眾期間新增
+  的資料。
+
+`users` 與 `access_control` 不在備份內：展示帳號仍需具備 whitelist 與 household
+成員身分。
