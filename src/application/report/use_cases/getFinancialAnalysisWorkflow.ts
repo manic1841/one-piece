@@ -1,7 +1,10 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
+import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
+import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
+import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
 export const ANALYSIS_RANGES = ['1y', '3y', '5y', 'all'] as const;
@@ -36,6 +39,29 @@ export interface CashFlowAnalysisPoint extends AnalysisPointBase {
   netCashFlow: number;
 }
 
+export interface AssetCompositionPoint extends AnalysisPointBase {
+  /** Fixed denominator; the group values are shares of this total. */
+  assetsTotal: number;
+  cash: number;
+  investment: number;
+  property: number;
+}
+
+export interface InvestmentPerformancePoint extends AnalysisPointBase {
+  gain: number;
+  openingValue: number;
+  /** Null when opening value is not positive. */
+  returnRate: number | null;
+}
+
+export interface DebtLeveragePoint extends AnalysisPointBase {
+  liabilities: number;
+  assetsTotal: number;
+  debtRatio: number;
+  /** Household market-value weighted leverage; null without a snapshot that month. */
+  leverage: number | null;
+}
+
 export interface FinancialAnalysisKpis {
   yearMonth: string | null;
   assets: number | null;
@@ -55,8 +81,11 @@ export interface FinancialAnalysis {
   /** Ranges that select a different set of months, in `ANALYSIS_RANGES` order. */
   availableRanges: AnalysisRange[];
   netWorthPoints: NetWorthAnalysisPoint[];
+  assetCompositionPoints: AssetCompositionPoint[];
+  investmentPerformancePoints: InvestmentPerformancePoint[];
   incomePoints: IncomeAnalysisPoint[];
   cashFlowPoints: CashFlowAnalysisPoint[];
+  debtLeveragePoints: DebtLeveragePoint[];
 }
 
 export interface GetFinancialAnalysisRequest {
@@ -79,9 +108,10 @@ const collectPoints = <TReport extends FinancialReport, TPoint extends AnalysisP
   closedMonths: Set<string>,
   inRange: (month: string) => boolean,
   map: (report: TReport, closed: boolean) => TPoint,
+  keep: (report: TReport) => boolean = () => true,
 ): TPoint[] =>
   reports
-    .filter((report) => inRange(report.yearMonth))
+    .filter((report) => inRange(report.yearMonth) && keep(report))
     .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
     .map((report) => map(report, closedMonths.has(report.yearMonth)));
 
@@ -97,6 +127,36 @@ const isIncome = (report: FinancialReport): report is IncomeReport =>
 
 const isCashFlow = (report: FinancialReport): report is CashFlowReport =>
   report.type === ReportType.CASH_FLOW;
+
+interface SnapshotMonth {
+  gain: number;
+  openingValue: number;
+  exposure: number;
+  marketValue: number;
+}
+
+const monthKeyOf = (snapshot: PortfolioSnapshot): string =>
+  `${snapshot.year}-${String(snapshot.month).padStart(2, '0')}`;
+
+/** One month's household snapshot totals, summed across every portfolio. */
+const aggregateSnapshots = (snapshots: PortfolioSnapshot[]): Map<string, SnapshotMonth> => {
+  const byMonth = new Map<string, SnapshotMonth>();
+  for (const snapshot of snapshots) {
+    const key = monthKeyOf(snapshot);
+    const totals = byMonth.get(key) ?? { gain: 0, openingValue: 0, exposure: 0, marketValue: 0 };
+    totals.gain += snapshot.performance?.gain ?? 0;
+    totals.openingValue += snapshot.performance?.openingValue ?? 0;
+    for (const account of snapshot.accounts) {
+      for (const holding of account.holdings ?? []) {
+        const marketValue = holding.marketValue ?? 0;
+        totals.exposure += marketValue * (holding.leverage ?? 1);
+        totals.marketValue += marketValue;
+      }
+    }
+    byMonth.set(key, totals);
+  }
+  return byMonth;
+};
 
 const EMPTY_KPIS: FinancialAnalysisKpis = {
   yearMonth: null,
@@ -136,7 +196,7 @@ const cutRange = (months: string[], anchorYearMonth: string, range: AnalysisRang
 };
 
 /**
- * 歷史財務分析：把已產生報表組裝成三組可畫期間與 KPI。每個區塊只取自己有
+ * 歷史財務分析：把已產生報表與 portfolio snapshot 組裝成各區塊的可畫期間與 KPI。每個區塊只取自己有
  * 對應報表型別的月份，不檢查財務期間狀態（與儀表板的已關帳錨定刻意不同）；
  * 範圍終點固定錨點（最新有資產負債表的期間）。
  */
@@ -184,10 +244,31 @@ export class GetFinancialAnalysisWorkflow {
         range,
         availableRanges: [],
         netWorthPoints: [],
+        assetCompositionPoints: [],
+        investmentPerformancePoints: [],
         incomePoints: [],
         cashFlowPoints: [],
+        debtLeveragePoints: [],
       };
     }
+
+    const portfolios = await listPortfoliosUseCase.execute({ householdId, auth });
+    const snapshotsPerPortfolio = await Promise.all(
+      portfolios.map((portfolio) =>
+        listPortfolioSnapshotsUseCase.execute({ householdId, portfolioId: portfolio.id, auth }),
+      ),
+    );
+    const snapshotsByMonth = aggregateSnapshots(snapshotsPerPortfolio.flat());
+    // Household performance is only complete when every portfolio has that month's snapshot.
+    const completeMonths = new Set(
+      snapshotsPerPortfolio
+        .map((snapshots) => new Set(snapshots.map(monthKeyOf)))
+        .reduce<Set<string> | null>(
+          (shared, months) =>
+            shared === null ? months : new Set([...shared].filter((month) => months.has(month))),
+          null,
+        ) ?? [],
+    );
 
     const anchor = anchorReport.yearMonth;
     const anchorClosed = closedMonths.has(anchor);
@@ -209,6 +290,58 @@ export class GetFinancialAnalysisWorkflow {
         liabilities: report.data.liabilities.total,
       }),
     );
+    const assetCompositionPoints = collectPoints(
+      byType.balanceSheet,
+      closedMonths,
+      inRange,
+      (report, closed) => ({
+        yearMonth: report.yearMonth,
+        closed,
+        assetsTotal: report.data.assets.total,
+        cash: report.data.assets.groups.cash?.total ?? 0,
+        investment: report.data.assets.groups.investment?.total ?? 0,
+        property: report.data.assets.groups.property?.total ?? 0,
+      }),
+      (report) => report.data.assets.total > 0,
+    );
+    const investmentPerformancePoints = collectPoints(
+      byType.balanceSheet,
+      closedMonths,
+      inRange,
+      (report, closed) => {
+        const month = snapshotsByMonth.get(report.yearMonth);
+        const openingValue = month?.openingValue ?? 0;
+        const gain = month?.gain ?? 0;
+        return {
+          yearMonth: report.yearMonth,
+          closed,
+          gain,
+          openingValue,
+          returnRate: openingValue > 0 ? (gain / openingValue) * 100 : null,
+        };
+      },
+      (report) => completeMonths.has(report.yearMonth),
+    );
+    const debtLeveragePoints = collectPoints(
+      byType.balanceSheet,
+      closedMonths,
+      inRange,
+      (report, closed) => {
+        const month = snapshotsByMonth.get(report.yearMonth);
+        return {
+          yearMonth: report.yearMonth,
+          closed,
+          liabilities: report.data.liabilities.total,
+          assetsTotal: report.data.assets.total,
+          debtRatio: (report.data.liabilities.total / report.data.assets.total) * 100,
+          leverage:
+            month !== undefined && month.marketValue > 0
+              ? month.exposure / month.marketValue
+              : null,
+        };
+      },
+      (report) => report.data.assets.total > 0,
+    );
     const incomePoints = collectPoints(byType.income, closedMonths, inRange, (report, closed) => ({
       yearMonth: report.yearMonth,
       closed,
@@ -229,7 +362,16 @@ export class GetFinancialAnalysisWorkflow {
 
     const anchorIncome = byType.income.find((report) => report.yearMonth === anchor);
     const unclosedMonths = [
-      ...new Set([...netWorthPoints, ...incomePoints, ...cashFlowPoints].map((p) => p.yearMonth)),
+      ...new Set(
+        [
+          ...netWorthPoints,
+          ...assetCompositionPoints,
+          ...investmentPerformancePoints,
+          ...incomePoints,
+          ...cashFlowPoints,
+          ...debtLeveragePoints,
+        ].map((p) => p.yearMonth),
+      ),
     ]
       .filter((month) => !closedMonths.has(month))
       .sort((a, b) => toMonthCode(a) - toMonthCode(b));
@@ -250,8 +392,11 @@ export class GetFinancialAnalysisWorkflow {
       range,
       availableRanges: buildAvailableRanges(drawableMonths, anchor, range),
       netWorthPoints,
+      assetCompositionPoints,
+      investmentPerformancePoints,
       incomePoints,
       cashFlowPoints,
+      debtLeveragePoints,
     };
   }
 }

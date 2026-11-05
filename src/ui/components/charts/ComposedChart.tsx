@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
-import { CHART_TONE_COLOR } from './chartTheme';
+import { CHART_COLOR_TOKEN_COLOR, CHART_TONE_COLOR } from './chartTheme';
 import {
   COMPOSED_CHART_HEIGHT,
   COMPOSED_CHART_WIDTH,
@@ -30,6 +30,14 @@ type ComposedChartProps = {
   referenceLines?: ComposedReferenceLine[];
   /** Rendered plot height in px. */
   height?: number;
+  /** Fixed y domain, e.g. `{ min: 0, max: 100 }` for a percentage axis. */
+  yDomain?: { min: number; max: number };
+  /** Gridline and tick count. Defaults to 4. */
+  yTicks?: number;
+  /** Suffix appended to every left tick label, e.g. `%`. */
+  yUnit?: string;
+  /** Pin a line-only scale to include the zero baseline. */
+  includeZero?: boolean;
   showLabels?: boolean;
   ariaLabel?: string;
   className?: string;
@@ -48,12 +56,27 @@ export function ComposedChart({
   series,
   referenceLines = [],
   height = COMPOSED_CHART_HEIGHT,
+  yDomain,
+  yTicks,
+  yUnit,
+  includeZero,
   showLabels = true,
   ariaLabel,
   className,
   children,
 }: ComposedChartProps) {
-  const layout = buildComposedGeometry(labels, series, referenceLines);
+  const layout = buildComposedGeometry(labels, series, referenceLines, {
+    ...(yDomain === undefined ? {} : { yDomain }),
+    ...(yTicks === undefined ? {} : { yTicks }),
+    ...(includeZero === undefined ? {} : { includeZero }),
+  });
+  const seriesColor = (item: {
+    tone: keyof typeof CHART_TONE_COLOR;
+    colorToken?: keyof typeof CHART_COLOR_TOKEN_COLOR;
+  }) =>
+    item.colorToken === undefined
+      ? CHART_TONE_COLOR[item.tone]
+      : CHART_COLOR_TOKEN_COLOR[item.colorToken];
   const xLabelIndices = pickComposedXLabels(labels.length);
   // Gradient ids must be unique per chart instance, or a second chart on the page reuses the first.
   const gradientIdPrefix = React.useId().replace(/:/g, '');
@@ -84,10 +107,10 @@ export function ComposedChart({
                 >
                   <stop
                     offset="0%"
-                    stopColor={CHART_TONE_COLOR[line.tone]}
+                    stopColor={seriesColor(line)}
                     stopOpacity={AREA_GRADIENT_OPACITY}
                   />
-                  <stop offset="100%" stopColor={CHART_TONE_COLOR[line.tone]} stopOpacity={0} />
+                  <stop offset="100%" stopColor={seriesColor(line)} stopOpacity={0} />
                 </linearGradient>
               ),
             )}
@@ -133,7 +156,7 @@ export function ComposedChart({
               y={bar.y}
               width={bar.width}
               height={bar.height}
-              fill={CHART_TONE_COLOR[bar.tone]}
+              fill={seriesColor(bar)}
               fillOpacity={BAR_FILL_OPACITY}
             />
           ))}
@@ -142,7 +165,7 @@ export function ComposedChart({
               key={line.key}
               d={line.path}
               fill="none"
-              stroke={CHART_TONE_COLOR[line.tone]}
+              stroke={seriesColor(line)}
               strokeWidth={line.dashed ? DASHED_LINE_STROKE_WIDTH : LINE_STROKE_WIDTH}
               {...(line.dashed ? { strokeDasharray: '5 4', strokeOpacity: 0.9 } : {})}
               strokeLinecap="round"
@@ -157,7 +180,7 @@ export function ComposedChart({
               x2={line.x}
               y1={0}
               y2={COMPOSED_CHART_HEIGHT}
-              stroke={CHART_TONE_COLOR[line.tone]}
+              stroke={seriesColor(line)}
               strokeWidth={1.5}
               strokeDasharray="4 4"
               strokeOpacity={0.8}
@@ -175,6 +198,7 @@ export function ComposedChart({
                 style={{ top: `${(label.y / COMPOSED_CHART_HEIGHT) * 100}%` }}
               >
                 {label.text}
+                {yUnit ?? ''}
               </span>
             ))}
           </div>

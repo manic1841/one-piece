@@ -24,6 +24,16 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
   }),
 }));
 
+const listPortfoliosMock = vi.fn();
+vi.mock('@/application/portfolio/use_cases/listPortfoliosUseCase', () => ({
+  listPortfoliosUseCase: { execute: (...args: unknown[]) => listPortfoliosMock(...args) },
+}));
+
+const listSnapshotsMock = vi.fn();
+vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () => ({
+  listPortfolioSnapshotsUseCase: { execute: (...args: unknown[]) => listSnapshotsMock(...args) },
+}));
+
 const auth = { uid: 'user-1', isGlobalAdmin: false };
 
 const base = (yearMonth: string, type: ReportType) => ({
@@ -36,12 +46,24 @@ const base = (yearMonth: string, type: ReportType) => ({
   updatedAt: new Date(),
 });
 
-const balanceSheet = (yearMonth: string, assets: number, liabilities: number): FinancialReport => ({
+const group = (label: string, total: number) => ({ label, total, items: [] });
+
+const balanceSheet = (
+  yearMonth: string,
+  assets: number,
+  liabilities: number,
+  assetGroups: Record<string, number> = {},
+): FinancialReport => ({
   ...base(yearMonth, ReportType.BALANCE_SHEET),
   type: ReportType.BALANCE_SHEET,
   data: {
     yearMonth,
-    assets: { total: assets, groups: {} },
+    assets: {
+      total: assets,
+      groups: Object.fromEntries(
+        Object.entries(assetGroups).map(([key, total]) => [key, group(key, total)]),
+      ),
+    },
     liabilities: { total: liabilities, groups: {} },
     equity: { total: assets - liabilities, groups: {} },
   },
@@ -87,6 +109,52 @@ const period = (yearMonth: string, status: FinancialPeriod['status']): Financial
   updatedAt: new Date(),
 });
 
+const snapshot = (
+  year: number,
+  month: number,
+  gain: number,
+  openingValue: number,
+  holdings: { marketValue: number; leverage?: number }[] = [],
+) => ({
+  id: `${year}-${month}`,
+  householdId: 'h1',
+  portfolioId: 'p1',
+  year,
+  month,
+  accounts:
+    holdings.length === 0
+      ? []
+      : [
+          {
+            accountId: 'a1',
+            accountName: 'Securities',
+            category: 'securities' as const,
+            value: 0,
+            holdings: holdings.map((holding) => ({
+              accountId: 'a1',
+              label: 'ETF',
+              marketValue: holding.marketValue,
+              ...(holding.leverage === undefined ? {} : { leverage: holding.leverage }),
+            })),
+          },
+        ],
+  totalValue: 0,
+  cashFlow: { deposits: 0, withdrawals: 0 },
+  performance: {
+    openingValue,
+    closingValue: openingValue + gain,
+    netCashFlow: 0,
+    gain,
+    returnRate: openingValue > 0 ? (gain / openingValue) * 100 : 0,
+    cumulativeGain: 0,
+    cumulativeReturnRate: 0,
+  },
+  createdBy: 'user-1',
+  updatedBy: 'user-1',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+});
+
 const run = (range: '1y' | '3y' | '5y' | 'all' = 'all') =>
   getFinancialAnalysisWorkflow.execute({ householdId: 'h1', auth, range });
 
@@ -95,6 +163,10 @@ describe('getFinancialAnalysisWorkflow', () => {
     listReportsMock.mockReset();
     listPeriodsMock.mockReset();
     listPeriodsMock.mockResolvedValue([]);
+    listPortfoliosMock.mockReset();
+    listPortfoliosMock.mockResolvedValue([]);
+    listSnapshotsMock.mockReset();
+    listSnapshotsMock.mockResolvedValue([]);
   });
 
   it('anchors the latest balance sheet regardless of status, including when later months have other reports', async () => {
@@ -236,6 +308,122 @@ describe('getFinancialAnalysisWorkflow', () => {
     expect(result.netWorthPoints.map((point) => point.closed)).toEqual([true, false, false]);
   });
 
+  it('maps the three asset groups and omits months with no assets', async () => {
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 100, { cash: 200, investment: 300, property: 500 }),
+      balanceSheet('2026-02', 0, 0, { cash: 0, investment: 0, property: 0 }),
+      balanceSheet('2026-03', 1000, 100, { cash: -50, investment: 400, property: 650 }),
+    ]);
+
+    const result = await run();
+
+    expect(result.assetCompositionPoints).toEqual([
+      {
+        yearMonth: '2026-01',
+        closed: false,
+        assetsTotal: 1000,
+        cash: 200,
+        investment: 300,
+        property: 500,
+      },
+      {
+        yearMonth: '2026-03',
+        closed: false,
+        assetsTotal: 1000,
+        cash: -50,
+        investment: 400,
+        property: 650,
+      },
+    ]);
+  });
+
+  it('sums performance across portfolios and uses only months where every portfolio has a snapshot', async () => {
+    listPortfoliosMock.mockResolvedValue([{ id: 'p1' }, { id: 'p2' }]);
+    listSnapshotsMock.mockImplementation(async ({ portfolioId }: { portfolioId: string }) =>
+      portfolioId === 'p1'
+        ? [snapshot(2026, 1, 100, 1000), snapshot(2026, 3, 40, 0)]
+        : [snapshot(2026, 1, 50, 500), snapshot(2026, 3, 10, 0)],
+    );
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 100),
+      balanceSheet('2026-02', 1000, 100),
+      balanceSheet('2026-03', 1000, 100),
+    ]);
+
+    const result = await run();
+
+    expect(result.investmentPerformancePoints).toHaveLength(2);
+    expect(result.investmentPerformancePoints[0]).toMatchObject({
+      yearMonth: '2026-01',
+      gain: 150,
+      openingValue: 1500,
+    });
+    expect(result.investmentPerformancePoints[0]?.returnRate).toBeCloseTo(10);
+    expect(result.investmentPerformancePoints[1]?.returnRate).toBeNull();
+  });
+
+  it('skips a performance month when one portfolio has no snapshot', async () => {
+    listPortfoliosMock.mockResolvedValue([{ id: 'p1' }, { id: 'p2' }]);
+    listSnapshotsMock.mockImplementation(async ({ portfolioId }: { portfolioId: string }) =>
+      portfolioId === 'p1'
+        ? [snapshot(2026, 1, 100, 1000), snapshot(2026, 2, 100, 1000)]
+        : [snapshot(2026, 1, 50, 500)],
+    );
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 100),
+      balanceSheet('2026-02', 1000, 100),
+    ]);
+
+    const result = await run();
+
+    expect(result.investmentPerformancePoints.map((point) => point.yearMonth)).toEqual(['2026-01']);
+  });
+
+  it('computes the debt ratio and the market-value weighted leverage', async () => {
+    listPortfoliosMock.mockResolvedValue([{ id: 'p1' }]);
+    listSnapshotsMock.mockResolvedValue([
+      snapshot(2026, 1, 0, 0, [{ marketValue: 100, leverage: 2 }, { marketValue: 100 }]),
+    ]);
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 100),
+      balanceSheet('2026-02', 1000, 100),
+      balanceSheet('2026-03', 0, 0),
+    ]);
+
+    const result = await run();
+
+    expect(result.debtLeveragePoints).toHaveLength(2);
+    expect(result.debtLeveragePoints[0]).toMatchObject({
+      liabilities: 100,
+      assetsTotal: 1000,
+      leverage: 1.5,
+    });
+    expect(result.debtLeveragePoints[0]?.debtRatio).toBeCloseTo(10);
+    // A month without a snapshot keeps its debt data and only breaks the leverage line.
+    expect(result.debtLeveragePoints[1]?.leverage).toBeNull();
+    expect(result.debtLeveragePoints[1]?.debtRatio).toBeCloseTo(10);
+  });
+
+  it('cuts the new blocks to the range like the existing ones', async () => {
+    listPortfoliosMock.mockResolvedValue([{ id: 'p1' }]);
+    listSnapshotsMock.mockResolvedValue([
+      snapshot(2024, 12, 0, 100),
+      snapshot(2025, 12, 0, 100),
+      snapshot(2026, 12, 0, 100),
+    ]);
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2024-12', 1000, 100, { cash: 1000 }),
+      balanceSheet('2025-12', 1000, 100, { cash: 1000 }),
+      balanceSheet('2026-12', 1000, 100, { cash: 1000 }),
+    ]);
+
+    const result = await run('1y');
+
+    expect(result.assetCompositionPoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
+    expect(result.investmentPerformancePoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
+    expect(result.debtLeveragePoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
+  });
+
   it('returns an empty page when there is no balance sheet at all', async () => {
     listReportsMock.mockResolvedValue([income('2026-03', 1000, 500)]);
 
@@ -244,6 +432,9 @@ describe('getFinancialAnalysisWorkflow', () => {
     expect(result.anchor).toBeNull();
     expect(result.kpis.assets).toBeNull();
     expect(result.netWorthPoints).toEqual([]);
+    expect(result.assetCompositionPoints).toEqual([]);
+    expect(result.investmentPerformancePoints).toEqual([]);
+    expect(result.debtLeveragePoints).toEqual([]);
     expect(result.availableRanges).toEqual([]);
   });
 });

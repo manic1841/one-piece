@@ -12,7 +12,10 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
 import { ANALYSIS_ANCHORS, REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { AssetCompositionChart } from '@/ui/features/report/components/AssetCompositionChart';
+import { DebtLeverageChart } from '@/ui/features/report/components/DebtLeverageChart';
 import { IncomeSavingsChart } from '@/ui/features/report/components/IncomeSavingsChart';
+import { InvestmentPerformanceChart } from '@/ui/features/report/components/InvestmentPerformanceChart';
 import { NetCashFlowChart } from '@/ui/features/report/components/NetCashFlowChart';
 import { NetWorthTrendChart } from '@/ui/features/report/components/NetWorthTrendChart';
 import { useFinancialAnalysis } from '@/ui/features/report/hooks/useFinancialAnalysis';
@@ -144,6 +147,20 @@ const ReportAnalysisPage: React.FC = () => {
         analysis?.anchor !== null &&
         analysis !== null && (
           <>
+            <nav
+              aria-label={REPORT_ANALYSIS_LABELS.INDEX_LABEL}
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground"
+            >
+              {analysisVM.indexItems.map((item, index) => (
+                <span key={item.id} className="inline-flex items-center gap-2">
+                  <a href={`#${item.id}`} className="hover:text-foreground hover:underline">
+                    {item.label}
+                  </a>
+                  {index < analysisVM.indexItems.length - 1 && <span aria-hidden="true">·</span>}
+                </span>
+              ))}
+            </nav>
+
             <div className="space-y-2">
               {analysisVM.showRangeControl && (
                 <FilterStrip
@@ -179,6 +196,33 @@ const ReportAnalysisPage: React.FC = () => {
               />
             </AnalysisSection>
 
+            <AnalysisSection
+              id={ANALYSIS_ANCHORS.ASSET_COMPOSITION}
+              title={REPORT_ANALYSIS_LABELS.ASSET_COMPOSITION_SECTION}
+              latestText={analysisVM.assetComposition.latestText}
+              insufficient={analysisVM.assetComposition.insufficient}
+            >
+              <AssetCompositionChart
+                points={analysisVM.assetComposition.points}
+                onPointActivate={openReport}
+              />
+            </AnalysisSection>
+
+            <AnalysisSection
+              id={ANALYSIS_ANCHORS.INVESTMENT_PERFORMANCE}
+              title={REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_SECTION}
+              latestText={analysisVM.investmentPerformance.latestText}
+              insufficient={analysisVM.investmentPerformance.insufficient}
+            >
+              <p className="mb-3 text-xs text-muted-foreground">
+                {REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_HINT}
+              </p>
+              <InvestmentPerformanceChart
+                points={analysisVM.investmentPerformance.points}
+                onPointActivate={openReport}
+              />
+            </AnalysisSection>
+
             <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-10">
               <AnalysisSection
                 id={ANALYSIS_ANCHORS.INCOME}
@@ -207,6 +251,19 @@ const ReportAnalysisPage: React.FC = () => {
                 </p>
               </AnalysisSection>
             </div>
+
+            <AnalysisSection
+              id={ANALYSIS_ANCHORS.DEBT_LEVERAGE}
+              title={REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_SECTION}
+              latestText={analysisVM.debtLeverage.latestText}
+              insufficient={analysisVM.debtLeverage.insufficient}
+            >
+              <DebtLeverageChart
+                points={analysisVM.debtLeverage.points}
+                showLeverage={analysisVM.debtLeverage.showLeverage}
+                onPointActivate={openReport}
+              />
+            </AnalysisSection>
 
             <div>
               <Button variant="text" onClick={() => navigate('/reports')}>

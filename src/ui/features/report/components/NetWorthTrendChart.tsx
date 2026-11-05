@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
@@ -8,6 +6,7 @@ import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type NetWorthChartVM, type NetWorthSeriesKey } from '../viewmodels/reportAnalysis.vm';
 import { unclosedReferenceLines } from './unclosedMarkers';
+import { pointActivator, useSeriesToggle } from './useSeriesToggle';
 
 const SERIES_KEYS: Record<string, NetWorthSeriesKey> = {
   [REPORT_ANALYSIS_LABELS.NET_WORTH]: 'netWorth',
@@ -29,19 +28,13 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
   onPointActivate,
 }) => {
   const isDesktop = useIsDesktop();
-  const [active, setActive] = useState<ReadonlySet<NetWorthSeriesKey>>(
-    () => new Set<NetWorthSeriesKey>(['netWorth', ...initialSeries]),
-  );
-  const toggle = (key: NetWorthSeriesKey) =>
-    setActive((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const { isActive, toggle } = useSeriesToggle<NetWorthSeriesKey>([
+    'netWorth',
+    ...initialSeries,
+  ]);
 
   const series: ComposedSeries[] = [
-    ...(active.has('netWorth')
+    ...(isActive('netWorth')
       ? ([
           {
             kind: 'line',
@@ -51,7 +44,7 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
           },
         ] as const)
       : []),
-    ...(active.has('assets')
+    ...(isActive('assets')
       ? ([
           {
             kind: 'line',
@@ -61,7 +54,7 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
           },
         ] as const)
       : []),
-    ...(active.has('liabilities')
+    ...(isActive('liabilities')
       ? ([
           {
             kind: 'line',
@@ -76,9 +69,9 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
   const referenceLines = unclosedReferenceLines(points);
 
   const visibleLabels = [
-    active.has('netWorth') ? REPORT_ANALYSIS_LABELS.NET_WORTH : null,
-    active.has('assets') ? REPORT_ANALYSIS_LABELS.TOTAL_ASSETS : null,
-    active.has('liabilities') ? REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES : null,
+    isActive('netWorth') ? REPORT_ANALYSIS_LABELS.NET_WORTH : null,
+    isActive('assets') ? REPORT_ANALYSIS_LABELS.TOTAL_ASSETS : null,
+    isActive('liabilities') ? REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES : null,
   ].filter((label) => label !== null);
 
   return (
@@ -90,13 +83,13 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
         points={points.map((point) => {
           // Hidden series stay out of the tooltip entirely.
           const visible = [
-            active.has('netWorth')
+            isActive('netWorth')
               ? `${REPORT_ANALYSIS_LABELS.NET_WORTH} ${point.netWorthText}`
               : null,
-            active.has('assets')
+            isActive('assets')
               ? `${REPORT_ANALYSIS_LABELS.TOTAL_ASSETS} ${point.assetsText}`
               : null,
-            active.has('liabilities')
+            isActive('liabilities')
               ? `${REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES} ${point.liabilitiesText}`
               : null,
           ].filter((part): part is string => part !== null);
@@ -108,10 +101,7 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
         })}
         height={isDesktop ? 320 : 200}
         ariaLabel={REPORT_ANALYSIS_LABELS.NET_WORTH_ARIA(visibleLabels.join('、'))}
-        onPointClick={(index) => {
-          const point = points[index];
-          if (point !== undefined) onPointActivate(point.yearMonth);
-        }}
+        onPointClick={pointActivator(points, onPointActivate)}
       />
       <ChartLegend
         items={[

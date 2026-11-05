@@ -177,6 +177,27 @@ describe('ComposedChart', () => {
     expect(path).not.toContain('L10.00 null');
   });
 
+  it('uses a categorical token over the semantic tone when one is given', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[
+          { kind: 'line', tone: 'neutral', colorToken: 'chart-1', area: true, values: [1, 2] },
+          { kind: 'bar', tone: 'neutral', colorToken: 'chart-4', values: [3, 4] },
+        ]}
+      />,
+    );
+
+    const strokePath = [...container.querySelectorAll('path')].find(
+      (path) => path.getAttribute('fill') === 'none',
+    );
+    expect(strokePath?.getAttribute('stroke')).toBe('hsl(var(--chart-1))');
+    expect(container.querySelector('linearGradient stop')?.getAttribute('stop-color')).toBe(
+      'hsl(var(--chart-1))',
+    );
+    expect(container.querySelector('rect')?.getAttribute('fill')).toBe('hsl(var(--chart-4))');
+  });
+
   it('colours bars by sign when asked', () => {
     const { container } = render(
       <ComposedChart

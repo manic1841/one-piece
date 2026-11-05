@@ -23,6 +23,30 @@ export const CHART_TONE_COLOR: Record<ChartTone, string> = {
   warning: 'hsl(var(--warning))',
 };
 
+/**
+ * Categorical token for charts that encode a category instead of a state. The
+ * color still arrives through `--chart-*`, but it does not claim a semantic tone.
+ * See ADR-0081.
+ */
+export type ChartColorToken =
+  | 'chart-1'
+  | 'chart-2'
+  | 'chart-3'
+  | 'chart-4'
+  | 'chart-5'
+  | 'chart-6'
+  | 'chart-7';
+
+export const CHART_COLOR_TOKEN_COLOR: Record<ChartColorToken, string> = {
+  'chart-1': 'hsl(var(--chart-1))',
+  'chart-2': 'hsl(var(--chart-2))',
+  'chart-3': 'hsl(var(--chart-3))',
+  'chart-4': 'hsl(var(--chart-4))',
+  'chart-5': 'hsl(var(--chart-5))',
+  'chart-6': 'hsl(var(--chart-6))',
+  'chart-7': 'hsl(var(--chart-7))',
+};
+
 /** Background utilities for solid bars and legend swatches. */
 export const CHART_TONE_FILL: Record<ChartTone, string> = {
   primary: 'bg-primary',

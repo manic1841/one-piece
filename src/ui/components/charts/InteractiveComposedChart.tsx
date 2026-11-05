@@ -15,6 +15,10 @@ type InteractiveComposedChartProps = {
   /** One point per column; the tooltip content for each index. */
   points: ChartPoint[];
   height?: number;
+  yDomain?: { min: number; max: number };
+  yTicks?: number;
+  yUnit?: string;
+  includeZero?: boolean;
   showLabels?: boolean;
   ariaLabel: string;
   /** Optional activation of a column (click, Enter, Space). */
@@ -41,6 +45,10 @@ export function InteractiveComposedChart({
   referenceLines,
   points,
   height = 200,
+  yDomain,
+  yTicks,
+  yUnit,
+  includeZero,
   showLabels = true,
   ariaLabel,
   onPointClick,
@@ -61,6 +69,10 @@ export function InteractiveComposedChart({
       series={series}
       referenceLines={referenceLines}
       height={height}
+      yDomain={yDomain}
+      yTicks={yTicks}
+      yUnit={yUnit}
+      includeZero={includeZero}
       showLabels={showLabels}
       className={className}
     >

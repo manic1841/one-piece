@@ -18,8 +18,8 @@
 
 - `primary` 為 teal（暗色底上承擔主要互動色）。
 - 顏色分兩層（見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）：**語意 tone** 表達「資料的意義」，**`chart-*` 類別色板**表達「分類之間的差異」。硬編碼 hex 一律對齊 token。
-- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）改用 `chart-*` 類別色板（下段）。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。**次要脈絡序列**（同一張圖裡不是主體、只提供背景對照的線，例如收支圖上的淨資產）用細虛線（1.2px／`5 4`）而非實線，讓它不與主體爭視覺重量；主體序列維持實線 1.8px。
-- **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-1..7` 為類別色板**：只在「以顏色編碼分類、而非編碼狀態」的並列拆解圖（donut）使用，依資料順序配色；不得用於金額或狀態呈現。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）與隨時間的分類拆解圖（資產類別構成）改用 `chart-*` 類別色板（下段），後者經 `ComposedChart` 序列的 `colorToken` 指定。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。**次要脈絡序列**（同一張圖裡不是主體、只提供背景對照的線，例如收支圖上的淨資產）用細虛線（1.2px／`5 4`）而非實線，讓它不與主體爭視覺重量；主體序列維持實線 1.8px。
+- **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-1..7` 為類別色板**：只在「以顏色編碼分類、而非編碼狀態」的並列拆解圖（donut）與隨時間的分類拆解圖（資產類別構成）使用，依資料順序配色；不得用於金額或狀態呈現。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
 - 層級由材質（§3）而非色差承擔。
 - 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現。`destructive` 與 `negative` 同值（來源色板只有一個紅），仍僅用於不可逆動作與錯誤文字。
 - `border-strong` token（比 `border` 亮一階）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免暗色底上邊界消失。

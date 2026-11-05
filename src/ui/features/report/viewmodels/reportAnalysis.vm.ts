@@ -22,7 +22,10 @@ export type { AnalysisRange };
 export const DEFAULT_RANGE: AnalysisRange = '3y';
 
 export type NetWorthSeriesKey = 'netWorth' | 'assets' | 'liabilities';
+export type AssetCompositionSeriesKey = 'cash' | 'investment' | 'property';
+export type InvestmentPerformanceSeriesKey = 'gain' | 'returnRate';
 export type IncomeSeriesKey = 'income' | 'expense' | 'savingsRate';
+export type DebtLeverageSeriesKey = 'liabilities' | 'debtRatio' | 'leverage';
 export type SummaryKpiKey = 'totalAssets' | 'netWorth' | 'totalLiabilities' | 'savingsRate';
 /** `?series=` values: the two context lines the KPI links preselect. */
 export type SeriesParam = 'assets' | 'debt';
@@ -58,6 +61,42 @@ export interface NetWorthChartVM extends AnalysisPointTextVM {
   liabilitiesText: string;
 }
 
+export interface AssetCompositionChartVM extends AnalysisPointTextVM {
+  /** Fixed denominator for every share on the point. */
+  assetsTotal: number;
+  cash: number;
+  investment: number;
+  property: number;
+  cashText: string;
+  investmentText: string;
+  propertyText: string;
+  cashShare: number;
+  investmentShare: number;
+  propertyShare: number;
+  cashShareText: string;
+  investmentShareText: string;
+  propertyShareText: string;
+}
+
+export interface InvestmentPerformanceChartVM extends AnalysisPointTextVM {
+  gain: number;
+  openingValue: number;
+  returnRate: number | null;
+  gainText: string;
+  openingValueText: string;
+  returnRateText: string;
+}
+
+export interface DebtLeverageChartVM extends AnalysisPointTextVM {
+  liabilities: number;
+  assetsTotal: number;
+  debtRatio: number;
+  leverage: number | null;
+  liabilitiesText: string;
+  debtRatioText: string;
+  leverageText: string;
+}
+
 export interface IncomeChartVM extends AnalysisPointTextVM {
   income: number;
   expense: number;
@@ -77,10 +116,27 @@ export interface ReportAnalysisVM {
   range: AnalysisRange;
   rangeItems: { id: AnalysisRange; label: string }[];
   showRangeControl: boolean;
+  indexItems: { id: string; label: string }[];
   unclosedNote: { text: string; showHistoryLink: boolean } | null;
   netWorth: { points: NetWorthChartVM[]; insufficient: boolean; latestText: string | null };
+  assetComposition: {
+    points: AssetCompositionChartVM[];
+    insufficient: boolean;
+    latestText: string | null;
+  };
+  investmentPerformance: {
+    points: InvestmentPerformanceChartVM[];
+    insufficient: boolean;
+    latestText: string | null;
+  };
   income: { points: IncomeChartVM[]; insufficient: boolean; latestText: string | null };
   cashFlow: { points: CashFlowChartVM[]; insufficient: boolean; latestText: string | null };
+  debtLeverage: {
+    points: DebtLeverageChartVM[];
+    insufficient: boolean;
+    latestText: string | null;
+    showLeverage: boolean;
+  };
 }
 
 const DASH = REPORT_SUMMARY_LABELS.MISSING;
@@ -91,7 +147,7 @@ const periodTextOf = (yearMonth: string | null): string => {
   return period === null ? yearMonth : formatReportPeriodDisplay(period);
 };
 
-const savingsRateText = (value: number | null): string =>
+const percentText = (value: number | null): string =>
   value === null ? DASH : formatPercentage(value, 1);
 
 const kpiValue = (value: number | null): string => (value === null ? DASH : formatCurrency(value));
@@ -139,7 +195,7 @@ export const buildReportSummaryVM = (analysis: FinancialAnalysis): ReportSummary
       summaryKpi(
         'savingsRate',
         REPORT_SUMMARY_LABELS.SAVINGS_RATE,
-        savingsRateText(kpis.savingsRate),
+        percentText(kpis.savingsRate),
         analysisHref(ANALYSIS_ANCHORS.INCOME),
         REPORT_SUMMARY_LABELS.ARIA_SAVINGS_RATE,
         kpis.savingsRate !== null && kpis.savingsRate < 0 ? 'negative' : 'default',
@@ -174,7 +230,54 @@ export const buildReportAnalysisVM = (analysis: FinancialAnalysis): ReportAnalys
     savingsRate: point.savingsRate,
     incomeText: formatCurrency(point.income),
     expenseText: formatCurrency(point.expense),
-    savingsRateText: savingsRateText(point.savingsRate),
+    savingsRateText: percentText(point.savingsRate),
+  }));
+  const assetCompositionPoints = analysis.assetCompositionPoints.map<AssetCompositionChartVM>(
+    (point) => {
+      const share = (value: number) => (value / point.assetsTotal) * 100;
+      return {
+        label: pointLabel(point.yearMonth),
+        yearMonth: point.yearMonth,
+        unclosed: !point.closed,
+        assetsTotal: point.assetsTotal,
+        cash: point.cash,
+        investment: point.investment,
+        property: point.property,
+        cashText: formatCurrency(point.cash),
+        investmentText: formatCurrency(point.investment),
+        propertyText: formatCurrency(point.property),
+        cashShare: share(point.cash),
+        investmentShare: share(point.investment),
+        propertyShare: share(point.property),
+        cashShareText: formatPercentage(share(point.cash), 1),
+        investmentShareText: formatPercentage(share(point.investment), 1),
+        propertyShareText: formatPercentage(share(point.property), 1),
+      };
+    },
+  );
+  const investmentPerformancePoints =
+    analysis.investmentPerformancePoints.map<InvestmentPerformanceChartVM>((point) => ({
+      label: pointLabel(point.yearMonth),
+      yearMonth: point.yearMonth,
+      unclosed: !point.closed,
+      gain: point.gain,
+      openingValue: point.openingValue,
+      returnRate: point.returnRate,
+      gainText: formatCurrency(point.gain),
+      openingValueText: formatCurrency(point.openingValue),
+      returnRateText: percentText(point.returnRate),
+    }));
+  const debtLeveragePoints = analysis.debtLeveragePoints.map<DebtLeverageChartVM>((point) => ({
+    label: pointLabel(point.yearMonth),
+    yearMonth: point.yearMonth,
+    unclosed: !point.closed,
+    liabilities: point.liabilities,
+    assetsTotal: point.assetsTotal,
+    debtRatio: point.debtRatio,
+    leverage: point.leverage,
+    liabilitiesText: formatCurrency(point.liabilities),
+    debtRatioText: formatPercentage(point.debtRatio, 1),
+    leverageText: point.leverage === null ? DASH : `${point.leverage.toFixed(2)}x`,
   }));
   const cashFlowPoints = analysis.cashFlowPoints.map<CashFlowChartVM>((point) => ({
     label: pointLabel(point.yearMonth),
@@ -220,11 +323,41 @@ export const buildReportAnalysisVM = (analysis: FinancialAnalysis): ReportAnalys
       label: ANALYSIS_RANGE_LABELS[range],
     })),
     showRangeControl: analysis.availableRanges.length > 1,
+    indexItems: [
+      { id: ANALYSIS_ANCHORS.NET_WORTH, label: REPORT_ANALYSIS_LABELS.NET_WORTH_SECTION },
+      {
+        id: ANALYSIS_ANCHORS.ASSET_COMPOSITION,
+        label: REPORT_ANALYSIS_LABELS.ASSET_COMPOSITION_SECTION,
+      },
+      {
+        id: ANALYSIS_ANCHORS.INVESTMENT_PERFORMANCE,
+        label: REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_SECTION,
+      },
+      { id: ANALYSIS_ANCHORS.INCOME, label: REPORT_ANALYSIS_LABELS.INCOME_SECTION },
+      { id: ANALYSIS_ANCHORS.CASH_FLOW, label: REPORT_ANALYSIS_LABELS.CASH_FLOW_SECTION },
+      { id: ANALYSIS_ANCHORS.DEBT_LEVERAGE, label: REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_SECTION },
+    ],
     unclosedNote,
     netWorth: {
       points: netWorthPoints,
       insufficient: netWorthPoints.length < 2,
       latestText: latestTextAtAnchor(netWorthPoints, (point) => point.netWorthText),
+    },
+    assetComposition: {
+      points: assetCompositionPoints,
+      insufficient: assetCompositionPoints.length < 2,
+      latestText: latestTextAtAnchor(
+        assetCompositionPoints,
+        (point) => `${REPORT_ANALYSIS_LABELS.TOTAL_ASSETS} ${formatCurrency(point.assetsTotal)}`,
+      ),
+    },
+    investmentPerformance: {
+      points: investmentPerformancePoints,
+      insufficient: investmentPerformancePoints.length < 2,
+      latestText: latestTextAtAnchor(
+        investmentPerformancePoints,
+        (point) => `${REPORT_ANALYSIS_LABELS.RETURN_RATE} ${point.returnRateText}`,
+      ),
     },
     income: {
       points: incomePoints,
@@ -235,6 +368,17 @@ export const buildReportAnalysisVM = (analysis: FinancialAnalysis): ReportAnalys
       points: cashFlowPoints,
       insufficient: cashFlowPoints.length < 2,
       latestText: latestTextAtAnchor(cashFlowPoints, (point) => point.netCashFlowText),
+    },
+    debtLeverage: {
+      points: debtLeveragePoints,
+      insufficient: debtLeveragePoints.length < 2,
+      latestText: latestTextAtAnchor(
+        debtLeveragePoints,
+        (point) => `${REPORT_ANALYSIS_LABELS.DEBT_RATIO} ${point.debtRatioText}`,
+      ),
+      showLeverage: debtLeveragePoints.some(
+        (point) => point.leverage !== null && point.leverage > 1,
+      ),
     },
   };
 };

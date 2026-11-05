@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
@@ -7,6 +5,7 @@ import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type CashFlowChartVM } from '../viewmodels/reportAnalysis.vm';
 import { unclosedReferenceLines } from './unclosedMarkers';
+import { pointActivator, useSeriesToggle } from './useSeriesToggle';
 
 interface NetCashFlowChartProps {
   points: CashFlowChartVM[];
@@ -16,7 +15,8 @@ interface NetCashFlowChartProps {
 /** 淨現金流：零基準柱，正值向上、負值向下，方向由顏色承擔。 */
 export const NetCashFlowChart: React.FC<NetCashFlowChartProps> = ({ points, onPointActivate }) => {
   const isDesktop = useIsDesktop();
-  const [visible, setVisible] = useState(true);
+  const { isActive, toggle } = useSeriesToggle(['netCashFlow']);
+  const visible = isActive('netCashFlow');
   const referenceLines = unclosedReferenceLines(points);
 
   return (
@@ -46,15 +46,12 @@ export const NetCashFlowChart: React.FC<NetCashFlowChartProps> = ({ points, onPo
         ariaLabel={REPORT_ANALYSIS_LABELS.CASH_FLOW_ARIA(
           visible ? REPORT_ANALYSIS_LABELS.NET_CASH_FLOW : '',
         )}
-        onPointClick={(index) => {
-          const point = points[index];
-          if (point !== undefined) onPointActivate(point.yearMonth);
-        }}
+        onPointClick={pointActivator(points, onPointActivate)}
       />
       <ChartLegend
         items={[{ label: REPORT_ANALYSIS_LABELS.NET_CASH_FLOW, tone: 'positive' }]}
         active={visible ? [REPORT_ANALYSIS_LABELS.NET_CASH_FLOW] : []}
-        onToggle={() => setVisible((current) => !current)}
+        onToggle={() => toggle('netCashFlow')}
       />
     </div>
   );

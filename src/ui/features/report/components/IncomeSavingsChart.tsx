@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
@@ -8,6 +6,7 @@ import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type IncomeChartVM, type IncomeSeriesKey } from '../viewmodels/reportAnalysis.vm';
 import { unclosedReferenceLines } from './unclosedMarkers';
+import { pointActivator, useSeriesToggle } from './useSeriesToggle';
 
 interface IncomeSavingsChartProps {
   points: IncomeChartVM[];
@@ -29,40 +28,51 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
   onPointActivate,
 }) => {
   const isDesktop = useIsDesktop();
-  const [active, setActive] = useState<ReadonlySet<IncomeSeriesKey>>(
-    () => new Set<IncomeSeriesKey>(['income', 'expense', 'savingsRate']),
-  );
-  const toggle = (key: IncomeSeriesKey) =>
-    setActive((current) => {
-      const next = new Set(current);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const { isActive, toggle } = useSeriesToggle<IncomeSeriesKey>([
+    'income',
+    'expense',
+    'savingsRate',
+  ]);
 
   const referenceLines = unclosedReferenceLines(points);
 
   const barSeries: ComposedSeries[] = [
-    ...(active.has('income')
+    ...(isActive('income')
       ? ([{ kind: 'bar', tone: 'positive', values: points.map((point) => point.income) }] as const)
       : []),
-    ...(active.has('expense')
+    ...(isActive('expense')
       ? ([{ kind: 'bar', tone: 'negative', values: points.map((point) => point.expense) }] as const)
       : []),
   ];
 
-  const savingsVisible = active.has('savingsRate');
+  const savingsVisible = isActive('savingsRate');
   const visibleLabels = [
-    active.has('income') ? REPORT_ANALYSIS_LABELS.INCOME : null,
-    active.has('expense') ? REPORT_ANALYSIS_LABELS.EXPENSE : null,
+    isActive('income') ? REPORT_ANALYSIS_LABELS.INCOME : null,
+    isActive('expense') ? REPORT_ANALYSIS_LABELS.EXPENSE : null,
     savingsVisible ? REPORT_ANALYSIS_LABELS.SAVINGS_RATE : null,
   ].filter((label) => label !== null);
 
   const labels = points.map((point) => point.label);
-  const activate = (index: number) => {
-    const point = points[index];
-    if (point !== undefined) onPointActivate(point.yearMonth);
-  };
+  const activate = pointActivator(points, onPointActivate);
+
+  // Both layers show the same tooltip so the stacked values read together.
+  const tooltipPoints = points.map((point) => {
+    const income = isActive('income')
+      ? `${REPORT_ANALYSIS_LABELS.INCOME} ${point.incomeText}`
+      : null;
+    const expense = isActive('expense')
+      ? `${REPORT_ANALYSIS_LABELS.EXPENSE} ${point.expenseText}`
+      : null;
+    const rate = savingsVisible
+      ? `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}`
+      : null;
+    const parts = [income, expense, rate].filter((part): part is string => part !== null);
+    return {
+      title: point.label,
+      value: parts[0] ?? REPORT_ANALYSIS_LABELS.DASH,
+      meta: parts.slice(1).join(' · '),
+    };
+  });
 
   return (
     <div className="space-y-3">
@@ -70,22 +80,7 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
         labels={labels}
         series={barSeries}
         referenceLines={referenceLines}
-        points={points.map((point) => {
-          const income = active.has('income')
-            ? `${REPORT_ANALYSIS_LABELS.INCOME} ${point.incomeText}`
-            : null;
-          const expense = active.has('expense')
-            ? `${REPORT_ANALYSIS_LABELS.EXPENSE} ${point.expenseText}`
-            : null;
-          const rate = savingsVisible
-            ? `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}`
-            : null;
-          const value = income ?? expense ?? rate ?? REPORT_ANALYSIS_LABELS.DASH;
-          const meta = [income !== null ? expense : null, rate]
-            .filter((part): part is string => part !== null)
-            .join(' · ');
-          return { title: point.label, value, meta };
-        })}
+        points={tooltipPoints}
         height={isDesktop ? 240 : 160}
         // The lower savings line owns the x labels while it is visible.
         showLabels={!savingsVisible}
@@ -107,10 +102,7 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
                 values: points.map((point) => point.savingsRate),
               },
             ]}
-            points={points.map((point) => ({
-              title: point.label,
-              value: `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}`,
-            }))}
+            points={tooltipPoints}
             // The bar chart above already labels each run.
             referenceLines={referenceLines.map(({ index, tone }) => ({ index, tone }))}
             height={96}

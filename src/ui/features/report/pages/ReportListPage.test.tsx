@@ -47,8 +47,11 @@ const analysisResult = (overrides: Record<string, unknown> = {}) => ({
   range: '3y',
   availableRanges: ['1y'],
   netWorthPoints: [],
+  assetCompositionPoints: [],
+  investmentPerformancePoints: [],
   incomePoints: [],
   cashFlowPoints: [],
+  debtLeveragePoints: [],
   ...overrides,
 });
 

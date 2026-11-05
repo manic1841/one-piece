@@ -5,7 +5,7 @@
  * scales, column positions, bar rects, line paths and axis ticks are derived
  * here so every composed chart in the app shares one layout algorithm.
  */
-import { type ChartTone } from './chartTheme';
+import { type ChartColorToken, type ChartTone } from './chartTheme';
 import { formatAxisValue } from './lineChartGeometry';
 
 export const COMPOSED_CHART_WIDTH = 700;
@@ -28,6 +28,8 @@ export type ComposedAxis = 'left' | 'right';
 export type ComposedBarSeries = {
   kind: 'bar';
   tone: ChartTone;
+  /** Categorical token; overrides `tone` for the fill. */
+  colorToken?: ChartColorToken;
   values: number[];
   /** Bars below zero use the `negative` tone instead of `tone`. */
   toneBySign?: boolean;
@@ -37,6 +39,8 @@ export type ComposedBarSeries = {
 export type ComposedLineSeries = {
   kind: 'line';
   tone: ChartTone;
+  /** Categorical token; overrides `tone` for the stroke and area fill. */
+  colorToken?: ChartColorToken;
   /** A null value breaks the path at that column. */
   values: (number | null)[];
   axis?: ComposedAxis;
@@ -77,6 +81,7 @@ export type ComposedColumn = {
 export type ComposedBar = {
   key: string;
   tone: ChartTone;
+  colorToken?: ChartColorToken;
   /** Source column index. */
   columnIndex: number;
   x: number;
@@ -88,6 +93,7 @@ export type ComposedBar = {
 export type ComposedLine = {
   key: string;
   tone: ChartTone;
+  colorToken?: ChartColorToken;
   path: string;
   /** Thin dashed stroke instead of a solid one. */
   dashed?: boolean;
@@ -129,6 +135,15 @@ interface Scale {
   max: number;
 }
 
+export interface ComposedGeometryOptions {
+  /** Fixed value domain, e.g. a 0–100 percentage axis. */
+  yDomain?: Scale;
+  /** Number of gridlines and tick labels. Defaults to 4. */
+  yTicks?: number;
+  /** Pin a line-only scale to include the zero baseline. */
+  includeZero?: boolean;
+}
+
 /**
  * Bars need a 0 baseline; line-only charts do not, and anchoring them at 0
  * flattens small moves on a high base (a balance-sheet trend, a savings rate),
@@ -162,15 +177,15 @@ const yFor = (value: number, scale: Scale): number => {
 const clampedZeroY = (scale: Scale): number =>
   Math.min(PADDING_TOP + innerHeight, Math.max(PADDING_TOP, yFor(0, scale)));
 
-const gridValueAt = (scale: Scale, index: number): number => {
-  const ratio = index / (GRID_LINE_COUNT - 1);
+const gridValueAt = (scale: Scale, index: number, count: number): number => {
+  const ratio = index / (count - 1);
   return scale.max - ratio * (scale.max - scale.min);
 };
 
-const buildAxisLabels = (scale: Scale): { y: number; text: string }[] =>
-  Array.from({ length: GRID_LINE_COUNT }, (_, index) => ({
-    y: Number((PADDING_TOP + (index / (GRID_LINE_COUNT - 1)) * innerHeight).toFixed(2)),
-    text: formatAxisValue(gridValueAt(scale, index)),
+const buildAxisLabels = (scale: Scale, count: number): { y: number; text: string }[] =>
+  Array.from({ length: count }, (_, index) => ({
+    y: Number((PADDING_TOP + (index / (count - 1)) * innerHeight).toFixed(2)),
+    text: formatAxisValue(gridValueAt(scale, index, count)),
   }));
 
 /**
@@ -182,9 +197,11 @@ export function buildComposedGeometry(
   labels: string[],
   series: ComposedSeries[],
   referenceLines: ComposedReferenceLine[] = [],
+  options: ComposedGeometryOptions = {},
 ): ComposedChartLayout {
   const count = labels.length;
   if (count === 0) return EMPTY_LAYOUT;
+  const tickCount = options.yTicks ?? GRID_LINE_COUNT;
 
   const defined = (values: (number | null)[]): number[] =>
     values.filter((value): value is number => value !== null);
@@ -196,7 +213,11 @@ export function buildComposedGeometry(
     .flatMap((item) => defined(item.values));
 
   const hasBars = series.some((item) => item.kind === 'bar');
-  const leftScale = leftValues.length > 0 ? buildScale(leftValues, hasBars) : undefined;
+  const leftScale =
+    options.yDomain ??
+    (leftValues.length > 0
+      ? buildScale(leftValues, hasBars || options.includeZero === true)
+      : undefined);
   const rightScale = rightValues.length > 0 ? buildScale(rightValues, hasBars) : undefined;
   const primaryScale = leftScale ?? rightScale;
   if (!primaryScale) return EMPTY_LAYOUT;
@@ -224,6 +245,7 @@ export function buildComposedGeometry(
       bars.push({
         key: `bar-${seriesIndex}-${index}`,
         tone: item.toneBySign === true && value < 0 ? 'negative' : item.tone,
+        ...(item.colorToken !== undefined ? { colorToken: item.colorToken } : {}),
         columnIndex: index,
         x: Number(
           (
@@ -312,6 +334,7 @@ export function buildComposedGeometry(
     return {
       key: `line-${seriesIndex}`,
       tone: item.tone,
+      ...(item.colorToken !== undefined ? { colorToken: item.colorToken } : {}),
       path,
       ...(item.dashed ? { dashed: true } : {}),
       ...(areaPath ? { areaPath } : {}),
@@ -343,8 +366,8 @@ export function buildComposedGeometry(
     };
   });
 
-  const gridLines = Array.from({ length: GRID_LINE_COUNT }, (_, index) =>
-    Number((PADDING_TOP + (index / (GRID_LINE_COUNT - 1)) * innerHeight).toFixed(2)),
+  const gridLines = Array.from({ length: tickCount }, (_, index) =>
+    Number((PADDING_TOP + (index / (tickCount - 1)) * innerHeight).toFixed(2)),
   );
 
   return {
@@ -352,8 +375,8 @@ export function buildComposedGeometry(
     bars,
     lines,
     gridLines,
-    leftLabels: leftScale ? buildAxisLabels(leftScale) : [],
-    rightLabels: rightScale ? buildAxisLabels(rightScale) : [],
+    leftLabels: leftScale ? buildAxisLabels(leftScale, tickCount) : [],
+    rightLabels: rightScale ? buildAxisLabels(rightScale, tickCount) : [],
     ...(leftScale && leftScale.min <= 0 && leftScale.max >= 0
       ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) }
       : {}),
