@@ -62,11 +62,13 @@ export default {
         fast: '120ms',
         base: '240ms',
         slow: '400ms',
+        data: '400ms',
       },
       animationDuration: {
         fast: '120ms',
         base: '240ms',
         slow: '400ms',
+        data: '400ms',
       },
       transitionTimingFunction: {
         'out-quint': 'cubic-bezier(0.22, 1, 0.36, 1)',
