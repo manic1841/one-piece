@@ -3,12 +3,10 @@ import { useState } from 'react';
 import { ChartLegend, type ChartLegendItem } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { heroPoint, listPoint, type TooltipItem } from '@/ui/components/charts/chartInteraction';
-import { CHART_COLOR_TOKEN_COLOR, type ChartColorToken, type ChartTone } from '@/ui/components/charts/chartTheme';
-import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
+import { type ChartColorToken, type ChartTone } from '@/ui/components/charts/chartTheme';
+import { type ComposedSeries, type ComposedReferenceLine } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
-
-import { unclosedReferenceLines, withoutLabels } from '../unclosedMarkers';
 
 /** A tooltip row. `seriesKey` ties it to a layer so hiding the layer drops the row. */
 export type ChartTooltipItem = TooltipItem & { seriesKey?: string };
@@ -48,6 +46,8 @@ export type ChartSecondary = {
   yTicks?: number;
   yDecimals?: number;
   yUnit?: string;
+  /** Let this band label x; the module labels through the lowest visible band. */
+  showLabels?: boolean;
 };
 
 type ChartHeight = {
@@ -106,6 +106,19 @@ const useSeriesVisibility = (initial: readonly string[]) => {
 
 const stackBaseline = (values: (number | null)[], baseline: number[]): number[] =>
   values.map((_, index) => baseline[index] ?? 0);
+
+/** Drop the labels so a lower layer can draw the same markers without repeating them. */
+const withoutLabels = (lines: readonly ComposedReferenceLine[]): ComposedReferenceLine[] =>
+  lines.map(({ index, tone }) => ({ index, tone }));
+
+/** One labelled warning marker at the first index of every contiguous unclosed run. */
+const unclosedReferenceLines = (
+  points: readonly { unclosed: boolean }[],
+): ComposedReferenceLine[] =>
+  points.flatMap((point, index) => {
+    if (!point.unclosed || points[index - 1]?.unclosed === true) return [];
+    return [{ index, tone: 'warning', label: REPORT_ANALYSIS_LABELS.UNCLOSED_MARKER }];
+  });
 
 /**
  * The baseline each stacked layer should sit on: the running sum of the stacked
@@ -245,7 +258,7 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
         {...(includeZero === undefined ? {} : { includeZero })}
       />
 
-      {visibleSecondaries.map((band) => (
+      {visibleSecondaries.map((band, index) => (
         <div key={band.seriesKey} className="mt-3 border-t border-border pt-3">
           <p className="mb-1 font-mono text-[11px] tracking-widest text-muted-foreground uppercase">
             {band.unit}
@@ -255,6 +268,8 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
             series={[{ kind: 'line', tone: band.tone, values: band.values }]}
             referenceLines={withoutLabels(referenceLines)}
             height={SECONDARY_HEIGHT}
+            // Only the lowest visible band carries the x labels.
+            showLabels={band.showLabels ?? index === visibleSecondaries.length - 1}
             yTicks={band.yTicks ?? 3}
             yDecimals={band.yDecimals ?? 1}
             ariaLabel={legend?.items.find((item) => item.key === band.seriesKey)?.label ?? band.unit}
@@ -281,5 +296,3 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
     </div>
   );
 }
-
-export { CHART_COLOR_TOKEN_COLOR };

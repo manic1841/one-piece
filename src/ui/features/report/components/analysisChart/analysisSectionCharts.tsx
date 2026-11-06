@@ -2,10 +2,9 @@ import { type ReactNode } from 'react';
 
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 
-import { AssetCompositionChart } from '../AssetCompositionChart';
-import { DebtLeverageChart } from '../DebtLeverageChart';
 import { type ReportAnalysisVM } from '../../viewmodels/reportAnalysis.vm';
 import { AnalysisChart, type ChartLayer } from './AnalysisChart';
+import { assetComposition, debtLeverage } from './analysisBalanceCharts';
 import { type ChartContext, type SectionVmKey } from './analysisChartSpecs';
 
 type RenderChart = (vm: ReportAnalysisVM, context: ChartContext) => ReactNode;
@@ -299,26 +298,6 @@ const cashCoverage: RenderChart = (vm, context) => (
     ariaLabel={() =>
       REPORT_ANALYSIS_LABELS.CASH_COVERAGE_ARIA(REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS)
     }
-  />
-);
-
-/** Chart renderers still on the old wrappers, migrated in the following steps. */
-const assetComposition: RenderChart = (vm, context) => (
-  <AssetCompositionChart
-    points={vm.assetComposition.points}
-    markerLabels={false}
-    selectedPeriod={context.selectedPeriod}
-    onPointSelect={context.onPointSelect}
-  />
-);
-
-const debtLeverage: RenderChart = (vm, context) => (
-  <DebtLeverageChart
-    points={vm.debtLeverage.points}
-    showLeverage={vm.debtLeverage.showLeverage}
-    markerLabels={false}
-    selectedPeriod={context.selectedPeriod}
-    onPointSelect={context.onPointSelect}
   />
 );
 
