@@ -8,6 +8,7 @@ import { InteractiveBarChart } from '@/ui/components/charts/InteractiveBarChart'
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { LineChart } from '@/ui/components/charts/LineChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import type { MoneyTone } from '@/ui/components/moneyTone';
@@ -43,13 +44,17 @@ const CASH_FLOW_SERIES = [
   { tone: 'negative' as const, values: [28, 34, 43, 38, 32, 31] },
 ];
 const CASH_FLOW_POINTS = [
-  { title: 'APR 2026', value: 'INCOME +NT$55,000', meta: 'EXPENSE −NT$28,000' },
-  { title: 'MAY 2026', value: 'INCOME +NT$70,000', meta: 'EXPENSE −NT$34,000' },
-  { title: 'JUN 2026', value: 'INCOME +NT$64,000', meta: 'EXPENSE −NT$43,000' },
-  { title: 'JUL 2026', value: 'INCOME +NT$78,000', meta: 'EXPENSE −NT$38,000' },
-  { title: 'AUG 2026', value: 'INCOME +NT$69,000', meta: 'EXPENSE −NT$32,000' },
-  { title: 'SEP 2026', value: 'INCOME +NT$84,000', meta: 'EXPENSE −NT$31,000' },
-];
+  ['APR 2026', '55,000', '28,000'],
+  ['MAY 2026', '70,000', '34,000'],
+  ['JUN 2026', '64,000', '43,000'],
+  ['JUL 2026', '78,000', '38,000'],
+  ['AUG 2026', '69,000', '32,000'],
+  ['SEP 2026', '84,000', '31,000'],
+].map(([title, inflow, outflow]) =>
+  heroPoint(title ?? '', { id: 'inflow', label: 'INCOME', value: `+NT$${inflow}` }, [
+    { id: 'outflow', label: 'EXPENSE', value: `−NT$${outflow}` },
+  ]),
+);
 
 const ALLOCATION = [
   { label: 'Equities', value: 42 },
@@ -83,26 +88,52 @@ const PROJECTION_SERIES: ComposedSeries[] = [
   { kind: 'line', tone: 'primary', values: PROJECTION_NET_CASH_FLOW },
   { kind: 'line', tone: 'asset', axis: 'right', values: PROJECTION_NET_WORTH },
 ];
-const PROJECTION_POINTS = PROJECTION_LABELS.map((year, index) => ({
-  title: `YEAR ${year}`,
-  value: `NET CASH FLOW NT$${(PROJECTION_NET_CASH_FLOW[index] ?? 0).toLocaleString()}`,
-  meta: `INCOME NT$${(PROJECTION_INCOME[index] ?? 0).toLocaleString()} · RETURN NT$${(PROJECTION_RETURN[index] ?? 0).toLocaleString()} · NET WORTH NT$${(PROJECTION_NET_WORTH[index] ?? 0).toLocaleString()}`,
-}));
+const PROJECTION_POINTS = PROJECTION_LABELS.map((year, index) =>
+  heroPoint(
+    `YEAR ${year}`,
+    {
+      id: 'netCashFlow',
+      label: 'NET CASH FLOW',
+      value: `NT$${(PROJECTION_NET_CASH_FLOW[index] ?? 0).toLocaleString()}`,
+    },
+    [
+      {
+        id: 'income',
+        label: 'INCOME',
+        value: `NT$${(PROJECTION_INCOME[index] ?? 0).toLocaleString()}`,
+      },
+      {
+        id: 'return',
+        label: 'RETURN',
+        value: `NT$${(PROJECTION_RETURN[index] ?? 0).toLocaleString()}`,
+      },
+      {
+        id: 'netWorth',
+        label: 'NET WORTH',
+        value: `NT$${(PROJECTION_NET_WORTH[index] ?? 0).toLocaleString()}`,
+      },
+    ],
+  ),
+);
 
 const NET_WORTH_POINTS = [
-  { title: 'OCT 2025', value: 'NT$4,120,000', meta: PROJECTION_COMMON_LABELS.DASH },
-  { title: 'NOV 2025', value: 'NT$4,180,000', meta: '+1.5%' },
-  { title: 'DEC 2025', value: 'NT$4,160,000', meta: '+1.0%' },
-  { title: 'JAN 2026', value: 'NT$4,310,000', meta: '+4.6%' },
-  { title: 'FEB 2026', value: 'NT$4,270,000', meta: '+3.6%' },
-  { title: 'MAR 2026', value: 'NT$4,420,000', meta: '+7.3%' },
-  { title: 'APR 2026', value: 'NT$4,380,000', meta: '+6.3%' },
-  { title: 'MAY 2026', value: 'NT$4,520,000', meta: '+9.7%' },
-  { title: 'JUN 2026', value: 'NT$4,470,000', meta: '+8.5%' },
-  { title: 'JUL 2026', value: 'NT$4,620,000', meta: '+12.1%' },
-  { title: 'AUG 2026', value: 'NT$4,570,000', meta: '+10.9%' },
-  { title: 'SEP 2026', value: 'NT$4,812,430', meta: '+8.42% YTD' },
-];
+  ['OCT 2025', 'NT$4,120,000', PROJECTION_COMMON_LABELS.DASH],
+  ['NOV 2025', 'NT$4,180,000', '+1.5%'],
+  ['DEC 2025', 'NT$4,160,000', '+1.0%'],
+  ['JAN 2026', 'NT$4,310,000', '+4.6%'],
+  ['FEB 2026', 'NT$4,270,000', '+3.6%'],
+  ['MAR 2026', 'NT$4,420,000', '+7.3%'],
+  ['APR 2026', 'NT$4,380,000', '+6.3%'],
+  ['MAY 2026', 'NT$4,520,000', '+9.7%'],
+  ['JUN 2026', 'NT$4,470,000', '+8.5%'],
+  ['JUL 2026', 'NT$4,620,000', '+12.1%'],
+  ['AUG 2026', 'NT$4,570,000', '+10.9%'],
+  ['SEP 2026', 'NT$4,812,430', '+8.42% YTD'],
+].map(([title, value, change]) =>
+  heroPoint(title ?? '', { id: 'value', value: value ?? '' }, [
+    { id: 'change', value: change ?? '' },
+  ]),
+);
 
 const SIGNED_LABELS = ['APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP'];
 const SIGNED_VALUES = [32000, -8000, 45000, 6000, -12300, 27000];
@@ -140,10 +171,12 @@ const SignedCashFlowModule: React.FC = () => {
                 },
               ]),
         ]}
-        points={SIGNED_LABELS.map((label, index) => ({
-          title: `${label} 2026`,
-          value: `NT$${(SIGNED_VALUES[index] ?? 0).toLocaleString()}`,
-        }))}
+        points={SIGNED_LABELS.map((label, index) =>
+          heroPoint(`${label} 2026`, {
+            id: 'netCashFlow',
+            value: `NT$${(SIGNED_VALUES[index] ?? 0).toLocaleString()}`,
+          }),
+        )}
         height={180}
         ariaLabel="Signed monthly cash flow with detail"
       />
@@ -291,7 +324,14 @@ const LineChartSection: React.FC = () => (
         </div>
         <div>
           <p className={`mb-3 ${eyebrowClass}`}>TOOLTIP SPECIMEN</p>
-          <ChartTooltip title="SEP 2026" value="NT$4,812,430" meta="+8.42% YTD" />
+          <ChartTooltip
+            title="SEP 2026"
+            content={{
+              mode: 'hero',
+              primary: { id: 'netWorth', label: 'NET WORTH', value: 'NT$4,812,430' },
+              secondary: [{ id: 'change', value: '+8.42% YTD' }],
+            }}
+          />
         </div>
       </div>
     </GalleryModule>

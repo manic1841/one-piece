@@ -1,5 +1,6 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { listPoint } from '@/ui/components/charts/chartInteraction';
 import { CHART_COLOR_TOKEN_COLOR, type ChartColorToken } from '@/ui/components/charts/chartTheme';
 import {
   type ComposedLineSeries,
@@ -13,7 +14,7 @@ import {
   type AssetCompositionSeriesKey,
 } from '../viewmodels/reportAnalysis.vm';
 import { pointActivator, useSeriesToggle } from './chartInteractions';
-import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { pointTitle } from './seriesTooltip';
 import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface AssetCompositionChartProps {
@@ -108,11 +109,15 @@ export const AssetCompositionChart: React.FC<AssetCompositionChartProps> = ({
         yTicks={5}
         yUnit="%"
         points={points.map((point) =>
-          tooltipFrom(
+          listPoint(
             pointTitle(point),
-            visible.map(
-              (item) => `${item.label} ${item.amountText(point)}（${item.shareText(point)}）`,
-            ),
+            visible.map((item) => ({
+              id: item.key,
+              label: item.label,
+              value: item.amountText(point),
+              detail: `（${item.shareText(point)}）`,
+              color: CHART_COLOR_TOKEN_COLOR[item.colorToken],
+            })),
           ),
         )}
         height={isDesktop ? (points.length < 6 ? 240 : 320) : 200}

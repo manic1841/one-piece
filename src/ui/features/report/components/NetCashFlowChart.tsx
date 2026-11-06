@@ -1,5 +1,6 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
@@ -49,12 +50,18 @@ export const NetCashFlowChart: React.FC<NetCashFlowChartProps> = ({
             : []
         }
         referenceLines={referenceLines}
-        points={points.map((point) => ({
-          title: pointTitle(point),
-          value: visible
-            ? `${REPORT_ANALYSIS_LABELS.NET_CASH_FLOW} ${point.netCashFlowText}`
-            : REPORT_ANALYSIS_LABELS.DASH,
-        }))}
+        points={points.map((point) =>
+          heroPoint(
+            pointTitle(point),
+            visible
+              ? {
+                  id: 'netCashFlow',
+                  label: REPORT_ANALYSIS_LABELS.NET_CASH_FLOW,
+                  value: point.netCashFlowText,
+                }
+              : undefined,
+          ),
+        )}
         height={isDesktop ? (points.length < 6 ? 160 : 240) : 160}
         ariaLabel={REPORT_ANALYSIS_LABELS.CASH_FLOW_ARIA(
           visible ? REPORT_ANALYSIS_LABELS.NET_CASH_FLOW : '',

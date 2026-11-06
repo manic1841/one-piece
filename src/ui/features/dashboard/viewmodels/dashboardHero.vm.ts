@@ -2,7 +2,7 @@ import type {
   DashboardNetWorthPoint,
   DashboardOverview,
 } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
-import type { ChartPoint } from '@/ui/components/charts/chartInteraction';
+import { type ChartPoint, heroPoint } from '@/ui/components/charts/chartInteraction';
 import { formatCurrency, formatMonthLabel, formatYearMonth } from '@/ui/utils';
 
 export type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
@@ -76,11 +76,11 @@ const buildTrendVM = (series: DashboardNetWorthPoint[]): DashboardHeroTrendVM =>
   return {
     values,
     labels,
-    points: values.map((value, index) => ({
-      title: labels[index],
-      value: formatCurrency(value),
-      meta: formatMonthOverMonth(values, index),
-    })),
+    points: values.map((value, index) =>
+      heroPoint(labels[index] ?? '', { id: 'netWorth', value: formatCurrency(value) }, [
+        { id: 'change', value: formatMonthOverMonth(values, index) },
+      ]),
+    ),
     hasData: present.length > 0,
   };
 };

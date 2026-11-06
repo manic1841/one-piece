@@ -1,12 +1,13 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type NetWorthChartVM, type NetWorthSeriesKey } from '../viewmodels/reportAnalysis.vm';
 import { pointActivator, useSeriesToggle } from './chartInteractions';
-import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { pointTitle } from './seriesTooltip';
 import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 const SERIES_KEYS: Record<string, NetWorthSeriesKey> = {
@@ -90,19 +91,35 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
         series={series}
         referenceLines={referenceLines}
         points={points.map((point) =>
-          tooltipFrom(pointTitle(point), [
-            // Hidden series stay out of the tooltip entirely.
+          heroPoint(
+            pointTitle(point),
+            // A hidden hero leaves its slot empty rather than lifting a peer.
             isActive('netWorth')
-              ? `${REPORT_ANALYSIS_LABELS.NET_WORTH} ${point.netWorthText}`
-              : null,
-            point.changeText,
-            isActive('assets')
-              ? `${REPORT_ANALYSIS_LABELS.TOTAL_ASSETS} ${point.assetsText}`
-              : null,
-            isActive('liabilities')
-              ? `${REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES} ${point.liabilitiesText}`
-              : null,
-          ]),
+              ? {
+                  id: 'netWorth',
+                  label: REPORT_ANALYSIS_LABELS.NET_WORTH,
+                  value: point.netWorthText,
+                }
+              : undefined,
+            [
+              // Hidden series stay out of the tooltip entirely.
+              point.changeText === null ? null : { id: 'change', value: point.changeText },
+              isActive('assets')
+                ? {
+                    id: 'assets',
+                    label: REPORT_ANALYSIS_LABELS.TOTAL_ASSETS,
+                    value: point.assetsText,
+                  }
+                : null,
+              isActive('liabilities')
+                ? {
+                    id: 'liabilities',
+                    label: REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES,
+                    value: point.liabilitiesText,
+                  }
+                : null,
+            ],
+          ),
         )}
         height={isDesktop ? (points.length < 6 ? 240 : 320) : 200}
         ariaLabel={REPORT_ANALYSIS_LABELS.NET_WORTH_ARIA(visibleLabels.join('、'))}

@@ -1,5 +1,6 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
@@ -9,7 +10,7 @@ import {
   type DebtLeverageSeriesKey,
 } from '../viewmodels/reportAnalysis.vm';
 import { pointActivator, useSeriesToggle } from './chartInteractions';
-import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { pointTitle } from './seriesTooltip';
 import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface DebtLeverageChartProps {
@@ -67,15 +68,33 @@ export const DebtLeverageChart: React.FC<DebtLeverageChartProps> = ({
 
   // Every layer shows the same tooltip so the stacked values read together.
   const tooltipPoints = points.map((point) =>
-    tooltipFrom(pointTitle(point), [
-      debtVisible ? `${REPORT_ANALYSIS_LABELS.DEBT_BALANCE} ${point.liabilitiesText}` : null,
-      ratioVisible
-        ? `${REPORT_ANALYSIS_LABELS.DEBT_RATIO} ${point.debtRatioText}${
-            point.changeText === null ? '' : ` · ${point.changeText}`
-          }`
-        : null,
-      leverageVisible ? `${REPORT_ANALYSIS_LABELS.LEVERAGE} ${point.leverageText}` : null,
-    ]),
+    heroPoint(
+      pointTitle(point),
+      debtVisible
+        ? {
+            id: 'liabilities',
+            label: REPORT_ANALYSIS_LABELS.DEBT_BALANCE,
+            value: point.liabilitiesText,
+          }
+        : undefined,
+      [
+        ratioVisible
+          ? {
+              id: 'debtRatio',
+              label: REPORT_ANALYSIS_LABELS.DEBT_RATIO,
+              value: point.debtRatioText,
+              ...(point.changeText === null ? {} : { detail: point.changeText }),
+            }
+          : null,
+        leverageVisible
+          ? {
+              id: 'leverage',
+              label: REPORT_ANALYSIS_LABELS.LEVERAGE,
+              value: point.leverageText,
+            }
+          : null,
+      ],
+    ),
   );
 
   const barSeries: ComposedSeries[] = debtVisible

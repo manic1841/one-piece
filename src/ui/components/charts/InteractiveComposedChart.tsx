@@ -117,8 +117,7 @@ export function InteractiveComposedChart({
                   <ChartTooltip
                     ref={tooltipRef}
                     title={tip.title}
-                    value={tip.value}
-                    meta={tip.meta}
+                    content={tip.content}
                     hint={onPointClick === undefined ? undefined : '點選選取期間'}
                     className={cn('absolute z-10', anchor.className)}
                     style={{

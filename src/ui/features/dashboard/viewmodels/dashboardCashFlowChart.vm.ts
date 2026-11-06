@@ -1,6 +1,6 @@
 import type { DashboardCashFlowPoint } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 import type { BarChartSeries } from '@/ui/components/charts/BarChart';
-import type { ChartPoint } from '@/ui/components/charts/chartInteraction';
+import { type ChartPoint, heroPoint } from '@/ui/components/charts/chartInteraction';
 import { DASHBOARD_CASHFLOW_LABELS } from '@/ui/constants/dashboard/cashFlowLabels';
 import { formatCurrency, formatMonthLabel } from '@/ui/utils';
 
@@ -36,11 +36,23 @@ export const mapCashFlowSeriesToChartVM = (
       { tone: 'negative', values: present.map((point) => point.cashOut) },
     ],
     labels,
-    points: labels.map((label, index) => ({
-      title: label,
-      value: `${DASHBOARD_CASHFLOW_LABELS.INFLOW} +${formatCurrency(present[index].cashIn)}`,
-      meta: `${DASHBOARD_CASHFLOW_LABELS.OUTFLOW} −${formatCurrency(present[index].cashOut)}`,
-    })),
+    points: labels.map((label, index) =>
+      heroPoint(
+        label,
+        {
+          id: 'inflow',
+          label: DASHBOARD_CASHFLOW_LABELS.INFLOW,
+          value: `+${formatCurrency(present[index].cashIn)}`,
+        },
+        [
+          {
+            id: 'outflow',
+            label: DASHBOARD_CASHFLOW_LABELS.OUTFLOW,
+            value: `−${formatCurrency(present[index].cashOut)}`,
+          },
+        ],
+      ),
+    ),
     hasData: present.length > 0,
     latestText: latest !== undefined ? formatCurrency(latest.netCashFlow) : null,
   };

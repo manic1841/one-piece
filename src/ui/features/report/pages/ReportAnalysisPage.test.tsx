@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -187,7 +187,8 @@ describe('ReportAnalysisPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '淨資產' }));
     fireEvent.keyDown(chart, { key: 'ArrowRight' });
 
-    const tooltip = await screen.findByText(/總負債 NT\$/);
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('總負債 NT$');
     expect(tooltip.textContent).not.toContain('淨資產');
   });
 
@@ -201,9 +202,11 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/現金與銀行 NT\$200/);
-    expect(tooltip.parentElement?.textContent).toContain('20.0%');
-    expect(tooltip.parentElement?.textContent).toContain('不動產');
+    const tooltip = await screen.findByText('NT$200');
+    const row = tooltip.closest('li');
+    expect(row?.textContent).toContain('現金與銀行');
+    expect(row?.textContent).toContain('20.0%');
+    expect(tooltip.closest('ul')?.textContent).toContain('不動產');
 
     fireEvent.click(screen.getByRole('button', { name: '現金與銀行' }));
     fireEvent.keyDown(chart, { key: 'ArrowRight' });
@@ -213,8 +216,9 @@ describe('ReportAnalysisPage', () => {
       expect(updated.getAttribute('aria-label')).not.toContain('現金與銀行');
     });
     // The hidden class is gone from the tooltip but the share is still of total assets.
-    const after = screen.getByText(/投資資產 NT\$400/);
-    expect(after.parentElement?.textContent).toContain('40.0%');
+    const after = screen.getByText('NT$400');
+    expect(after.closest('li')?.textContent).toContain('投資資產');
+    expect(after.closest('li')?.textContent).toContain('40.0%');
   });
 
   it('fixes the composition axis at 0–100% in 25% steps', async () => {
@@ -241,10 +245,11 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/投資資產 NT\$300/);
-    expect(tooltip.parentElement?.textContent).toContain('30.0%');
-    expect(tooltip.parentElement?.textContent).toContain('50.0%');
-    expect(tooltip.parentElement?.textContent).not.toContain('現金');
+    const tooltip = await screen.findByText('NT$300');
+    const row = tooltip.closest('li');
+    expect(row?.textContent).toContain('30.0%');
+    expect(tooltip.closest('ul')?.textContent).toContain('50.0%');
+    expect(tooltip.closest('ul')?.textContent).not.toContain('現金');
   });
 
   it('selects the composition month, then leaves for its report from the summary', async () => {
@@ -286,8 +291,9 @@ describe('ReportAnalysisPage', () => {
     const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/淨資產 NT\$850/);
-    expect(tooltip.parentElement?.textContent).toContain('較前期 +NT$50（+6.3%）');
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('淨資產 NT$850');
+    expect(tooltip.textContent).toContain('較前期 +NT$50（+6.3%）');
   });
 
   it('switches to the annual scale and aggregates a whole year', async () => {
@@ -341,11 +347,9 @@ describe('ReportAnalysisPage', () => {
     const chart = await screen.findByRole('slider', { name: /投資績效/ });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/報酬金額 -NT\$50/);
-    expect(tooltip.textContent).toBe('報酬金額 -NT$50');
-    expect(tooltip.parentElement?.querySelectorAll('p')[2]?.textContent).toBe(
-      '報酬率 -4.2% · 期初市值 NT$1,200',
-    );
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.querySelectorAll('p')[1]?.textContent).toBe('報酬金額 -NT$50');
+    expect(tooltip.querySelectorAll('p')[2]?.textContent).toBe('報酬率 -4.2% · 期初市值 NT$1,200');
   });
 
   it('breaks the return line where the opening value is zero', async () => {
@@ -356,8 +360,9 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowRight' });
     fireEvent.keyDown(chart, { key: 'ArrowRight' });
 
-    const tooltip = await screen.findByText(/報酬金額 NT\$0/);
-    expect(tooltip.parentElement?.textContent).toContain('報酬率 —');
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('報酬金額 NT$0');
+    expect(tooltip.textContent).toContain('報酬率 —');
   });
 
   it('shows the same full tooltip on the return-rate layer', async () => {
@@ -367,8 +372,9 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(line, { key: 'ArrowRight' });
     fireEvent.keyDown(line, { key: 'ArrowRight' });
 
-    const tooltip = await screen.findByText(/報酬金額 -NT\$50/);
-    expect(tooltip.parentElement?.textContent).toContain('期初市值 NT$1,200');
+    const tooltip = await within(line).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('報酬金額 -NT$50');
+    expect(tooltip.textContent).toContain('期初市值 NT$1,200');
   });
 
   it('keeps the opening value in the tooltip when the return line is hidden', async () => {
@@ -382,8 +388,9 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/報酬金額 NT\$100/);
-    expect(tooltip.parentElement?.textContent).toContain('期初市值 NT$1,000');
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('報酬金額 NT$100');
+    expect(tooltip.textContent).toContain('期初市值 NT$1,000');
   });
 
   it('stacks the gain bar above the rate line and the debt layers in order', async () => {
@@ -424,12 +431,14 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(line, { key: 'ArrowRight' });
     fireEvent.keyDown(line, { key: 'ArrowRight' });
 
-    const tooltip = await screen.findByText(/負債餘額 NT\$120/);
-    expect(tooltip.parentElement?.textContent).toContain('加權平均槓桿');
+    const tooltip = await within(line).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('負債餘額 NT$120');
+    expect(tooltip.textContent).toContain('加權平均槓桿');
 
     fireEvent.keyDown(line, { key: 'ArrowLeft' });
-    const precise = await screen.findByText(/負債餘額 NT\$100/);
-    expect(precise.parentElement?.textContent).toContain('槓桿 1.2345x');
+    const precise = await within(line).findByRole('tooltip');
+    expect(precise.textContent).toContain('負債餘額 NT$100');
+    expect(precise.textContent).toContain('槓桿 1.2345x');
   });
 
   it('stacks the income and cash-flow pair into one column on mobile', async () => {
@@ -492,9 +501,9 @@ describe('ReportAnalysisPage', () => {
     const chart = await screen.findByRole('slider', { name: /負債與槓桿/ });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/負債餘額 NT\$120/);
-    expect(tooltip.textContent).toBe('負債餘額 NT$120');
-    expect(tooltip.parentElement?.querySelectorAll('p')[2]?.textContent).toBe(
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.querySelectorAll('p')[1]?.textContent).toBe('負債餘額 NT$120');
+    expect(tooltip.querySelectorAll('p')[2]?.textContent).toBe(
       '負債比 12.0% · 較前期 +2.0 個百分點 · 加權平均槓桿 —',
     );
   });
@@ -506,9 +515,9 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/現金覆蓋月數 0\.3/);
-    expect(tooltip.textContent).toBe('現金覆蓋月數 0.3');
-    expect(tooltip.parentElement?.querySelectorAll('p')[2]?.textContent).toBe(
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.querySelectorAll('p')[1]?.textContent).toBe('現金覆蓋月數 0.3');
+    expect(tooltip.querySelectorAll('p')[2]?.textContent).toBe(
       '現金 NT$600 · 近三月平均支出 NT$4,000',
     );
   });
@@ -519,9 +528,9 @@ describe('ReportAnalysisPage', () => {
     const chart = await screen.findByRole('slider', { name: /現金覆蓋/ });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/現金覆蓋月數 —/);
-    expect(tooltip.textContent).toBe('現金覆蓋月數 —');
-    expect(tooltip.parentElement?.textContent).toContain('近三月平均支出 —');
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.querySelectorAll('p')[1]?.textContent).toBe('現金覆蓋月數 —');
+    expect(tooltip.textContent).toContain('近三月平均支出 —');
   });
 
   it('selects a coverage point and opens its report from the summary', async () => {
@@ -609,8 +618,8 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText('淨資產 NT$800');
-    expect(tooltip.textContent).toContain('NT$800');
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('淨資產 NT$800');
   });
 
   it('gives the takeaway net worth figure its own size', async () => {
@@ -629,8 +638,9 @@ describe('ReportAnalysisPage', () => {
     const chart = await screen.findByRole('slider', { name: /收支與儲蓄率/ });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/收入 NT\$4,000/);
-    expect(tooltip.parentElement?.textContent).toContain('較前期 -NT$2,000');
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.textContent).toContain('收入 NT$4,000');
+    expect(tooltip.textContent).toContain('較前期 -NT$2,000');
   });
 
   it('selects on Enter and opens the report from the summary', async () => {

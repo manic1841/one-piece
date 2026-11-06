@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { InteractiveComposedChart } from './InteractiveComposedChart';
+import { heroPoint } from './chartInteraction';
 import { type ComposedSeries } from './composedChartGeometry';
 
 const SERIES: ComposedSeries[] = [
@@ -11,9 +12,15 @@ const SERIES: ComposedSeries[] = [
 ];
 
 const POINTS = [
-  { title: '2026', value: 'INCOME +NT$55,000', meta: 'EXPENSE −NT$28,000' },
-  { title: '2027', value: 'INCOME +NT$70,000', meta: 'EXPENSE −NT$34,000' },
-  { title: '2028', value: 'INCOME +NT$64,000', meta: 'EXPENSE −NT$43,000' },
+  heroPoint('2026', { id: 'inflow', label: 'INCOME', value: '+NT$55,000' }, [
+    { id: 'outflow', label: 'EXPENSE', value: '−NT$28,000' },
+  ]),
+  heroPoint('2027', { id: 'inflow', label: 'INCOME', value: '+NT$70,000' }, [
+    { id: 'outflow', label: 'EXPENSE', value: '−NT$34,000' },
+  ]),
+  heroPoint('2028', { id: 'inflow', label: 'INCOME', value: '+NT$64,000' }, [
+    { id: 'outflow', label: 'EXPENSE', value: '−NT$43,000' },
+  ]),
 ];
 
 describe('InteractiveComposedChart', () => {

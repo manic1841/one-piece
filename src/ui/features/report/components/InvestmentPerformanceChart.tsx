@@ -1,5 +1,6 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
@@ -9,7 +10,7 @@ import {
   type InvestmentPerformanceSeriesKey,
 } from '../viewmodels/reportAnalysis.vm';
 import { pointActivator, useSeriesToggle } from './chartInteractions';
-import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { pointTitle } from './seriesTooltip';
 import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface InvestmentPerformanceChartProps {
@@ -59,11 +60,26 @@ export const InvestmentPerformanceChart: React.FC<InvestmentPerformanceChartProp
   // Every layer shows the same tooltip so the stacked values read together.
   // The opening value stays even when the rate line is hidden; it is the rate's scale.
   const tooltipPoints = points.map((point) =>
-    tooltipFrom(pointTitle(point), [
-      gainVisible ? `${REPORT_ANALYSIS_LABELS.GAIN} ${point.gainText}` : null,
-      rateVisible ? `${REPORT_ANALYSIS_LABELS.RETURN_RATE} ${point.returnRateText}` : null,
-      `${REPORT_ANALYSIS_LABELS.OPENING_VALUE} ${point.openingValueText}`,
-    ]),
+    heroPoint(
+      pointTitle(point),
+      gainVisible
+        ? { id: 'gain', label: REPORT_ANALYSIS_LABELS.GAIN, value: point.gainText }
+        : undefined,
+      [
+        rateVisible
+          ? {
+              id: 'returnRate',
+              label: REPORT_ANALYSIS_LABELS.RETURN_RATE,
+              value: point.returnRateText,
+            }
+          : null,
+        {
+          id: 'openingValue',
+          label: REPORT_ANALYSIS_LABELS.OPENING_VALUE,
+          value: point.openingValueText,
+        },
+      ],
+    ),
   );
 
   const barSeries: ComposedSeries[] = gainVisible

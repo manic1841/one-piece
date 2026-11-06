@@ -1,12 +1,13 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import { type ComposedSeries } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type IncomeChartVM, type IncomeSeriesKey } from '../viewmodels/reportAnalysis.vm';
 import { pointActivator, useSeriesToggle } from './chartInteractions';
-import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { pointTitle } from './seriesTooltip';
 import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface IncomeSavingsChartProps {
@@ -67,12 +68,25 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
 
   // Both layers show the same tooltip so the stacked values read together.
   const tooltipPoints = points.map((point) =>
-    tooltipFrom(pointTitle(point), [
-      isActive('income') ? `${REPORT_ANALYSIS_LABELS.INCOME} ${point.incomeText}` : null,
-      isActive('expense') ? `${REPORT_ANALYSIS_LABELS.EXPENSE} ${point.expenseText}` : null,
-      savingsVisible ? `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}` : null,
-      point.changeText,
-    ]),
+    heroPoint(
+      pointTitle(point),
+      isActive('income')
+        ? { id: 'income', label: REPORT_ANALYSIS_LABELS.INCOME, value: point.incomeText }
+        : undefined,
+      [
+        isActive('expense')
+          ? { id: 'expense', label: REPORT_ANALYSIS_LABELS.EXPENSE, value: point.expenseText }
+          : null,
+        savingsVisible
+          ? {
+              id: 'savingsRate',
+              label: REPORT_ANALYSIS_LABELS.SAVINGS_RATE,
+              value: point.savingsRateText,
+            }
+          : null,
+        point.changeText === null ? null : { id: 'change', value: point.changeText },
+      ],
+    ),
   );
 
   return (

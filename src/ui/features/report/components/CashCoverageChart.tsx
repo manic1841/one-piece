@@ -1,10 +1,11 @@
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type CashCoverageChartVM } from '../viewmodels/reportAnalysis.vm';
 import { pointActivator } from './chartInteractions';
-import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { pointTitle } from './seriesTooltip';
 import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface CashCoverageChartProps {
@@ -45,11 +46,26 @@ export const CashCoverageChart: React.FC<CashCoverageChartProps> = ({
         ]}
         referenceLines={referenceLines}
         points={points.map((point) =>
-          tooltipFrom(pointTitle(point), [
-            `${REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS} ${point.coverageMonthsText}`,
-            `${REPORT_ANALYSIS_LABELS.COVERAGE_CASH} ${point.cashText}`,
-            `${REPORT_ANALYSIS_LABELS.COVERAGE_EXPENSE_AVERAGE} ${point.expenseAverageText}`,
-          ]),
+          heroPoint(
+            pointTitle(point),
+            {
+              id: 'coverageMonths',
+              label: REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS,
+              value: point.coverageMonthsText,
+            },
+            [
+              {
+                id: 'cash',
+                label: REPORT_ANALYSIS_LABELS.COVERAGE_CASH,
+                value: point.cashText,
+              },
+              {
+                id: 'expenseAverage',
+                label: REPORT_ANALYSIS_LABELS.COVERAGE_EXPENSE_AVERAGE,
+                value: point.expenseAverageText,
+              },
+            ],
+          ),
         )}
         height={isDesktop ? 240 : 160}
         includeZero
