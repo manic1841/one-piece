@@ -28,6 +28,17 @@ describe('annualRollup', () => {
     ]);
   });
 
+  it('picks the latest month even when the input is not sorted', () => {
+    const rolled = rollUpStock([
+      month('2025-11', true, 1),
+      month('2025-09', true, 9),
+      month('2025-12', true, 2),
+      month('2025-10', true, 10),
+    ]);
+
+    expect(rolled).toEqual([{ yearMonth: '2025', closed: true, value: 2 }]);
+  });
+
   it('marks a year provisional when any month in it is open', () => {
     const rolled = rollUpStock([month('2026-01', true, 1), month('2026-02', false, 2)]);
 

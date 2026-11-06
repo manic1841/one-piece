@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type FinancialAnalysis } from './getFinancialAnalysisWorkflow';
-import { rollUpAnalysis } from './rollUpFinancialAnalysis';
+import { rollUpFinancialAnalysisUseCase } from './rollUpFinancialAnalysisUseCase';
 
 const analysisOf = (overrides: Partial<FinancialAnalysis> = {}): FinancialAnalysis => ({
   anchor: { yearMonth: '2026-02', closed: true },
@@ -35,15 +35,15 @@ const analysisOf = (overrides: Partial<FinancialAnalysis> = {}): FinancialAnalys
   ...overrides,
 });
 
-describe('rollUpAnalysis', () => {
+describe('rollUpFinancialAnalysisUseCase', () => {
   it('returns the monthly analysis untouched', () => {
     const analysis = analysisOf();
 
-    expect(rollUpAnalysis(analysis, 'monthly')).toBe(analysis);
+    expect(rollUpFinancialAnalysisUseCase.execute(analysis, 'monthly')).toBe(analysis);
   });
 
   it('keeps the year stock, sums the gain and recomputes the rate from the year opening', () => {
-    const annual = rollUpAnalysis(analysisOf(), 'annual');
+    const annual = rollUpFinancialAnalysisUseCase.execute(analysisOf(), 'annual');
 
     expect(annual.netWorthPoints).toEqual([
       { yearMonth: '2025', closed: true, netWorth: 700, assets: 800, liabilities: 100 },
@@ -58,7 +58,7 @@ describe('rollUpAnalysis', () => {
   it('leaves the anchor, the KPIs and the unclosed months monthly', () => {
     const analysis = analysisOf();
 
-    const annual = rollUpAnalysis(analysis, 'annual');
+    const annual = rollUpFinancialAnalysisUseCase.execute(analysis, 'annual');
 
     expect(annual.anchor).toBe(analysis.anchor);
     expect(annual.kpis).toBe(analysis.kpis);
@@ -66,7 +66,7 @@ describe('rollUpAnalysis', () => {
   });
 
   it('nulls a yearly savings rate when the year has no income', () => {
-    const annual = rollUpAnalysis(
+    const annual = rollUpFinancialAnalysisUseCase.execute(
       analysisOf({
         incomePoints: [
           { yearMonth: '2026-01', closed: true, income: 0, expense: 100, savingsRate: null },

@@ -2,12 +2,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import ReportAnalysisPage from './ReportAnalysisPage';
-
 import {
   type AnalysisGranularity,
   type FinancialAnalysis,
 } from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+
+import ReportAnalysisPage from './ReportAnalysisPage';
 
 const mockExecute = vi.hoisted(() => vi.fn());
 

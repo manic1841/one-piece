@@ -5,15 +5,16 @@ import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPor
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import {
+  ANALYSIS_RANGES,
+  type AnalysisGranularity,
+  type AnalysisRange,
+} from '@/domains/report/analysisScale';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
-import { rollUpAnalysis } from './rollUpFinancialAnalysis';
+import { rollUpFinancialAnalysisUseCase } from './rollUpFinancialAnalysisUseCase';
 
-export const ANALYSIS_RANGES = ['1y', '3y', '5y', 'all'] as const;
-export type AnalysisRange = (typeof ANALYSIS_RANGES)[number];
-
-export const ANALYSIS_GRANULARITIES = ['monthly', 'annual'] as const;
-export type AnalysisGranularity = (typeof ANALYSIS_GRANULARITIES)[number];
+export type { AnalysisGranularity, AnalysisRange } from '@/domains/report/analysisScale';
 
 const RANGE_MONTHS: Record<Exclude<AnalysisRange, 'all'>, number> = {
   '1y': 12,
@@ -456,10 +457,10 @@ export class GetFinancialAnalysisWorkflow {
   }
 
   /**
-   * Rescale the resolved analysis without another read. See `rollUpAnalysis`.
+   * Rescale the resolved analysis without another read. See `rollUpFinancialAnalysisUseCase`.
    */
   rollUp(analysis: FinancialAnalysis, granularity: AnalysisGranularity): FinancialAnalysis {
-    return rollUpAnalysis(analysis, granularity);
+    return rollUpFinancialAnalysisUseCase.execute(analysis, granularity);
   }
 }
 

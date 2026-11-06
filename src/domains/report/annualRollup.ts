@@ -1,3 +1,5 @@
+import { yearOf } from './analysisScale';
+
 /** The fields every drawable analysis month carries. */
 export interface RollablePoint {
   /** `YYYY-MM` for a month; becomes `YYYY` once rolled up. */
@@ -9,18 +11,30 @@ export interface RollablePoint {
 const groupByYear = <Point extends RollablePoint>(points: Point[]): [string, Point[]][] => {
   const groups = new Map<string, Point[]>();
   for (const point of points) {
-    const year = point.yearMonth.slice(0, 4);
+    const year = yearOf(point.yearMonth);
     groups.set(year, [...(groups.get(year) ?? []), point]);
   }
   return [...groups];
 };
 
+/** The latest month in the group, independent of the input order. */
+const latestOf = <Point extends RollablePoint>(group: Point[]): Point =>
+  group.reduce((latest, point) => (point.yearMonth > latest.yearMonth ? point : latest));
+
+/** The year key and its provisional flag: open when any covered month is open. */
+const yearFacts = <Point extends RollablePoint>(
+  group: Point[],
+  year: string,
+): { yearMonth: string; closed: boolean } => ({
+  yearMonth: year,
+  closed: group.every((point) => point.closed),
+});
+
 /** Stock series take the year's last month; the year key carries the provisional flag. */
 export const rollUpStock = <Point extends RollablePoint>(points: Point[]): Point[] =>
   groupByYear(points).map(([year, group]) => ({
-    ...(group[group.length - 1] as Point),
-    yearMonth: year,
-    closed: group.every((point) => point.closed),
+    ...latestOf(group),
+    ...yearFacts(group, year),
   }));
 
 /**
@@ -29,10 +43,9 @@ export const rollUpStock = <Point extends RollablePoint>(points: Point[]): Point
  */
 export const rollUpByYear = <Point extends RollablePoint>(
   points: Point[],
-  combine: (group: Point[], year: string) => Omit<Point, 'yearMonth' | 'closed'>,
+  combine: (group: Point[]) => Omit<Point, 'yearMonth' | 'closed'>,
 ): Point[] =>
   groupByYear(points).map(([year, group]) => ({
-    ...combine(group, year),
-    yearMonth: year,
-    closed: group.every((point) => point.closed),
+    ...combine(group),
+    ...yearFacts(group, year),
   })) as Point[];

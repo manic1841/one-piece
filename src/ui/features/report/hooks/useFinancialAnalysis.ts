@@ -37,7 +37,7 @@ export function useFinancialAnalysis(
   }, [householdId, auth, range, run, reloadNonce]);
 
   // Switching the scale rescales what was already read; only the range refetches.
-  const scaled = useMemo(
+  const scaledAnalysis = useMemo(
     () => (analysis === null ? null : getFinancialAnalysisWorkflow.rollUp(analysis, granularity)),
     [analysis, granularity],
   );
@@ -45,7 +45,10 @@ export function useFinancialAnalysis(
   return {
     analysis,
     summaryVM: analysis ? buildReportSummaryVM(analysis) : null,
-    analysisVM: scaled === null ? null : buildReportAnalysisVM(scaled, granularity, selectedPeriod),
+    analysisVM:
+      scaledAnalysis === null
+        ? null
+        : buildReportAnalysisVM(scaledAnalysis, granularity, selectedPeriod),
     loading,
     errorMessage: error === null ? null : REPORT_ANALYSIS_LABELS.LOAD_ERROR,
     reload: () => setReloadNonce((nonce) => nonce + 1),

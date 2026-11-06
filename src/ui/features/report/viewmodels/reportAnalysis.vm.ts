@@ -1,9 +1,14 @@
 import {
-  type AnalysisGranularity,
-  type AnalysisRange,
   type FinancialAnalysis,
   type FinancialAnalysisKpis,
 } from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+import {
+  ANALYSIS_GRANULARITIES,
+  ANALYSIS_RANGES,
+  type AnalysisGranularity,
+  type AnalysisRange,
+  yearOf,
+} from '@/domains/report/analysisScale';
 import { type MoneyTone } from '@/ui/components/moneyTone';
 import {
   ANALYSIS_ANCHORS,
@@ -15,25 +20,16 @@ import {
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 import { formatMonthLabel } from '@/ui/utils/date';
 
-import {
-  withChange,
-  withRatioChange,
-  withSavingsChange,
-} from './reportAnalysisChange';
+import { withChange, withRatioChange, withSavingsChange } from './reportAnalysisChange';
 import { type TakeawayVM, takeawayOf } from './reportAnalysisTakeaway';
 import { formatReportPeriodDisplay, parseReportPeriod } from './reportHistory.vm';
 
-export {
-  ANALYSIS_GRANULARITIES,
-  ANALYSIS_RANGES,
-} from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+export { ANALYSIS_GRANULARITIES, ANALYSIS_RANGES };
 export type { AnalysisGranularity, AnalysisRange };
 
 export const DEFAULT_RANGE: AnalysisRange = '3y';
 
 export const DEFAULT_GRANULARITY: AnalysisGranularity = 'monthly';
-
-const yearOf = (yearMonth: string): string => yearMonth.slice(0, 4);
 
 export type NetWorthSeriesKey = 'netWorth' | 'assets' | 'liabilities';
 export type AssetCompositionSeriesKey = 'cash' | 'investment' | 'property';
@@ -353,16 +349,16 @@ export const buildReportAnalysisVM = (
   requestedPeriod: string | null = null,
 ): ReportAnalysisVM => {
   // The analysis already arrives on the requested scale; only its text is built here.
-  const scaled = pointsOf(analysis, granularity);
+  const scaledAnalysis = pointsOf(analysis, granularity);
   const {
     assetComposition: assetCompositionPoints,
     investmentPerformance: investmentPerformancePoints,
     cashFlow: cashFlowPoints,
     cashCoverage: cashCoveragePoints,
-  } = scaled;
-  const netWorthPoints = withChange(scaled.netWorth);
-  const incomePoints = withSavingsChange(scaled.income);
-  const debtLeveragePoints = withRatioChange(scaled.debtLeverage);
+  } = scaledAnalysis;
+  const netWorthPoints = withChange(scaledAnalysis.netWorth);
+  const incomePoints = withSavingsChange(scaledAnalysis.income);
+  const debtLeveragePoints = withRatioChange(scaledAnalysis.debtLeverage);
 
   const allPoints = [
     ...netWorthPoints,
