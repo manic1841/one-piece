@@ -4,21 +4,23 @@ import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
-import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { aggregateSnapshots, completeMonthsOf, monthOf } from '@/domains/portfolio/snapshotMonthly';
+import { cashCoverageOf } from '@/domains/report/analysisCoverage';
 import {
   ANALYSIS_RANGES,
   type AnalysisGranularity,
   type AnalysisRange,
+  byMonth,
+  monthCode,
 } from '@/domains/report/analysisScale';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
 import {
-  type FinancialAnalysisKpis,
   EMPTY_KPIS,
+  type FinancialAnalysisKpis,
   isBalanceSheet,
   isIncome,
   savingsRateOf,
-  toMonthCode,
 } from './reportAnchor';
 import { resolveReportAnchorUseCase } from './resolveReportAnchorUseCase';
 import { rollUpFinancialAnalysisUseCase } from './rollUpFinancialAnalysisUseCase';
@@ -122,59 +124,13 @@ const collectPoints = <TReport extends FinancialReport, TPoint extends AnalysisP
 ): TPoint[] =>
   reports
     .filter((report) => inRange(report.yearMonth) && include(report))
-    .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
+    .sort((a, b) => byMonth(a.yearMonth, b.yearMonth))
     .map((report) => map(report, closedMonths.has(report.yearMonth)));
 
 type CashFlowReport = Extract<FinancialReport, { type: typeof ReportType.CASH_FLOW }>;
 
 const isCashFlow = (report: FinancialReport): report is CashFlowReport =>
   report.type === ReportType.CASH_FLOW;
-
-interface SnapshotMonth {
-  gain: number;
-  openingValue: number;
-  exposure: number;
-  marketValue: number;
-}
-
-const monthKeyOf = (snapshot: PortfolioSnapshot): string =>
-  `${snapshot.year}-${String(snapshot.month).padStart(2, '0')}`;
-
-/** One month's household snapshot totals, summed across every portfolio. */
-const aggregateSnapshots = (snapshots: PortfolioSnapshot[]): Map<string, SnapshotMonth> => {
-  const byMonth = new Map<string, SnapshotMonth>();
-  for (const snapshot of snapshots) {
-    const key = monthKeyOf(snapshot);
-    const totals = byMonth.get(key) ?? { gain: 0, openingValue: 0, exposure: 0, marketValue: 0 };
-    totals.gain += snapshot.performance?.gain ?? 0;
-    totals.openingValue += snapshot.performance?.openingValue ?? 0;
-    for (const account of snapshot.accounts) {
-      for (const holding of account.holdings ?? []) {
-        const marketValue = holding.marketValue ?? 0;
-        totals.exposure += marketValue * (holding.leverage ?? 1);
-        totals.marketValue += marketValue;
-      }
-    }
-    byMonth.set(key, totals);
-  }
-  return byMonth;
-};
-
-/**
- * Months where every portfolio that has any history also has a snapshot. Portfolios
- * with no snapshots at all (newly created) are ignored so they cannot blank the series.
- */
-const completeMonthsOf = (snapshotsPerPortfolio: PortfolioSnapshot[][]): Set<string> => {
-  const monthsPerPortfolio = snapshotsPerPortfolio
-    .map((snapshots) => new Set(snapshots.map(monthKeyOf)))
-    .filter((months) => months.size > 0);
-  const [first, ...rest] = monthsPerPortfolio;
-  if (first === undefined) return new Set();
-  return rest.reduce(
-    (shared, months) => new Set([...shared].filter((month) => months.has(month))),
-    first,
-  );
-};
 
 /** One range per distinct set of months, preferring the requested range for its set. */
 const buildAvailableRanges = (
@@ -193,13 +149,13 @@ const buildAvailableRanges = (
 };
 
 const cutRange = (months: string[], anchorYearMonth: string, range: AnalysisRange): string[] => {
-  const anchorCode = toMonthCode(anchorYearMonth);
+  const anchorCode = monthCode(anchorYearMonth);
   if (range === 'all') {
-    return months.filter((month) => toMonthCode(month) <= anchorCode);
+    return months.filter((month) => monthCode(month) <= anchorCode);
   }
   const startCode = anchorCode - (RANGE_MONTHS[range] - 1);
   return months.filter((month) => {
-    const code = toMonthCode(month);
+    const code = monthCode(month);
     return code >= startCode && code <= anchorCode;
   });
 };
@@ -265,14 +221,14 @@ export class GetFinancialAnalysisWorkflow {
     const snapshotsByMonth = aggregateSnapshots(snapshotsPerPortfolio.flat());
     // Household performance and leverage are only complete when every portfolio with
     // history also has that month's snapshot.
-    const completeMonths = completeMonthsOf(snapshotsPerPortfolio);
+    const completeMonths = completeMonthsOf(
+      snapshotsPerPortfolio.map((snapshots) => snapshots.map(monthOf)),
+    );
 
     const { anchorReport, kpis } = resolved;
     const anchor = anchorReport.yearMonth;
     const anchorClosed = kpis.anchorClosed ?? false;
-    const drawableMonths = [...new Set(reports.map((report) => report.yearMonth))].sort(
-      (a, b) => toMonthCode(a) - toMonthCode(b),
-    );
+    const drawableMonths = [...new Set(reports.map((report) => report.yearMonth))].sort(byMonth);
 
     const inRange = (month: string): boolean => cutRange([month], anchor, range).length > 0;
 
@@ -307,7 +263,7 @@ export class GetFinancialAnalysisWorkflow {
       closedMonths,
       inRange,
       (report, closed) => {
-        const month = snapshotsByMonth.get(report.yearMonth);
+        const month = snapshotsByMonth.get(monthCode(report.yearMonth));
         const openingValue = month?.openingValue ?? 0;
         const gain = month?.gain ?? 0;
         return {
@@ -318,14 +274,14 @@ export class GetFinancialAnalysisWorkflow {
           returnRate: openingValue > 0 ? (gain / openingValue) * 100 : null,
         };
       },
-      (report) => completeMonths.has(report.yearMonth),
+      (report) => completeMonths.has(monthCode(report.yearMonth)),
     );
     const debtLeveragePoints = collectPoints(
       byType.balanceSheet,
       closedMonths,
       inRange,
       (report, closed) => {
-        const month = snapshotsByMonth.get(report.yearMonth);
+        const month = snapshotsByMonth.get(monthCode(report.yearMonth));
         const assetsTotal = report.data.assets.total;
         const liabilities = report.data.liabilities.total;
         return {
@@ -335,7 +291,9 @@ export class GetFinancialAnalysisWorkflow {
           assetsTotal,
           debtRatio: assetsTotal > 0 ? (liabilities / assetsTotal) * 100 : null,
           leverage:
-            month !== undefined && completeMonths.has(report.yearMonth) && month.marketValue > 0
+            month !== undefined &&
+            completeMonths.has(monthCode(report.yearMonth)) &&
+            month.marketValue > 0
               ? month.exposure / month.marketValue
               : null,
         };
@@ -361,7 +319,7 @@ export class GetFinancialAnalysisWorkflow {
     );
     // The trailing window may reach outside the range: the range only cuts the axis.
     const expenseByMonth = new Map(
-      byType.income.map((report) => [toMonthCode(report.yearMonth), report.data.expenseTotal]),
+      byType.income.map((report) => [monthCode(report.yearMonth), report.data.expenseTotal]),
     );
     const cashCoveragePoints = collectPoints(
       byType.balanceSheet,
@@ -369,18 +327,11 @@ export class GetFinancialAnalysisWorkflow {
       inRange,
       (report, closed) => {
         const cash = report.data.assets.groups.cash?.total ?? 0;
-        const codes = [0, 1, 2].map((back) => toMonthCode(report.yearMonth) - back);
-        const complete = codes.every((code) => expenseByMonth.has(code));
-        const expenseAverage = complete
-          ? codes.reduce((sum, code) => sum + (expenseByMonth.get(code) ?? 0), 0) / 3
-          : null;
         return {
           yearMonth: report.yearMonth,
           closed,
           cash,
-          expenseAverage,
-          coverageMonths:
-            expenseAverage !== null && expenseAverage > 0 ? cash / expenseAverage : null,
+          ...cashCoverageOf(cash, report.yearMonth, expenseByMonth),
         };
       },
     );
@@ -399,7 +350,7 @@ export class GetFinancialAnalysisWorkflow {
       ),
     ]
       .filter((month) => !closedMonths.has(month))
-      .sort((a, b) => toMonthCode(a) - toMonthCode(b));
+      .sort(byMonth);
 
     return {
       anchor: { yearMonth: anchor, closed: anchorClosed },

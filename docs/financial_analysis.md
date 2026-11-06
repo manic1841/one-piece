@@ -60,7 +60,8 @@ portfolio／snapshot，也不組其餘六條序列；錨點解析與 KPI 口徑�
 | 現金覆蓋     | 資產負債表；缺三期損益表 window 時值為 `null` |
 
 只有 snapshot 的月份不畫；投資績效與負債槓桿的 snapshot 由既有 list-all 讀取後在
-workflow 內依範圍過濾，不改 repository。
+workflow 內依範圍過濾，不改 repository。月彙總、snapshot 完整度與近三月現金覆蓋
+window 由 workflow 編排、純函式只算值。
 
 缺月份自軸省略、不補 0；軸僅由有報表的月份構成。區塊在目前範圍內可畫期間少於 2 期時顯示
 「此範圍內不足 2 期」。

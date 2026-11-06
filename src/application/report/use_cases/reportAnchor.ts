@@ -1,3 +1,4 @@
+import { monthCode } from '@/domains/report/analysisScale';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
 export interface FinancialAnalysisKpis {
@@ -25,11 +26,6 @@ export const EMPTY_KPIS: FinancialAnalysisKpis = {
   anchorClosed: null,
 };
 
-export const toMonthCode = (yearMonth: string): number => {
-  const [year, month] = yearMonth.split('-').map(Number);
-  return year * 12 + (month - 1);
-};
-
 export const isBalanceSheet = (report: FinancialReport): report is BalanceSheetReport =>
   report.type === ReportType.BALANCE_SHEET;
 
@@ -42,7 +38,7 @@ export const resolveAnchorReport = (
 ): BalanceSheetReport | null =>
   balanceSheets.reduce<BalanceSheetReport | null>(
     (latest, report) =>
-      latest === null || toMonthCode(report.yearMonth) > toMonthCode(latest.yearMonth)
+      latest === null || monthCode(report.yearMonth) > monthCode(latest.yearMonth)
         ? report
         : latest,
     null,
