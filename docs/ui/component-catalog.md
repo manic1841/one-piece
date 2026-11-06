@@ -45,6 +45,7 @@
 | `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric                                           |
 | `src/ui/components/Module.tsx`                          | Module                                                         |
 | `src/ui/components/NumberInput.tsx`                     | NumberInput                                                    |
+| `src/ui/components/OrbitLoader.tsx`                     | OrbitLoader                                                    |
 | `src/ui/components/PageHeader.tsx`                      | PageHeader                                                     |
 | `src/ui/components/PageSection.tsx`                     | PageSection                                                    |
 | `src/ui/components/PeriodBadge.tsx`                     | PeriodBadge                                                    |
@@ -461,6 +462,11 @@
   - Props：同 `TextInput` 的 string value 契約，另加 `surface?`（`form`（預設）／`table`）、`compact?`、`prefix?`、`error?`（僅 `surface="form"` 呈現）。
   - **不要用於**：表格儲存格的顯示（用 `NumberCell`）；唯讀推導值（用 `ReadoutField`）。
   - 範例：`src/ui/features/transaction/components/form/AllocationSection.tsx`（form surface）、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`（table surface）。
+- **`OrbitLoader`** — 真實非同步任務的 pending 指示環（`src/ui/components/OrbitLoader.tsx`；[`motion-system.md`](motion-system.md) §5.4）。
+  - Props：`appearAfterMs?`（預設 300，`0` 立即可見）、`className?`。
+  - 行為：延遲出現以免瞬時閃爍；`aria-hidden`，狀態文字由呼叫端放在旁邊並自帶 `role="status"`；reduced-motion 下停在原地當靜態環；不宣稱百分比。
+  - **不要用於**：瞬時操作；有真實進度可回報的場合（那裡要的是進度條）。
+  - 範例：`src/ui/features/retirement/components/WorkspaceActionBar.tsx`
 - **`DateInput`** — 日期欄位，emit ISO `yyyy-MM-dd`。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：年月（用 `YearMonthPicker`）。

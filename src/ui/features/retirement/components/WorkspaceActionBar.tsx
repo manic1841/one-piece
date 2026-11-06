@@ -1,3 +1,4 @@
+import { OrbitLoader } from '@/ui/components/OrbitLoader';
 import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { type Readiness } from '@/ui/features/retirement/viewmodels/workspaceReadiness.vm';
@@ -50,9 +51,12 @@ export function WorkspaceActionBar({
         </Button>
       ) : (
         <Button onClick={onCalculate} disabled={!readiness.ready || calculating}>
-          {calculating
-            ? PROJECTION_WORKSPACE_LABELS.CALCULATING
-            : PROJECTION_WORKSPACE_LABELS.CALCULATE}
+          {calculating && <OrbitLoader />}
+          <span role="status">
+            {calculating
+              ? PROJECTION_WORKSPACE_LABELS.CALCULATING
+              : PROJECTION_WORKSPACE_LABELS.CALCULATE}
+          </span>
         </Button>
       )}
     </div>

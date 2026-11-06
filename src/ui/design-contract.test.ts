@@ -18,6 +18,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   // data-viz capsules (progress tracks), circular state/icon containers.
   'components/Avatar.tsx',
   'components/AccessDenied.tsx',
+  // Orbit pending ring (motion-system §5.4).
+  'components/OrbitLoader.tsx',
   'components/RadioGroup.tsx',
   'components/charts/DonutChart.tsx',
   'components/charts/InteractiveLineChart.tsx',
