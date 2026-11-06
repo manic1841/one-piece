@@ -6,6 +6,8 @@ import { X } from 'lucide-react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { useSheetDrag } from './useSheetDrag';
+
 const Sheet = SheetPrimitive.Root;
 const SheetTrigger = SheetPrimitive.Trigger;
 const SheetClose = SheetPrimitive.Close;
@@ -47,23 +49,73 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  /**
+   * Bottom sheets drag closed by their handle (motion-system §5.3). The gesture
+   * supplies only the motion: closing goes through the sheet's own close path.
+   */
+  draggable?: boolean;
+}
+
+const HANDLE_BAND_CLASS =
+  'flex h-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing';
+const HANDLE_CLASS = 'h-1 w-9 rounded-full bg-border-strong';
+const CLOSE_CLASS =
+  'absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-[opacity,transform] duration-fast ease-out-quint hover:opacity-100 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary';
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = 'bottom', className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-      {children}
-      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-[opacity,transform] duration-fast ease-out-quint hover:opacity-100 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-));
+>(({ side = 'bottom', className, children, draggable = true, style, ...props }, ref) => {
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const closeRef = React.useRef<HTMLButtonElement>(null);
+  const isDraggable = side === 'bottom' && draggable;
+  // Dismiss goes through the close control's click so it takes the same path as
+  // the visible one: the root's `onOpenChange`, and its focus return.
+  const drag = useSheetDrag(contentRef, () => closeRef.current?.click());
+
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <SheetPrimitive.Content
+        ref={(node) => {
+          contentRef.current = node;
+          if (typeof ref === 'function') ref(node);
+          else if (ref !== null) ref.current = node;
+        }}
+        className={cn(
+          sheetVariants({ side }),
+          isDraggable && 'flex max-h-[92vh] flex-col gap-0 p-0',
+          isDraggable && !drag.dragging && 'transition-transform duration-slow ease-out-quint',
+          drag.dragging && 'transition-none',
+          className,
+        )}
+        style={
+          isDraggable && drag.offset !== null
+            ? { transform: `translateY(${drag.offset}px)`, ...style }
+            : style
+        }
+        {...props}
+      >
+        {isDraggable && (
+          <div aria-hidden data-sheet-handle className={HANDLE_BAND_CLASS} {...drag.handlers}>
+            <span className={HANDLE_CLASS} />
+          </div>
+        )}
+        <div
+          data-sheet-body
+          className={cn('flex min-h-0 flex-1 flex-col', isDraggable && 'overflow-y-auto px-6 pb-6')}
+        >
+          {children}
+        </div>
+        <SheetPrimitive.Close ref={closeRef} className={CLOSE_CLASS}>
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  );
+});
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (

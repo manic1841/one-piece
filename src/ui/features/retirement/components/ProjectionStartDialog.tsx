@@ -161,7 +161,7 @@ export function ProjectionStartDialog({
 
   return (
     <Sheet open onOpenChange={(next) => !next && onCancel()}>
-      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
+      <SheetContent side="bottom" className="max-h-[92vh]">
         <SheetHeader>
           <SheetTitle>{START_PROJECTION_LABELS.TITLE}</SheetTitle>
           <SheetDescription>{START_PROJECTION_LABELS.DESCRIPTION}</SheetDescription>

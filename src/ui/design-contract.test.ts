@@ -22,6 +22,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'components/charts/DonutChart.tsx',
   'components/charts/InteractiveLineChart.tsx',
   'components/ui/switch.tsx',
+  // Bottom-sheet drag handle (design-system §7 `sheet`).
+  'components/ui/sheet.tsx',
   'features/app/layout/PixelPet.tsx',
   'features/dashboard/components/AssetCompositionBlock.tsx',
   // Retiring event axis: single-year nodes are dots, span bars are capsules.
