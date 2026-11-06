@@ -7,6 +7,7 @@ import { formatCurrency, formatPercentage } from '@/ui/utils';
 import {
   type AnalysisGranularity,
   type AssetCompositionChartVM,
+  type CashCoverageChartVM,
   type CashFlowChartVM,
   type DebtLeverageChartVM,
   type IncomeChartVM,
@@ -27,6 +28,7 @@ export interface MonthlyPoints {
   investmentPerformance: InvestmentPerformanceChartVM[];
   debtLeverage: DebtLeverageChartVM[];
   cashFlow: CashFlowChartVM[];
+  cashCoverage: CashCoverageChartVM[];
 }
 
 const percentText = (value: number | null): string =>
@@ -169,4 +171,5 @@ export const applyGranularity = (
         investmentPerformance: annualInvestment(monthly.investmentPerformance),
         debtLeverage: annualStock(monthly.debtLeverage),
         cashFlow: annualCashFlow(monthly.cashFlow),
+        cashCoverage: annualStock(monthly.cashCoverage),
       };

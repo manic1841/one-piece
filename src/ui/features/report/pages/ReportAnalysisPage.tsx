@@ -13,6 +13,7 @@ import { Button } from '@/ui/components/ui/button';
 import { ANALYSIS_ANCHORS, REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { AssetCompositionChart } from '@/ui/features/report/components/AssetCompositionChart';
+import { CashCoverageChart } from '@/ui/features/report/components/CashCoverageChart';
 import { DebtLeverageChart } from '@/ui/features/report/components/DebtLeverageChart';
 import { IncomeSavingsChart } from '@/ui/features/report/components/IncomeSavingsChart';
 import { InvestmentPerformanceChart } from '@/ui/features/report/components/InvestmentPerformanceChart';
@@ -400,6 +401,21 @@ const ReportAnalysisPage: React.FC = () => {
                 <DebtLeverageChart
                   points={analysisVM.debtLeverage.points}
                   showLeverage={analysisVM.debtLeverage.showLeverage}
+                  markerLabels={false}
+                  selectedPeriod={analysisVM.selection.periodKey}
+                  onPointSelect={selectPeriod}
+                />
+              </AnalysisSection>
+
+              <AnalysisSection
+                id={ANALYSIS_ANCHORS.CASH_COVERAGE}
+                title={REPORT_ANALYSIS_LABELS.CASH_COVERAGE_SECTION}
+                latestText={analysisVM.cashCoverage.latestText}
+                footnote={REPORT_ANALYSIS_LABELS.CASH_COVERAGE_HINT}
+                insufficient={analysisVM.cashCoverage.insufficient}
+              >
+                <CashCoverageChart
+                  points={analysisVM.cashCoverage.points}
                   markerLabels={false}
                   selectedPeriod={analysisVM.selection.periodKey}
                   onPointSelect={selectPeriod}

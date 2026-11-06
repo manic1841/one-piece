@@ -38,6 +38,7 @@ export type AssetCompositionSeriesKey = 'cash' | 'investment' | 'property';
 export type InvestmentPerformanceSeriesKey = 'gain' | 'returnRate';
 export type IncomeSeriesKey = 'income' | 'expense' | 'savingsRate';
 export type DebtLeverageSeriesKey = 'liabilities' | 'debtRatio' | 'leverage';
+export type CashCoverageSeriesKey = 'coverageMonths';
 export type SummaryKpiKey = 'totalAssets' | 'netWorth' | 'totalLiabilities' | 'savingsRate';
 /** `?series=` values: the two context lines the KPI links preselect. */
 export type SeriesParam = 'assets' | 'debt';
@@ -127,6 +128,15 @@ export interface CashFlowChartVM extends AnalysisPointTextVM {
   netCashFlowText: string;
 }
 
+export interface CashCoverageChartVM extends AnalysisPointTextVM {
+  cash: number;
+  expenseAverage: number | null;
+  coverageMonths: number | null;
+  cashText: string;
+  expenseAverageText: string;
+  coverageMonthsText: string;
+}
+
 interface AnalysisSectionVM<Point> {
   points: Point[];
   insufficient: boolean;
@@ -163,6 +173,7 @@ export interface ReportAnalysisVM {
   income: AnalysisSectionVM<IncomeChartVM>;
   cashFlow: AnalysisSectionVM<CashFlowChartVM>;
   debtLeverage: AnalysisSectionVM<DebtLeverageChartVM> & { showLeverage: boolean };
+  cashCoverage: AnalysisSectionVM<CashCoverageChartVM>;
 }
 
 const DASH = REPORT_SUMMARY_LABELS.MISSING;
@@ -314,8 +325,7 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
     changeText: null,
     liabilitiesText: formatCurrency(point.liabilities),
     debtRatioText: percentText(point.debtRatio),
-    leverageText:
-      point.leverage === null ? DASH : `${Number(point.leverage.toFixed(4))}x`,
+    leverageText: point.leverage === null ? DASH : `${Number(point.leverage.toFixed(4))}x`,
   })),
   cashFlow: analysis.cashFlowPoints.map<CashFlowChartVM>((point) => ({
     label: pointLabel(point.yearMonth, granularity),
@@ -323,6 +333,17 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
     unclosed: !point.closed,
     netCashFlow: point.netCashFlow,
     netCashFlowText: formatCurrency(point.netCashFlow),
+  })),
+  cashCoverage: analysis.cashCoveragePoints.map<CashCoverageChartVM>((point) => ({
+    label: pointLabel(point.yearMonth, granularity),
+    yearMonth: point.yearMonth,
+    unclosed: !point.closed,
+    cash: point.cash,
+    expenseAverage: point.expenseAverage,
+    coverageMonths: point.coverageMonths,
+    cashText: formatCurrency(point.cash),
+    expenseAverageText: point.expenseAverage === null ? DASH : formatCurrency(point.expenseAverage),
+    coverageMonthsText: point.coverageMonths === null ? DASH : point.coverageMonths.toFixed(1),
   })),
 });
 
@@ -336,6 +357,7 @@ export const buildReportAnalysisVM = (
     assetComposition: assetCompositionPoints,
     investmentPerformance: investmentPerformancePoints,
     cashFlow: cashFlowPoints,
+    cashCoverage: cashCoveragePoints,
   } = scaled;
   const netWorthPoints = withChange(scaled.netWorth);
   const incomePoints = withSavingsChange(scaled.income);
@@ -348,6 +370,7 @@ export const buildReportAnalysisVM = (
     ...incomePoints,
     ...cashFlowPoints,
     ...debtLeveragePoints,
+    ...cashCoveragePoints,
   ];
   const periodKeys = new Set(allPoints.map((point) => point.yearMonth));
   const anchorKey =
@@ -468,6 +491,7 @@ export const buildReportAnalysisVM = (
       { id: ANALYSIS_ANCHORS.INCOME, label: REPORT_ANALYSIS_LABELS.INCOME_SECTION },
       { id: ANALYSIS_ANCHORS.CASH_FLOW, label: REPORT_ANALYSIS_LABELS.CASH_FLOW_SECTION },
       { id: ANALYSIS_ANCHORS.DEBT_LEVERAGE, label: REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_SECTION },
+      { id: ANALYSIS_ANCHORS.CASH_COVERAGE, label: REPORT_ANALYSIS_LABELS.CASH_COVERAGE_SECTION },
     ],
     unclosedNote,
     netWorth: section(
@@ -507,6 +531,17 @@ export const buildReportAnalysisVM = (
       showLeverage: debtLeveragePoints.some(
         (point) => point.leverage !== null && point.leverage > 1,
       ),
+    },
+    cashCoverage: {
+      ...section(
+        cashCoveragePoints,
+        valueAt(
+          cashCoveragePoints,
+          (point) => `${point.coverageMonthsText} ${REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS_UNIT}`,
+        ),
+      ),
+      // The axis keeps months whose window is incomplete; they cannot show a trend.
+      insufficient: cashCoveragePoints.filter((point) => point.coverageMonths !== null).length < 2,
     },
   };
 };

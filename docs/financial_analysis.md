@@ -1,7 +1,7 @@
 # 歷史財務分析 (Financial Analysis)
 
 `/reports/analysis` 是報表的分析子頁，只讀**已產生報表**與既有 portfolio snapshot，提供
-跨期間的淨資產、資產類別、投資績效、收支、淨現金流與負債槓桿觀察。路由與錨定的決策理由見
+跨期間的淨資產、資產類別、投資績效、收支、淨現金流、負債槓桿與現金覆蓋觀察。路由與錨定的決策理由見
 [ADR-0090](adr/0090-report-analysis-single-route-and-anchor.md)；報表本身的語意見
 [financial_report.md](financial_report.md)。
 
@@ -43,14 +43,15 @@
 可畫期間是任何有該區塊所需報表型別的已產生報表月份，**不檢查財務期間狀態**。各區塊各自
 只取有對應報表型別的月份：
 
-| 區塊         | 報表型別                                  |
-| ------------ | ----------------------------------------- |
-| 淨資產       | 資產負債表                                |
-| 資產類別構成 | 資產負債表（僅 `assets.total > 0`）       |
-| 投資績效     | 資產負債表 ∩ 每個 portfolio 當月 snapshot |
-| 收支         | 損益表                                    |
-| 淨現金流     | 現金流量表                                |
-| 負債與槓桿   | 資產負債表（僅 `assets.total > 0`）       |
+| 區塊         | 報表型別                                      |
+| ------------ | --------------------------------------------- |
+| 淨資產       | 資產負債表                                    |
+| 資產類別構成 | 資產負債表（僅 `assets.total > 0`）           |
+| 投資績效     | 資產負債表 ∩ 每個 portfolio 當月 snapshot     |
+| 收支         | 損益表                                        |
+| 淨現金流     | 現金流量表                                    |
+| 負債與槓桿   | 資產負債表（僅 `assets.total > 0`）           |
+| 現金覆蓋     | 資產負債表；缺三期損益表 window 時值為 `null` |
 
 只有 snapshot 的月份不畫；投資績效與負債槓桿的 snapshot 由既有 list-all 讀取後在
 workflow 內依範圍過濾，不改 repository。
@@ -120,3 +121,19 @@ KPI 缺對應報表時顯示「—」；資產或負債為 0 仍是合法序列�
 - 兩個比率意義不同：負債比是存量槓桿，加權平均槓桿是持倉曝險倍數，不得互相換算。
 - 槓桿層只在目前範圍任一點 `leverage > 1` 時出現；否則不渲染該層，改在區塊底部說明
   「此範圍內持倉無槓桿」。
+
+## 10. 現金覆蓋
+
+回答「如果停下來能撐多久」，是全頁唯一的合成指標，也是最後一節。
+
+- 每點 `{ yearMonth, cash, expenseAverage, coverageMonths }`；`cash` 為當期資產負債表
+  `assets.groups.cash.total`（含定存，缺席視為 0）。
+- `expenseAverage` 為當月與前兩期 `expenseTotal` 的平均；`coverageMonths = cash ÷
+expenseAverage`，`expenseAverage <= 0` 時為 `null`。
+- 任一期缺損益表時 `expenseAverage` 與 `coverageMonths` 皆為 `null`，該點斷線但仍留在軸上，
+  不以「有幾期算幾期」補償。
+- window 可由選取範圍外的既有損益表補齊；範圍只決定顯示軸。
+- 可畫期間為任何資產負債表月份，不要求 `assets.total > 0`；覆蓋 0 個月是合法值。
+- 非 `null` 點數少於 2 期時整區顯示「此範圍內不足 2 期」。年粒度取該年最後一個月的值。
+- 標題小字為 `YYYY-MM · X 個月`，tooltip 依序列覆蓋月數（一位小數）、現金與近三月平均支出；
+  底部固定公式註記。

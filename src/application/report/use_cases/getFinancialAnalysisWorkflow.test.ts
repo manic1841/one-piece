@@ -462,6 +462,90 @@ describe('getFinancialAnalysisWorkflow', () => {
     expect(result.debtLeveragePoints[1]?.debtRatio).toBeCloseTo(10);
   });
 
+  it('averages the month and the two before it into the cash coverage', async () => {
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 0, { cash: 900 }),
+      income('2026-01', 5000, 3000),
+      balanceSheet('2026-02', 1000, 0, { cash: 900 }),
+      income('2026-02', 5000, 6000),
+      balanceSheet('2026-03', 1000, 0, { cash: 1200 }),
+      income('2026-03', 5000, 3000),
+    ]);
+
+    const result = await run();
+
+    // The first two months still lack earlier window months.
+    expect(result.cashCoveragePoints.map((point) => point.coverageMonths)).toEqual([
+      null,
+      null,
+      0.3,
+    ]);
+    expect(result.cashCoveragePoints[2]).toMatchObject({ cash: 1200, expenseAverage: 4000 });
+  });
+
+  it('nulls the coverage when a window month has no income statement', async () => {
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 0, { cash: 900 }),
+      income('2026-01', 5000, 3000),
+      income('2026-03', 5000, 3000),
+      balanceSheet('2026-03', 1000, 0, { cash: 1200 }),
+    ]);
+
+    const result = await run();
+
+    expect(result.cashCoveragePoints.map((point) => point.coverageMonths)).toEqual([null, null]);
+    expect(result.cashCoveragePoints[1]?.expenseAverage).toBeNull();
+  });
+
+  it('nulls the coverage when the average expense is not positive', async () => {
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 0, { cash: 900 }),
+      income('2026-01', 5000, 0),
+      income('2025-12', 5000, 0),
+      income('2025-11', 5000, 0),
+    ]);
+
+    const result = await run();
+
+    expect(result.cashCoveragePoints[0]?.expenseAverage).toBe(0);
+    expect(result.cashCoveragePoints[0]?.coverageMonths).toBeNull();
+  });
+
+  it('lets the coverage window reach outside the selected range', async () => {
+    listReportsMock.mockResolvedValue([
+      income('2025-10', 5000, 3000),
+      income('2025-11', 5000, 3000),
+      income('2025-12', 5000, 3000),
+      balanceSheet('2025-12', 1000, 0, { cash: 900 }),
+      income('2026-01', 5000, 3000),
+      balanceSheet('2026-01', 1000, 0, { cash: 1200 }),
+    ]);
+
+    const result = await run('1y');
+
+    expect(result.cashCoveragePoints.map((point) => point.yearMonth)).toEqual([
+      '2025-12',
+      '2026-01',
+    ]);
+    expect(result.cashCoveragePoints[0]?.coverageMonths).toBeCloseTo(0.3);
+    expect(result.cashCoveragePoints[1]?.coverageMonths).toBeCloseTo(0.4);
+  });
+
+  it('marks unclosed months on the cash coverage block', async () => {
+    listReportsMock.mockResolvedValue([
+      income('2025-11', 5000, 2000),
+      income('2025-12', 5000, 2000),
+      balanceSheet('2025-12', 1000, 0, { cash: 600 }),
+      income('2026-01', 5000, 2000),
+      balanceSheet('2026-01', 1000, 0, { cash: 600 }),
+    ]);
+    listPeriodsMock.mockResolvedValue([period('2025-12', 'CLOSED')]);
+
+    const result = await run();
+
+    expect(result.cashCoveragePoints.map((point) => point.closed)).toEqual([true, false]);
+  });
+
   it('cuts the new blocks to the range like the existing ones', async () => {
     listPortfoliosMock.mockResolvedValue([{ id: 'p1' }]);
     listSnapshotsMock.mockResolvedValue([
@@ -480,6 +564,7 @@ describe('getFinancialAnalysisWorkflow', () => {
     expect(result.assetCompositionPoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
     expect(result.investmentPerformancePoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
     expect(result.debtLeveragePoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
+    expect(result.cashCoveragePoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
   });
 
   it('returns an empty page when there is no balance sheet at all', async () => {
@@ -493,6 +578,7 @@ describe('getFinancialAnalysisWorkflow', () => {
     expect(result.assetCompositionPoints).toEqual([]);
     expect(result.investmentPerformancePoints).toEqual([]);
     expect(result.debtLeveragePoints).toEqual([]);
+    expect(result.cashCoveragePoints).toEqual([]);
     expect(result.availableRanges).toEqual([]);
   });
 });

@@ -36,6 +36,7 @@ export const ANALYSIS_ANCHORS = {
   INCOME: 'income',
   CASH_FLOW: 'cash-flow',
   DEBT_LEVERAGE: 'debt-leverage',
+  CASH_COVERAGE: 'cash-coverage',
 } as const;
 
 export const ANALYSIS_RANGE_LABELS = {
@@ -80,6 +81,7 @@ export const REPORT_ANALYSIS_LABELS = {
   INCOME_SECTION: '收支與儲蓄率',
   CASH_FLOW_SECTION: '淨現金流',
   DEBT_LEVERAGE_SECTION: '負債與槓桿',
+  CASH_COVERAGE_SECTION: '現金覆蓋',
   NET_WORTH: '淨資產',
   TOTAL_ASSETS: '總資產',
   TOTAL_LIABILITIES: '總負債',
@@ -100,6 +102,11 @@ export const REPORT_ANALYSIS_LABELS = {
   SAVINGS_RATE: '儲蓄率',
   SAVINGS_RATE_UNIT: '儲蓄率 %',
   NET_CASH_FLOW: '淨現金流',
+  COVERAGE_MONTHS: '現金覆蓋月數',
+  COVERAGE_MONTHS_UNIT: '個月',
+  COVERAGE_CASH: '現金',
+  COVERAGE_EXPENSE_AVERAGE: '近三月平均支出',
+  CASH_COVERAGE_HINT: '現金與銀行資產（含定存）÷ 近三月平均支出。',
   SAVINGS_FORMULA: '儲蓄率 = (收入 − 支出) ÷ 收入，以損益表為準，不等於現金流。',
   CASH_FLOW_HINT: '淨現金流是現金基礎，與上方的應計收支不同。',
   INVESTMENT_PERFORMANCE_HINT: '家庭層、市值加權，報酬已排除期間現金流。',
@@ -129,6 +136,7 @@ export const REPORT_ANALYSIS_LABELS = {
   NET_WORTH_ARIA: (visible: string) => `淨資產趨勢，顯示：${visible}`,
   INCOME_ARIA: (visible: string) => `收支與儲蓄率，顯示：${visible}`,
   CASH_FLOW_ARIA: (visible: string) => `淨現金流，顯示：${visible}`,
+  CASH_COVERAGE_ARIA: (visible: string) => `現金覆蓋，顯示：${visible}`,
   DASH: REPORT_SUMMARY_LABELS.MISSING,
 } as const;
 

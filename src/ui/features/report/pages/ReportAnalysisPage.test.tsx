@@ -76,6 +76,11 @@ const analysis = (overrides: Record<string, unknown> = {}) => ({
     { ...point('2026-01', true), netCashFlow: -300 },
     { ...point('2026-03', false), netCashFlow: 500 },
   ],
+  cashCoveragePoints: [
+    { ...point('2026-01', true), cash: 600, expenseAverage: 4000, coverageMonths: 0.3 },
+    { ...point('2026-02', false), cash: 600, expenseAverage: null, coverageMonths: null },
+    { ...point('2026-03', false), cash: 800, expenseAverage: 4000, coverageMonths: 0.4 },
+  ],
   ...overrides,
 });
 
@@ -107,6 +112,7 @@ describe('ReportAnalysisPage', () => {
       'income',
       'cash-flow',
       'debt-leverage',
+      'cash-coverage',
     ];
     expect(ids.map((id) => document.getElementById(id)?.querySelector('p')?.textContent)).toEqual([
       '淨資產趨勢',
@@ -115,10 +121,11 @@ describe('ReportAnalysisPage', () => {
       '收支與儲蓄率',
       '淨現金流',
       '負債與槓桿',
+      '現金覆蓋',
     ]);
 
     const index = screen.getByRole('navigation', { name: '分析區塊' });
-    expect(index.querySelectorAll('a')).toHaveLength(6);
+    expect(index.querySelectorAll('a')).toHaveLength(7);
     expect(screen.getByText('資料截至 2026-03')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: '1Y' })).toHaveAttribute('aria-pressed', 'false');
@@ -444,12 +451,13 @@ describe('ReportAnalysisPage', () => {
         assetCompositionPoints: base.assetCompositionPoints.slice(0, 1),
         investmentPerformancePoints: base.investmentPerformancePoints.slice(0, 1),
         debtLeveragePoints: base.debtLeveragePoints.slice(0, 1),
+        cashCoveragePoints: base.cashCoveragePoints.slice(0, 1),
       }),
     );
 
     renderPage();
 
-    await waitFor(() => expect(screen.getAllByText('此範圍內不足 2 期')).toHaveLength(3));
+    await waitFor(() => expect(screen.getAllByText('此範圍內不足 2 期')).toHaveLength(4));
   });
 
   it('shows the leverage layer while the range contains leverage', async () => {
@@ -488,6 +496,77 @@ describe('ReportAnalysisPage', () => {
     expect(tooltip.textContent).toBe('負債餘額 NT$120');
     expect(tooltip.parentElement?.querySelectorAll('p')[2]?.textContent).toBe(
       '負債比 12.0% · 較前期 +2.0 個百分點 · 加權平均槓桿 —',
+    );
+  });
+
+  it('reads the coverage, cash and average expense in a fixed tooltip order', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('slider', { name: /現金覆蓋/ });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+
+    const tooltip = await screen.findByText(/現金覆蓋月數 0\.3/);
+    expect(tooltip.textContent).toBe('現金覆蓋月數 0.3');
+    expect(tooltip.parentElement?.querySelectorAll('p')[2]?.textContent).toBe(
+      '現金 NT$600 · 近三月平均支出 NT$4,000',
+    );
+  });
+
+  it('keeps the row and shows a dash when the window is incomplete', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('slider', { name: /現金覆蓋/ });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+
+    const tooltip = await screen.findByText(/現金覆蓋月數 —/);
+    expect(tooltip.textContent).toBe('現金覆蓋月數 —');
+    expect(tooltip.parentElement?.textContent).toContain('近三月平均支出 —');
+  });
+
+  it('selects a coverage point and opens its report from the summary', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('slider', { name: /現金覆蓋/ });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+    fireEvent.keyDown(chart, { key: 'Enter' });
+
+    expect(await screen.findByText('已選取 2026-02')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '查看 2026-02 完整報表' }));
+
+    expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
+  });
+
+  it('pins the coverage formula and puts the block last and full width', async () => {
+    renderPage();
+
+    expect(
+      await screen.findByText('現金與銀行資產（含定存）÷ 近三月平均支出。'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('2026-03 · 0.4 個月（未關帳）')).toBeInTheDocument();
+
+    const section = document.getElementById('cash-coverage');
+    const sections = section?.parentElement;
+    expect(sections?.lastElementChild).toBe(section);
+    expect(sections?.className).not.toContain('lg:grid-cols-2');
+  });
+
+  it('shows insufficient data for the coverage when fewer than two months have a value', async () => {
+    const base = analysis();
+    mockExecute.mockResolvedValue(
+      analysis({
+        cashCoveragePoints: base.cashCoveragePoints.map((point) => ({
+          ...point,
+          expenseAverage: null,
+          coverageMonths: null,
+        })),
+      }),
+    );
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(document.getElementById('cash-coverage')?.textContent).toContain('此範圍內不足 2 期'),
     );
   });
 
@@ -627,6 +706,7 @@ describe('ReportAnalysisPage', () => {
         incomePoints: [],
         cashFlowPoints: [],
         debtLeveragePoints: [],
+        cashCoveragePoints: [],
       }),
     );
 

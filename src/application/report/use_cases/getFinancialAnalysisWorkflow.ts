@@ -63,6 +63,15 @@ export interface DebtLeveragePoint extends AnalysisPointBase {
   leverage: number | null;
 }
 
+export interface CashCoveragePoint extends AnalysisPointBase {
+  /** Cash and bank assets, including time deposits. */
+  cash: number;
+  /** Average expense of this month and the two before it. */
+  expenseAverage: number | null;
+  /** Null when the three-month window is incomplete or the average is not positive. */
+  coverageMonths: number | null;
+}
+
 export interface FinancialAnalysisKpis {
   yearMonth: string | null;
   assets: number | null;
@@ -87,6 +96,7 @@ export interface FinancialAnalysis {
   incomePoints: IncomeAnalysisPoint[];
   cashFlowPoints: CashFlowAnalysisPoint[];
   debtLeveragePoints: DebtLeveragePoint[];
+  cashCoveragePoints: CashCoveragePoint[];
 }
 
 export interface GetFinancialAnalysisRequest {
@@ -266,6 +276,7 @@ export class GetFinancialAnalysisWorkflow {
         incomePoints: [],
         cashFlowPoints: [],
         debtLeveragePoints: [],
+        cashCoveragePoints: [],
       };
     }
 
@@ -371,6 +382,31 @@ export class GetFinancialAnalysisWorkflow {
         netCashFlow: report.data.netCashChange,
       }),
     );
+    // The trailing window may reach outside the range: the range only cuts the axis.
+    const expenseByMonth = new Map(
+      byType.income.map((report) => [toMonthCode(report.yearMonth), report.data.expenseTotal]),
+    );
+    const cashCoveragePoints = collectPoints(
+      byType.balanceSheet,
+      closedMonths,
+      inRange,
+      (report, closed) => {
+        const cash = report.data.assets.groups.cash?.total ?? 0;
+        const codes = [0, 1, 2].map((back) => toMonthCode(report.yearMonth) - back);
+        const complete = codes.every((code) => expenseByMonth.has(code));
+        const expenseAverage = complete
+          ? codes.reduce((sum, code) => sum + (expenseByMonth.get(code) ?? 0), 0) / 3
+          : null;
+        return {
+          yearMonth: report.yearMonth,
+          closed,
+          cash,
+          expenseAverage,
+          coverageMonths:
+            expenseAverage !== null && expenseAverage > 0 ? cash / expenseAverage : null,
+        };
+      },
+    );
 
     const anchorIncome = byType.income.find((report) => report.yearMonth === anchor);
     const unclosedMonths = [
@@ -382,6 +418,7 @@ export class GetFinancialAnalysisWorkflow {
           ...incomePoints,
           ...cashFlowPoints,
           ...debtLeveragePoints,
+          ...cashCoveragePoints,
         ].map((p) => p.yearMonth),
       ),
     ]
@@ -409,6 +446,7 @@ export class GetFinancialAnalysisWorkflow {
       incomePoints,
       cashFlowPoints,
       debtLeveragePoints,
+      cashCoveragePoints,
     };
   }
 }

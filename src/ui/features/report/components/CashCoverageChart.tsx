@@ -1,0 +1,84 @@
+import { ChartLegend } from '@/ui/components/charts/ChartLegend';
+import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
+import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
+
+import {
+  type CashCoverageChartVM,
+  type CashCoverageSeriesKey,
+} from '../viewmodels/reportAnalysis.vm';
+import { pointActivator, useSeriesToggle } from './chartInteractions';
+import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
+
+interface CashCoverageChartProps {
+  points: CashCoverageChartVM[];
+  /** Draw the unclosed caption; only the first chart on a page needs it. */
+  markerLabels?: boolean;
+  /** Period key of the page's selected point. */
+  selectedPeriod: string;
+  onPointSelect: (yearMonth: string) => void;
+}
+
+/**
+ * 現金覆蓋月數：單一折線、零基準。三期 window 缺任一期時值為 `null`，
+ * 折線在該點斷開；現金與平均支出仍留在 tooltip 供回溯。
+ */
+export const CashCoverageChart: React.FC<CashCoverageChartProps> = ({
+  points,
+  markerLabels = true,
+  selectedPeriod,
+  onPointSelect,
+}) => {
+  const isDesktop = useIsDesktop();
+  const { isActive, toggle } = useSeriesToggle<CashCoverageSeriesKey>(['coverageMonths']);
+  const visible = isActive('coverageMonths');
+  const referenceLines = markerLabels
+    ? unclosedReferenceLines(points)
+    : withoutLabels(unclosedReferenceLines(points));
+  const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
+
+  return (
+    <div className="space-y-3">
+      <InteractiveComposedChart
+        labels={points.map((point) => point.label)}
+        series={
+          visible
+            ? [
+                {
+                  kind: 'line',
+                  tone: 'positive',
+                  values: points.map((point) => point.coverageMonths),
+                },
+              ]
+            : []
+        }
+        referenceLines={referenceLines}
+        points={points.map((point) =>
+          tooltipFrom(pointTitle(point), [
+            `${REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS} ${
+              visible ? point.coverageMonthsText : REPORT_ANALYSIS_LABELS.DASH
+            }`,
+            `${REPORT_ANALYSIS_LABELS.COVERAGE_CASH} ${point.cashText}`,
+            `${REPORT_ANALYSIS_LABELS.COVERAGE_EXPENSE_AVERAGE} ${point.expenseAverageText}`,
+          ]),
+        )}
+        height={isDesktop ? 240 : 160}
+        includeZero
+        yTicks={3}
+        yDecimals={1}
+        yUnit={REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS_UNIT}
+        ariaLabel={REPORT_ANALYSIS_LABELS.CASH_COVERAGE_ARIA(
+          visible ? REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS : '',
+        )}
+        selectedIndex={selectedIndex}
+        onPointClick={pointActivator(points, onPointSelect)}
+      />
+      <ChartLegend
+        items={[{ label: REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS, tone: 'positive' }]}
+        active={visible ? [REPORT_ANALYSIS_LABELS.COVERAGE_MONTHS] : []}
+        onToggle={() => toggle('coverageMonths')}
+      />
+    </div>
+  );
+};

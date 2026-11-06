@@ -52,6 +52,7 @@ const analysisResult = (overrides: Record<string, unknown> = {}) => ({
   incomePoints: [],
   cashFlowPoints: [],
   debtLeveragePoints: [],
+  cashCoveragePoints: [],
   ...overrides,
 });
 
