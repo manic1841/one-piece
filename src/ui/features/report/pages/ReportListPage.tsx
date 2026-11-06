@@ -42,7 +42,7 @@ const ReportListPage: React.FC = () => {
     loading: summaryLoading,
     errorMessage: summaryError,
     reload: reloadSummary,
-  } = useFinancialAnalysis(householdId, '3y');
+  } = useFinancialAnalysis(householdId, '3y', 'monthly', null);
   const navigate = useNavigate();
 
   return (

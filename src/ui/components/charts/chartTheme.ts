@@ -17,7 +17,8 @@ export const CHART_TONE_COLOR: Record<ChartTone, string> = {
   primary: 'hsl(var(--primary))',
   positive: 'hsl(var(--positive))',
   negative: 'hsl(var(--negative))',
-  neutral: 'hsl(var(--border-strong))',
+  /** Context series and lines: muted enough to yield, still clear of the gridlines. */
+  neutral: 'hsl(var(--muted-foreground))',
   investment: 'hsl(var(--warning))',
   asset: 'hsl(var(--chart-1))',
   warning: 'hsl(var(--warning))',
@@ -52,7 +53,7 @@ export const CHART_TONE_FILL: Record<ChartTone, string> = {
   primary: 'bg-primary',
   positive: 'bg-positive/70',
   negative: 'bg-negative/60',
-  neutral: 'bg-border-strong',
+  neutral: 'bg-muted-foreground/70',
   investment: 'bg-warning/70',
   asset: 'bg-chart-1/70',
   warning: 'bg-warning/70',

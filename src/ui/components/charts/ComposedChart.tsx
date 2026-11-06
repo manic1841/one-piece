@@ -34,6 +34,8 @@ type ComposedChartProps = {
   yDomain?: { min: number; max: number };
   /** Gridline and tick count. Defaults to 4. */
   yTicks?: number;
+  /** Fixed tick decimals; use for narrow domains where rounding would repeat labels. */
+  yDecimals?: number;
   /** Suffix appended to every left tick label, e.g. `%`. */
   yUnit?: string;
   /** Pin a line-only scale to include the zero baseline. */
@@ -58,6 +60,7 @@ export function ComposedChart({
   height = COMPOSED_CHART_HEIGHT,
   yDomain,
   yTicks,
+  yDecimals,
   yUnit,
   includeZero,
   showLabels = true,
@@ -68,6 +71,7 @@ export function ComposedChart({
   const layout = buildComposedGeometry(labels, series, referenceLines, {
     ...(yDomain === undefined ? {} : { yDomain }),
     ...(yTicks === undefined ? {} : { yTicks }),
+    ...(yDecimals === undefined ? {} : { yDecimals }),
     ...(includeZero === undefined ? {} : { includeZero }),
   });
   const seriesColor = (item: {
@@ -77,6 +81,18 @@ export function ComposedChart({
     item.colorToken === undefined
       ? CHART_TONE_COLOR[item.tone]
       : CHART_COLOR_TOKEN_COLOR[item.colorToken];
+  // A padded scale can leave the zero baseline between gridlines; label it so a
+  // negative bar is not read against the nearest (non-zero) tick. The tick it
+  // replaces is dropped to keep the two 11px labels from colliding.
+  const zeroLabelY = layout.zeroY;
+  const leftLabels =
+    zeroLabelY !== undefined &&
+    !layout.leftLabels.some((label) => Math.abs(label.y - zeroLabelY) < 10)
+      ? [
+          ...layout.leftLabels.filter((label) => Math.abs(label.y - zeroLabelY) >= 20),
+          { y: zeroLabelY, text: '0' },
+        ]
+      : layout.leftLabels;
   const xLabelIndices = pickComposedXLabels(labels.length);
   // Gradient ids must be unique per chart instance, or a second chart on the page reuses the first.
   const gradientIdPrefix = React.useId().replace(/:/g, '');
@@ -175,6 +191,18 @@ export function ComposedChart({
           ))}
           {layout.referenceLines.map((line) => (
             <line
+              key={`ref-casing-${line.index}`}
+              x1={line.x}
+              x2={line.x}
+              y1={0}
+              y2={COMPOSED_CHART_HEIGHT}
+              stroke="hsl(var(--background))"
+              strokeWidth={3.5}
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          {layout.referenceLines.map((line) => (
+            <line
               key={`ref-${line.index}`}
               x1={line.x}
               x2={line.x}
@@ -183,15 +211,15 @@ export function ComposedChart({
               stroke={seriesColor(line)}
               strokeWidth={1.5}
               strokeDasharray="4 4"
-              strokeOpacity={0.8}
+              strokeOpacity={1}
               vectorEffect="non-scaling-stroke"
             />
           ))}
         </svg>
 
-        {layout.leftLabels.length > 0 && (
+        {leftLabels.length > 0 && (
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            {layout.leftLabels.map((label, index) => (
+            {leftLabels.map((label, index) => (
               <span
                 key={`left-${index}`}
                 className="absolute left-0 -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground"
@@ -221,7 +249,7 @@ export function ComposedChart({
             <span
               key={`ref-label-${line.index}`}
               aria-hidden="true"
-              className="pointer-events-none absolute top-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-widest"
+              className="pointer-events-none absolute top-0 rounded-sm bg-background/80 px-1 whitespace-nowrap font-mono text-[11px] uppercase tracking-widest"
               style={{
                 left: `${line.xRatio * 100}%`,
                 transform:

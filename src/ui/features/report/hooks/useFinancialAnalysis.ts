@@ -9,9 +9,18 @@ import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
-import { buildReportAnalysisVM, buildReportSummaryVM } from '../viewmodels/reportAnalysis.vm';
+import {
+  type AnalysisGranularity,
+  buildReportAnalysisVM,
+  buildReportSummaryVM,
+} from '../viewmodels/reportAnalysis.vm';
 
-export function useFinancialAnalysis(householdId: string, range: AnalysisRange) {
+export function useFinancialAnalysis(
+  householdId: string,
+  range: AnalysisRange,
+  granularity: AnalysisGranularity,
+  selectedPeriod: string | null,
+) {
   const auth = useAuthIdentity();
   const [analysis, setAnalysis] = useState<FinancialAnalysis | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -30,7 +39,7 @@ export function useFinancialAnalysis(householdId: string, range: AnalysisRange) 
   return {
     analysis,
     summaryVM: analysis ? buildReportSummaryVM(analysis) : null,
-    analysisVM: analysis ? buildReportAnalysisVM(analysis) : null,
+    analysisVM: analysis ? buildReportAnalysisVM(analysis, granularity, selectedPeriod) : null,
     loading,
     errorMessage: error === null ? null : REPORT_ANALYSIS_LABELS.LOAD_ERROR,
     reload: () => setReloadNonce((nonce) => nonce + 1),

@@ -1,6 +1,10 @@
 import { type ComposedReferenceLine } from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 
+/** Drop the labels so a lower layer can draw the same markers without repeating them. */
+export const withoutLabels = (lines: readonly ComposedReferenceLine[]): ComposedReferenceLine[] =>
+  lines.map(({ index, tone }) => ({ index, tone }));
+
 /** One labelled warning marker at the first index of every contiguous unclosed run. */
 export const unclosedReferenceLines = (
   points: readonly { unclosed: boolean }[],

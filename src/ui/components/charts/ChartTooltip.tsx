@@ -9,6 +9,8 @@ type ChartTooltipProps = {
   value: string;
   /** Muted secondary line, e.g. "+8.42% YTD". */
   meta?: string;
+  /** Affordance line, e.g. the action a click performs. */
+  hint?: string;
   className?: string;
   style?: React.CSSProperties;
   /** Caller ref, used by the interactive charts to measure the card before anchoring it. */
@@ -16,7 +18,15 @@ type ChartTooltipProps = {
 };
 
 /** Floating chart hover card. */
-export function ChartTooltip({ title, value, meta, className, style, ref }: ChartTooltipProps) {
+export function ChartTooltip({
+  title,
+  value,
+  meta,
+  hint,
+  className,
+  style,
+  ref,
+}: ChartTooltipProps) {
   return (
     <div
       ref={ref}
@@ -29,6 +39,9 @@ export function ChartTooltip({ title, value, meta, className, style, ref }: Char
       <p className="text-foreground">{title}</p>
       <p className="text-primary">{value}</p>
       {meta !== undefined && <p className="mt-0.5 text-muted-foreground">{meta}</p>}
+      {hint !== undefined && (
+        <p className="mt-1 border-t border-border pt-1 text-muted-foreground">{hint}</p>
+      )}
     </div>
   );
 }

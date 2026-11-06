@@ -57,8 +57,9 @@ export interface InvestmentPerformancePoint extends AnalysisPointBase {
 export interface DebtLeveragePoint extends AnalysisPointBase {
   liabilities: number;
   assetsTotal: number;
-  debtRatio: number;
-  /** Household market-value weighted leverage; null without a snapshot that month. */
+  /** Null when total assets are not positive. */
+  debtRatio: number | null;
+  /** Household market-value weighted leverage; null when the month's snapshots are incomplete. */
   leverage: number | null;
 }
 
@@ -108,10 +109,10 @@ const collectPoints = <TReport extends FinancialReport, TPoint extends AnalysisP
   closedMonths: Set<string>,
   inRange: (month: string) => boolean,
   map: (report: TReport, closed: boolean) => TPoint,
-  keep: (report: TReport) => boolean = () => true,
+  include: (report: TReport) => boolean = () => true,
 ): TPoint[] =>
   reports
-    .filter((report) => inRange(report.yearMonth) && keep(report))
+    .filter((report) => inRange(report.yearMonth) && include(report))
     .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
     .map((report) => map(report, closedMonths.has(report.yearMonth)));
 
@@ -156,6 +157,22 @@ const aggregateSnapshots = (snapshots: PortfolioSnapshot[]): Map<string, Snapsho
     byMonth.set(key, totals);
   }
   return byMonth;
+};
+
+/**
+ * Months where every portfolio that has any history also has a snapshot. Portfolios
+ * with no snapshots at all (newly created) are ignored so they cannot blank the series.
+ */
+const completeMonthsOf = (snapshotsPerPortfolio: PortfolioSnapshot[][]): Set<string> => {
+  const monthsPerPortfolio = snapshotsPerPortfolio
+    .map((snapshots) => new Set(snapshots.map(monthKeyOf)))
+    .filter((months) => months.size > 0);
+  const [first, ...rest] = monthsPerPortfolio;
+  if (first === undefined) return new Set();
+  return rest.reduce(
+    (shared, months) => new Set([...shared].filter((month) => months.has(month))),
+    first,
+  );
 };
 
 const EMPTY_KPIS: FinancialAnalysisKpis = {
@@ -259,16 +276,9 @@ export class GetFinancialAnalysisWorkflow {
       ),
     );
     const snapshotsByMonth = aggregateSnapshots(snapshotsPerPortfolio.flat());
-    // Household performance is only complete when every portfolio has that month's snapshot.
-    const completeMonths = new Set(
-      snapshotsPerPortfolio
-        .map((snapshots) => new Set(snapshots.map(monthKeyOf)))
-        .reduce<Set<string> | null>(
-          (shared, months) =>
-            shared === null ? months : new Set([...shared].filter((month) => months.has(month))),
-          null,
-        ) ?? [],
-    );
+    // Household performance and leverage are only complete when every portfolio with
+    // history also has that month's snapshot.
+    const completeMonths = completeMonthsOf(snapshotsPerPortfolio);
 
     const anchor = anchorReport.yearMonth;
     const anchorClosed = closedMonths.has(anchor);
@@ -328,14 +338,16 @@ export class GetFinancialAnalysisWorkflow {
       inRange,
       (report, closed) => {
         const month = snapshotsByMonth.get(report.yearMonth);
+        const assetsTotal = report.data.assets.total;
+        const liabilities = report.data.liabilities.total;
         return {
           yearMonth: report.yearMonth,
           closed,
-          liabilities: report.data.liabilities.total,
-          assetsTotal: report.data.assets.total,
-          debtRatio: (report.data.liabilities.total / report.data.assets.total) * 100,
+          liabilities,
+          assetsTotal,
+          debtRatio: assetsTotal > 0 ? (liabilities / assetsTotal) * 100 : null,
           leverage:
-            month !== undefined && month.marketValue > 0
+            month !== undefined && completeMonths.has(report.yearMonth) && month.marketValue > 0
               ? month.exposure / month.marketValue
               : null,
         };

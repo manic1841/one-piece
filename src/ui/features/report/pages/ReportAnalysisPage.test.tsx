@@ -50,7 +50,7 @@ const analysis = (overrides: Record<string, unknown> = {}) => ({
       liabilities: 100,
       assetsTotal: 1000,
       debtRatio: 10,
-      leverage: 1.2,
+      leverage: 1.2345,
     },
     {
       ...point('2026-02', false),
@@ -119,19 +119,21 @@ describe('ReportAnalysisPage', () => {
 
     const index = screen.getByRole('navigation', { name: '分析區塊' });
     expect(index.querySelectorAll('a')).toHaveLength(6);
-    expect(screen.getByText('資料截至 2026-03，含 1 期未關帳')).toBeInTheDocument();
+    expect(screen.getByText('資料截至 2026-03')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: '1Y' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: '3Y' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: '5Y' })).toBeNull();
+    // A single year makes the annual scale identical, so its control is hidden.
+    expect(screen.queryByRole('button', { name: '年' })).toBeNull();
   });
 
   it('shows the anchor-period value beside each section it applies to', async () => {
     renderPage();
 
     // Net worth and savings rate exist at the anchor (2026-03); savings rate is null there.
-    expect(await screen.findByText('2026-03 · NT$900')).toBeInTheDocument();
-    expect(screen.getByText('2026-03 · —')).toBeInTheDocument();
+    expect(await screen.findByText('2026-03 · NT$900（未關帳）')).toBeInTheDocument();
+    expect(screen.getByText('2026-03 · —（未關帳）')).toBeInTheDocument();
   });
 
   it('scrolls to the deep-linked section once the analysis resolves', async () => {
@@ -185,10 +187,12 @@ describe('ReportAnalysisPage', () => {
   it('shows asset amounts and shares at the anchor and keeps the denominator when a class is hidden', async () => {
     renderPage();
 
-    expect(await screen.findByText('2026-03 · 總資產 NT$1,000')).toBeInTheDocument();
+    expect(await screen.findByText('2026-03 · 總資產 NT$1,000（未關帳）')).toBeInTheDocument();
 
     const chart = await screen.findByRole('slider', { name: /資產類別構成/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    // Arrow movement starts from the selected anchor, so step back to the first month.
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
     const tooltip = await screen.findByText(/現金與銀行 NT\$200/);
     expect(tooltip.parentElement?.textContent).toContain('20.0%');
@@ -222,12 +226,13 @@ describe('ReportAnalysisPage', () => {
     await screen.findByRole('slider', { name: /資產類別構成/ });
     fireEvent.click(screen.getByRole('button', { name: '現金與銀行' }));
     await waitFor(() => {
-      expect(screen.getByRole('slider', { name: /資產類別構成/ }).getAttribute('aria-label')).not.toContain(
-        '現金與銀行',
-      );
+      expect(
+        screen.getByRole('slider', { name: /資產類別構成/ }).getAttribute('aria-label'),
+      ).not.toContain('現金與銀行');
     });
     const chart = screen.getByRole('slider', { name: /資產類別構成/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
     const tooltip = await screen.findByText(/投資資產 NT\$300/);
     expect(tooltip.parentElement?.textContent).toContain('30.0%');
@@ -235,32 +240,99 @@ describe('ReportAnalysisPage', () => {
     expect(tooltip.parentElement?.textContent).not.toContain('現金');
   });
 
-  it('drills from the asset composition into the period report', async () => {
+  it('selects the composition month, then leaves for its report from the summary', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /資產類別構成/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
     fireEvent.keyDown(chart, { key: 'Enter' });
+
+    expect(await screen.findByText('已選取 2026-03')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '查看 2026-03 完整報表' }));
 
     expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
   });
 
-  it('drills from a mouse click on the composition', async () => {
+  it('keeps one selected period across every section', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
+    chart.getBoundingClientRect = () => ({ left: 0, width: 300 }) as DOMRect;
+    fireEvent.click(chart, { clientX: 10 });
+
+    expect(await screen.findByText('已選取 2026-01')).toBeInTheDocument();
+    expect(screen.getByText('2026-01 · 總資產 NT$1,000')).toBeInTheDocument();
+    expect(screen.getByText('2026-01 · 負債比 10.0%')).toBeInTheDocument();
+  });
+
+  it('names an open period as provisional in the tooltip', async () => {
+    renderPage('/reports/analysis?period=2026-02');
+
+    const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
+    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+
+    expect(await screen.findByText(/MAR 2026（未關帳）/)).toBeInTheDocument();
+  });
+
+  it('shows the change against the previous period in the net-worth tooltip', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+
+    const tooltip = await screen.findByText(/淨資產 NT\$850/);
+    expect(tooltip.parentElement?.textContent).toContain('較前期 +NT$50（+6.3%）');
+  });
+
+  it('switches to the annual scale and aggregates a whole year', async () => {
+    const base = analysis();
+    mockExecute.mockResolvedValue(
+      analysis({
+        netWorthPoints: [
+          { ...point('2025-12', true), netWorth: 800, assets: 900, liabilities: 100 },
+          ...base.netWorthPoints,
+        ],
+      }),
+    );
+
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: '年' }));
+
+    expect(await screen.findByText('2026 · NT$900（未關帳）')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '查看 2026 完整報表' })).toBeInTheDocument();
+    // Flows are summed and the ratios recomputed from the yearly totals.
+    expect(screen.getByText('-2.2%')).toBeInTheDocument();
+    expect(screen.getByText(/2026 · 報酬率 5\.0%（未關帳）/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '月' }));
+    expect(await screen.findByText('2026-03 · NT$900（未關帳）')).toBeInTheDocument();
+  });
+
+  it('scrolls to a section from the index', async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+
+    renderPage();
+    fireEvent.click(await screen.findByRole('link', { name: '收支與儲蓄率' }));
+
+    expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById('income'));
+  });
+
+  it('selects a month from a mouse click instead of navigating', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /資產類別構成/ });
     chart.getBoundingClientRect = () => ({ left: 0, width: 300 }) as DOMRect;
     fireEvent.click(chart, { clientX: 10 });
 
-    expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
+    expect(await screen.findByText('已選取 2026-01')).toBeInTheDocument();
+    expect(screen.queryByText('REPORT DETAIL')).toBeNull();
   });
 
   it('reads the gain, return rate and opening value in a fixed tooltip order', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /投資績效/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
     const tooltip = await screen.findByText(/報酬金額 -NT\$50/);
     expect(tooltip.textContent).toBe('報酬金額 -NT$50');
@@ -292,6 +364,52 @@ describe('ReportAnalysisPage', () => {
     expect(tooltip.parentElement?.textContent).toContain('期初市值 NT$1,200');
   });
 
+  it('keeps the opening value in the tooltip when the return line is hidden', async () => {
+    renderPage();
+
+    await screen.findByRole('slider', { name: /投資績效/ });
+    fireEvent.click(screen.getByRole('button', { name: '報酬率' }));
+    await waitFor(() => expect(screen.queryByRole('slider', { name: '報酬率' })).toBeNull());
+
+    const chart = screen.getByRole('slider', { name: /投資績效/ });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+
+    const tooltip = await screen.findByText(/報酬金額 NT\$100/);
+    expect(tooltip.parentElement?.textContent).toContain('期初市值 NT$1,000');
+  });
+
+  it('stacks the gain bar above the rate line and the debt layers in order', async () => {
+    renderPage();
+
+    const gain = await screen.findByRole('slider', { name: /投資績效/ });
+    const rate = await screen.findByRole('slider', { name: '報酬率' });
+    expect(gain.compareDocumentPosition(rate) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const debtBar = await screen.findByRole('slider', { name: /負債與槓桿/ });
+    const ratio = await screen.findByRole('slider', { name: '負債比' });
+    const leverage = await screen.findByRole('slider', { name: '加權平均槓桿' });
+    expect(debtBar.compareDocumentPosition(ratio) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(ratio.compareDocumentPosition(leverage) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('keeps the composition axes with every class hidden', async () => {
+    renderPage();
+
+    await screen.findByRole('slider', { name: /資產類別構成/ });
+    for (const label of ['現金與銀行', '投資資產', '不動產']) {
+      fireEvent.click(screen.getByRole('button', { name: label }));
+    }
+
+    await waitFor(() =>
+      expect(screen.getByRole('slider', { name: /資產類別構成/ }).getAttribute('aria-label')).toBe(
+        '資產類別構成，目前可見：；佔總資產百分比',
+      ),
+    );
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0);
+  });
+
   it('shows the same full tooltip on the leverage layer', async () => {
     renderPage();
 
@@ -301,6 +419,10 @@ describe('ReportAnalysisPage', () => {
 
     const tooltip = await screen.findByText(/負債餘額 NT\$120/);
     expect(tooltip.parentElement?.textContent).toContain('加權平均槓桿');
+
+    fireEvent.keyDown(line, { key: 'ArrowLeft' });
+    const precise = await screen.findByText(/負債餘額 NT\$100/);
+    expect(precise.parentElement?.textContent).toContain('槓桿 1.2345x');
   });
 
   it('stacks the income and cash-flow pair into one column on mobile', async () => {
@@ -327,16 +449,14 @@ describe('ReportAnalysisPage', () => {
 
     renderPage();
 
-    await waitFor(() =>
-      expect(screen.getAllByText('此範圍內不足 2 期')).toHaveLength(3),
-    );
+    await waitFor(() => expect(screen.getAllByText('此範圍內不足 2 期')).toHaveLength(3));
   });
 
   it('shows the leverage layer while the range contains leverage', async () => {
     renderPage();
 
     expect(await screen.findByText('加權平均槓桿 x')).toBeInTheDocument();
-    expect(screen.getByText('2026-03 · 負債比 14.0%')).toBeInTheDocument();
+    expect(screen.getByText('2026-03 · 負債比 14.0%（未關帳）')).toBeInTheDocument();
   });
 
   it('drops the leverage layer when the range has no leverage', async () => {
@@ -362,13 +482,12 @@ describe('ReportAnalysisPage', () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /負債與槓桿/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
     const tooltip = await screen.findByText(/負債餘額 NT\$120/);
     expect(tooltip.textContent).toBe('負債餘額 NT$120');
     expect(tooltip.parentElement?.querySelectorAll('p')[2]?.textContent).toBe(
-      '負債比 12.0% · 加權平均槓桿 —',
+      '負債比 12.0% · 較前期 +2.0 個百分點 · 加權平均槓桿 —',
     );
   });
 
@@ -388,8 +507,7 @@ describe('ReportAnalysisPage', () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /收支與儲蓄率/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
     expect(await screen.findByText(/-25\.0%/)).toBeInTheDocument();
   });
@@ -409,18 +527,42 @@ describe('ReportAnalysisPage', () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
 
-    const tooltip = await screen.findByText(/淨資產 NT\$/);
+    const tooltip = await screen.findByText('淨資產 NT$800');
     expect(tooltip.textContent).toContain('NT$800');
   });
 
-  it('drills into the period report on Enter', async () => {
+  it('gives the takeaway net worth figure its own size', async () => {
+    renderPage();
+
+    const figure = (await screen.findAllByText('NT$900')).find((element) =>
+      element.className.includes('text-xl'),
+    );
+    expect(figure).toBeDefined();
+    expect(figure?.closest('p')?.textContent).toContain('本期淨資產');
+  });
+
+  it('lists the savings change against the previous period', async () => {
+    renderPage();
+
+    const chart = await screen.findByRole('slider', { name: /收支與儲蓄率/ });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+
+    const tooltip = await screen.findByText(/收入 NT\$4,000/);
+    expect(tooltip.parentElement?.textContent).toContain('較前期 -NT$2,000');
+  });
+
+  it('selects on Enter and opens the report from the summary', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
-    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'Enter' });
+
+    expect(await screen.findByText('已選取 2026-02')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '查看 2026-02 完整報表' }));
 
     expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
   });
@@ -429,9 +571,10 @@ describe('ReportAnalysisPage', () => {
     renderPage();
 
     await screen.findAllByText('淨資產趨勢');
-    // One marker per chart, at the first month of each contiguous run.
-    expect(screen.getAllByText('未關帳').length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText('2026-03')).toBeInTheDocument();
+    // One label on the first chart; the page-level status is labelled separately.
+    expect(screen.getAllByText('未關帳').length).toBe(1);
+    expect(screen.getByText('未關帳月份')).toBeInTheDocument();
+    expect(screen.getAllByText('2026-03').length).toBeGreaterThan(0);
   });
 
   it('collapses a long unclosed note and links back to the history', async () => {

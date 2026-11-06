@@ -140,6 +140,8 @@ export interface ComposedGeometryOptions {
   yDomain?: Scale;
   /** Number of gridlines and tick labels. Defaults to 4. */
   yTicks?: number;
+  /** Fixed tick decimals; use for narrow domains where rounding would repeat labels. */
+  yDecimals?: number;
   /** Pin a line-only scale to include the zero baseline. */
   includeZero?: boolean;
 }
@@ -182,10 +184,14 @@ const gridValueAt = (scale: Scale, index: number, count: number): number => {
   return scale.max - ratio * (scale.max - scale.min);
 };
 
-const buildAxisLabels = (scale: Scale, count: number): { y: number; text: string }[] =>
+const buildAxisLabels = (
+  scale: Scale,
+  count: number,
+  format: (value: number) => string,
+): { y: number; text: string }[] =>
   Array.from({ length: count }, (_, index) => ({
     y: Number((PADDING_TOP + (index / (count - 1)) * innerHeight).toFixed(2)),
-    text: formatAxisValue(gridValueAt(scale, index, count)),
+    text: format(gridValueAt(scale, index, count)),
   }));
 
 /**
@@ -202,6 +208,10 @@ export function buildComposedGeometry(
   const count = labels.length;
   if (count === 0) return EMPTY_LAYOUT;
   const tickCount = options.yTicks ?? GRID_LINE_COUNT;
+  const formatTick =
+    options.yDecimals === undefined
+      ? formatAxisValue
+      : (value: number) => `${value.toFixed(options.yDecimals)}`;
 
   const defined = (values: (number | null)[]): number[] =>
     values.filter((value): value is number => value !== null);
@@ -375,8 +385,8 @@ export function buildComposedGeometry(
     bars,
     lines,
     gridLines,
-    leftLabels: leftScale ? buildAxisLabels(leftScale, tickCount) : [],
-    rightLabels: rightScale ? buildAxisLabels(rightScale, tickCount) : [],
+    leftLabels: leftScale ? buildAxisLabels(leftScale, tickCount, formatTick) : [],
+    rightLabels: rightScale ? buildAxisLabels(rightScale, tickCount, formatTick) : [],
     ...(leftScale && leftScale.min <= 0 && leftScale.max >= 0
       ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) }
       : {}),

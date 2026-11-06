@@ -8,18 +8,23 @@ import {
   type InvestmentPerformanceChartVM,
   type InvestmentPerformanceSeriesKey,
 } from '../viewmodels/reportAnalysis.vm';
-import { unclosedReferenceLines } from './unclosedMarkers';
-import { pointActivator, useSeriesToggle } from './useSeriesToggle';
+import { pointActivator, useSeriesToggle } from './chartInteractions';
+import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface InvestmentPerformanceChartProps {
   points: InvestmentPerformanceChartVM[];
-  onPointActivate: (yearMonth: string) => void;
+  /** Draw the unclosed caption; only the first chart on a page needs it. */
+  markerLabels?: boolean;
+  /** Period key of the page's selected point. */
+  selectedPeriod: string;
+  onPointSelect: (yearMonth: string) => void;
 }
 
-const SERIES_KEYS: Record<string, InvestmentPerformanceSeriesKey> = {
-  [REPORT_ANALYSIS_LABELS.GAIN]: 'gain',
-  [REPORT_ANALYSIS_LABELS.RETURN_RATE]: 'returnRate',
-};
+const SERIES = [
+  { key: 'gain', label: REPORT_ANALYSIS_LABELS.GAIN, tone: 'positive' },
+  { key: 'returnRate', label: REPORT_ANALYSIS_LABELS.RETURN_RATE, tone: 'investment' },
+] as const;
 
 /**
  * 上層報酬金額柱（正負分向），下層 96px 報酬率折線。兩層共用月份與 x 軸，
@@ -27,7 +32,9 @@ const SERIES_KEYS: Record<string, InvestmentPerformanceSeriesKey> = {
  */
 export const InvestmentPerformanceChart: React.FC<InvestmentPerformanceChartProps> = ({
   points,
-  onPointActivate,
+  markerLabels = true,
+  selectedPeriod,
+  onPointSelect,
 }) => {
   const isDesktop = useIsDesktop();
   const { isActive, toggle } = useSeriesToggle<InvestmentPerformanceSeriesKey>([
@@ -43,22 +50,21 @@ export const InvestmentPerformanceChart: React.FC<InvestmentPerformanceChartProp
   ].filter((label) => label !== null);
 
   const labels = points.map((point) => point.label);
-  const referenceLines = unclosedReferenceLines(points);
-  const activate = pointActivator(points, onPointActivate);
+  const referenceLines = markerLabels
+    ? unclosedReferenceLines(points)
+    : withoutLabels(unclosedReferenceLines(points));
+  const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
+  const activate = pointActivator(points, onPointSelect);
 
   // Every layer shows the same tooltip so the stacked values read together.
-  const tooltipPoints = points.map((point) => {
-    const parts = [
+  // The opening value stays even when the rate line is hidden; it is the rate's scale.
+  const tooltipPoints = points.map((point) =>
+    tooltipFrom(pointTitle(point), [
       gainVisible ? `${REPORT_ANALYSIS_LABELS.GAIN} ${point.gainText}` : null,
       rateVisible ? `${REPORT_ANALYSIS_LABELS.RETURN_RATE} ${point.returnRateText}` : null,
-      rateVisible ? `${REPORT_ANALYSIS_LABELS.OPENING_VALUE} ${point.openingValueText}` : null,
-    ].filter((part): part is string => part !== null);
-    return {
-      title: point.label,
-      value: parts[0] ?? REPORT_ANALYSIS_LABELS.DASH,
-      meta: parts.slice(1).join(' · '),
-    };
-  });
+      `${REPORT_ANALYSIS_LABELS.OPENING_VALUE} ${point.openingValueText}`,
+    ]),
+  );
 
   const barSeries: ComposedSeries[] = gainVisible
     ? [{ kind: 'bar', tone: 'positive', toneBySign: true, values: points.map((p) => p.gain) }]
@@ -71,9 +77,10 @@ export const InvestmentPerformanceChart: React.FC<InvestmentPerformanceChartProp
         series={barSeries}
         referenceLines={referenceLines}
         points={tooltipPoints}
-        height={isDesktop ? 240 : 160}
+        height={isDesktop ? (points.length < 6 ? 160 : 240) : 160}
         showLabels={!rateVisible}
         ariaLabel={REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_ARIA(visibleLabels.join('、'))}
+        selectedIndex={selectedIndex}
         onPointClick={activate}
       />
 
@@ -92,9 +99,11 @@ export const InvestmentPerformanceChart: React.FC<InvestmentPerformanceChartProp
               },
             ]}
             points={tooltipPoints}
-            referenceLines={referenceLines.map(({ index, tone }) => ({ index, tone }))}
+            referenceLines={withoutLabels(referenceLines)}
             height={96}
             includeZero
+            yTicks={3}
+            yDecimals={1}
             yUnit="%"
             ariaLabel={REPORT_ANALYSIS_LABELS.RETURN_RATE}
             onPointClick={activate}
@@ -103,13 +112,10 @@ export const InvestmentPerformanceChart: React.FC<InvestmentPerformanceChartProp
       )}
 
       <ChartLegend
-        items={[
-          { label: REPORT_ANALYSIS_LABELS.GAIN, tone: 'positive' },
-          { label: REPORT_ANALYSIS_LABELS.RETURN_RATE, tone: 'investment' },
-        ]}
+        items={SERIES.map((item) => ({ label: item.label, tone: item.tone }))}
         active={visibleLabels}
         onToggle={(label) => {
-          const key = SERIES_KEYS[label];
+          const key = SERIES.find((item) => item.label === label)?.key;
           if (key !== undefined) toggle(key);
         }}
       />

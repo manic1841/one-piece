@@ -12,19 +12,18 @@ import {
   type AssetCompositionChartVM,
   type AssetCompositionSeriesKey,
 } from '../viewmodels/reportAnalysis.vm';
-import { unclosedReferenceLines } from './unclosedMarkers';
-import { pointActivator, useSeriesToggle } from './useSeriesToggle';
+import { pointActivator, useSeriesToggle } from './chartInteractions';
+import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface AssetCompositionChartProps {
   points: AssetCompositionChartVM[];
-  onPointActivate: (yearMonth: string) => void;
+  /** Draw the unclosed caption; only the first chart on a page needs it. */
+  markerLabels?: boolean;
+  /** Period key of the page's selected point. */
+  selectedPeriod: string;
+  onPointSelect: (yearMonth: string) => void;
 }
-
-const SERIES_KEYS: Record<string, AssetCompositionSeriesKey> = {
-  [REPORT_ANALYSIS_LABELS.CASH_GROUP]: 'cash',
-  [REPORT_ANALYSIS_LABELS.INVESTMENT_GROUP]: 'investment',
-  [REPORT_ANALYSIS_LABELS.PROPERTY_GROUP]: 'property',
-};
 
 const SERIES: {
   key: AssetCompositionSeriesKey;
@@ -63,9 +62,12 @@ const SERIES: {
 /** 資產以什麼形式持有：三條固定類別的 100% 堆疊面積，分母固定總資產。 */
 export const AssetCompositionChart: React.FC<AssetCompositionChartProps> = ({
   points,
-  onPointActivate,
+  markerLabels = true,
+  selectedPeriod,
+  onPointSelect,
 }) => {
   const isDesktop = useIsDesktop();
+  const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
   const { isActive, toggle } = useSeriesToggle<AssetCompositionSeriesKey>([
     'cash',
     'investment',
@@ -97,23 +99,26 @@ export const AssetCompositionChart: React.FC<AssetCompositionChartProps> = ({
       <InteractiveComposedChart
         labels={points.map((point) => point.label)}
         series={series}
-        referenceLines={unclosedReferenceLines(points)}
+        referenceLines={
+          markerLabels
+            ? unclosedReferenceLines(points)
+            : withoutLabels(unclosedReferenceLines(points))
+        }
         yDomain={{ min: 0, max: 100 }}
         yTicks={5}
         yUnit="%"
-        points={points.map((point) => {
-          const parts = visible.map(
-            (item) => `${item.label} ${item.amountText(point)}（${item.shareText(point)}）`,
-          );
-          return {
-            title: point.label,
-            value: parts[0] ?? REPORT_ANALYSIS_LABELS.DASH,
-            meta: parts.slice(1).join(' · '),
-          };
-        })}
-        height={isDesktop ? 320 : 200}
+        points={points.map((point) =>
+          tooltipFrom(
+            pointTitle(point),
+            visible.map(
+              (item) => `${item.label} ${item.amountText(point)}（${item.shareText(point)}）`,
+            ),
+          ),
+        )}
+        height={isDesktop ? (points.length < 6 ? 240 : 320) : 200}
         ariaLabel={REPORT_ANALYSIS_LABELS.ASSET_COMPOSITION_ARIA(visibleLabels.join('、'))}
-        onPointClick={pointActivator(points, onPointActivate)}
+        selectedIndex={selectedIndex}
+        onPointClick={pointActivator(points, onPointSelect)}
       />
       <ChartLegend
         items={SERIES.map((item) => ({
@@ -122,7 +127,7 @@ export const AssetCompositionChart: React.FC<AssetCompositionChartProps> = ({
         }))}
         active={visibleLabels}
         onToggle={(label) => {
-          const key = SERIES_KEYS[label];
+          const key = SERIES.find((item) => item.label === label)?.key;
           if (key !== undefined) toggle(key);
         }}
       />

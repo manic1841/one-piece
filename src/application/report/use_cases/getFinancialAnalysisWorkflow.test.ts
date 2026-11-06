@@ -379,6 +379,64 @@ describe('getFinancialAnalysisWorkflow', () => {
     expect(result.investmentPerformancePoints.map((point) => point.yearMonth)).toEqual(['2026-01']);
   });
 
+  it('ignores a portfolio with no snapshots when intersecting performance months', async () => {
+    listPortfoliosMock.mockResolvedValue([{ id: 'p1' }, { id: 'p2' }]);
+    listSnapshotsMock.mockImplementation(async ({ portfolioId }: { portfolioId: string }) =>
+      portfolioId === 'p1' ? [snapshot(2026, 1, 100, 1000), snapshot(2026, 2, 50, 500)] : [],
+    );
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 100),
+      balanceSheet('2026-02', 1000, 100),
+    ]);
+
+    const result = await run();
+
+    expect(result.investmentPerformancePoints.map((point) => point.yearMonth)).toEqual([
+      '2026-01',
+      '2026-02',
+    ]);
+  });
+
+  it('breaks leverage where one portfolio lacks the snapshots but keeps the debt point', async () => {
+    listPortfoliosMock.mockResolvedValue([{ id: 'p1' }, { id: 'p2' }]);
+    listSnapshotsMock.mockImplementation(async ({ portfolioId }: { portfolioId: string }) =>
+      portfolioId === 'p1'
+        ? [
+            snapshot(2026, 1, 0, 0, [{ marketValue: 100 }]),
+            snapshot(2026, 2, 0, 0, [{ marketValue: 100 }]),
+          ]
+        : [snapshot(2026, 1, 0, 0, [{ marketValue: 100, leverage: 2 }])],
+    );
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 100),
+      balanceSheet('2026-02', 1000, 100),
+    ]);
+
+    const result = await run();
+
+    expect(result.debtLeveragePoints.map((point) => point.yearMonth)).toEqual([
+      '2026-01',
+      '2026-02',
+    ]);
+    expect(result.debtLeveragePoints[0]?.leverage).toBeCloseTo(1.5);
+    expect(result.debtLeveragePoints[1]?.leverage).toBeNull();
+  });
+
+  it('marks unclosed months on the snapshot blocks too', async () => {
+    listPortfoliosMock.mockResolvedValue([{ id: 'p1' }]);
+    listSnapshotsMock.mockResolvedValue([snapshot(2026, 1, 0, 100), snapshot(2026, 2, 0, 100)]);
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2026-01', 1000, 100),
+      balanceSheet('2026-02', 1000, 100),
+    ]);
+    listPeriodsMock.mockResolvedValue([period('2026-01', 'CLOSED')]);
+
+    const result = await run();
+
+    expect(result.investmentPerformancePoints.map((point) => point.closed)).toEqual([true, false]);
+    expect(result.debtLeveragePoints.map((point) => point.closed)).toEqual([true, false]);
+  });
+
   it('computes the debt ratio and the market-value weighted leverage', async () => {
     listPortfoliosMock.mockResolvedValue([{ id: 'p1' }]);
     listSnapshotsMock.mockResolvedValue([

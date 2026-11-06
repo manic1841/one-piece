@@ -5,8 +5,9 @@ import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type NetWorthChartVM, type NetWorthSeriesKey } from '../viewmodels/reportAnalysis.vm';
-import { unclosedReferenceLines } from './unclosedMarkers';
-import { pointActivator, useSeriesToggle } from './useSeriesToggle';
+import { pointActivator, useSeriesToggle } from './chartInteractions';
+import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 const SERIES_KEYS: Record<string, NetWorthSeriesKey> = {
   [REPORT_ANALYSIS_LABELS.NET_WORTH]: 'netWorth',
@@ -18,27 +19,31 @@ interface NetWorthTrendChartProps {
   points: NetWorthChartVM[];
   /** Context series preselected from `?series=`. */
   initialSeries?: NetWorthSeriesKey[];
-  onPointActivate: (yearMonth: string) => void;
+  /** Draw the unclosed caption; only the first chart on a page needs it. */
+  markerLabels?: boolean;
+  /** Period key of the page's selected point. */
+  selectedPeriod: string;
+  onPointSelect: (yearMonth: string) => void;
 }
 
-/** 淨資產為主線；總資產與總負債是可切換的虛線脈絡。 */
+/** 淨資產為主線；總資產與總負債是右軸上的可切換虛線脈絡。 */
 export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
   points,
   initialSeries = [],
-  onPointActivate,
+  markerLabels = true,
+  selectedPeriod,
+  onPointSelect,
 }) => {
   const isDesktop = useIsDesktop();
-  const { isActive, toggle } = useSeriesToggle<NetWorthSeriesKey>([
-    'netWorth',
-    ...initialSeries,
-  ]);
+  const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
+  const { isActive, toggle } = useSeriesToggle<NetWorthSeriesKey>(['netWorth', ...initialSeries]);
 
   const series: ComposedSeries[] = [
     ...(isActive('netWorth')
       ? ([
           {
             kind: 'line',
-            tone: 'asset',
+            tone: 'primary',
             area: true,
             values: points.map((point) => point.netWorth),
           },
@@ -49,6 +54,7 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
           {
             kind: 'line',
             tone: 'neutral',
+            axis: 'right',
             dashed: true,
             values: points.map((point) => point.assets),
           },
@@ -59,6 +65,7 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
           {
             kind: 'line',
             tone: 'negative',
+            axis: 'right',
             dashed: true,
             values: points.map((point) => point.liabilities),
           },
@@ -66,7 +73,9 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
       : []),
   ];
 
-  const referenceLines = unclosedReferenceLines(points);
+  const referenceLines = markerLabels
+    ? unclosedReferenceLines(points)
+    : withoutLabels(unclosedReferenceLines(points));
 
   const visibleLabels = [
     isActive('netWorth') ? REPORT_ANALYSIS_LABELS.NET_WORTH : null,
@@ -80,32 +89,29 @@ export const NetWorthTrendChart: React.FC<NetWorthTrendChartProps> = ({
         labels={points.map((point) => point.label)}
         series={series}
         referenceLines={referenceLines}
-        points={points.map((point) => {
-          // Hidden series stay out of the tooltip entirely.
-          const visible = [
+        points={points.map((point) =>
+          tooltipFrom(pointTitle(point), [
+            // Hidden series stay out of the tooltip entirely.
             isActive('netWorth')
               ? `${REPORT_ANALYSIS_LABELS.NET_WORTH} ${point.netWorthText}`
               : null,
+            point.changeText,
             isActive('assets')
               ? `${REPORT_ANALYSIS_LABELS.TOTAL_ASSETS} ${point.assetsText}`
               : null,
             isActive('liabilities')
               ? `${REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES} ${point.liabilitiesText}`
               : null,
-          ].filter((part): part is string => part !== null);
-          return {
-            title: point.label,
-            value: visible[0] ?? REPORT_ANALYSIS_LABELS.DASH,
-            meta: visible.slice(1).join(' · '),
-          };
-        })}
-        height={isDesktop ? 320 : 200}
+          ]),
+        )}
+        height={isDesktop ? (points.length < 6 ? 240 : 320) : 200}
         ariaLabel={REPORT_ANALYSIS_LABELS.NET_WORTH_ARIA(visibleLabels.join('、'))}
-        onPointClick={pointActivator(points, onPointActivate)}
+        selectedIndex={selectedIndex}
+        onPointClick={pointActivator(points, onPointSelect)}
       />
       <ChartLegend
         items={[
-          { label: REPORT_ANALYSIS_LABELS.NET_WORTH, tone: 'asset' },
+          { label: REPORT_ANALYSIS_LABELS.NET_WORTH, tone: 'primary' },
           { label: REPORT_ANALYSIS_LABELS.TOTAL_ASSETS, tone: 'neutral' },
           { label: REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES, tone: 'negative' },
         ]}

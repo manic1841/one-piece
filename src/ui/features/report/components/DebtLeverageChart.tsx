@@ -8,21 +8,26 @@ import {
   type DebtLeverageChartVM,
   type DebtLeverageSeriesKey,
 } from '../viewmodels/reportAnalysis.vm';
-import { unclosedReferenceLines } from './unclosedMarkers';
-import { pointActivator, useSeriesToggle } from './useSeriesToggle';
+import { pointActivator, useSeriesToggle } from './chartInteractions';
+import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface DebtLeverageChartProps {
   points: DebtLeverageChartVM[];
   /** The range contains at least one month above 1x, so the leverage layer exists. */
   showLeverage: boolean;
-  onPointActivate: (yearMonth: string) => void;
+  /** Draw the unclosed caption; only the first chart on a page needs it. */
+  markerLabels?: boolean;
+  /** Period key of the page's selected point. */
+  selectedPeriod: string;
+  onPointSelect: (yearMonth: string) => void;
 }
 
-const SERIES_KEYS: Record<string, DebtLeverageSeriesKey> = {
-  [REPORT_ANALYSIS_LABELS.DEBT_BALANCE]: 'liabilities',
-  [REPORT_ANALYSIS_LABELS.DEBT_RATIO]: 'debtRatio',
-  [REPORT_ANALYSIS_LABELS.LEVERAGE]: 'leverage',
-};
+const SERIES = [
+  { key: 'liabilities', label: REPORT_ANALYSIS_LABELS.DEBT_BALANCE, tone: 'negative' },
+  { key: 'debtRatio', label: REPORT_ANALYSIS_LABELS.DEBT_RATIO, tone: 'neutral' },
+  { key: 'leverage', label: REPORT_ANALYSIS_LABELS.LEVERAGE, tone: 'investment' },
+] as const;
 
 /**
  * 負債餘額柱、負債比折線、加權平均槓桿折線三層同節。槓桿層只在目前範圍
@@ -31,7 +36,9 @@ const SERIES_KEYS: Record<string, DebtLeverageSeriesKey> = {
 export const DebtLeverageChart: React.FC<DebtLeverageChartProps> = ({
   points,
   showLeverage,
-  onPointActivate,
+  markerLabels = true,
+  selectedPeriod,
+  onPointSelect,
 }) => {
   const isDesktop = useIsDesktop();
   const { isActive, toggle } = useSeriesToggle<DebtLeverageSeriesKey>([
@@ -50,24 +57,26 @@ export const DebtLeverageChart: React.FC<DebtLeverageChartProps> = ({
   ].filter((label) => label !== null);
 
   const labels = points.map((point) => point.label);
-  const referenceLines = unclosedReferenceLines(points);
-  const activate = pointActivator(points, onPointActivate);
+  const referenceLines = markerLabels
+    ? unclosedReferenceLines(points)
+    : withoutLabels(unclosedReferenceLines(points));
+  const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
+  const activate = pointActivator(points, onPointSelect);
   // The lowest visible line owns the x labels; the bars only label when both are hidden.
   const barLabels = !ratioVisible && !leverageVisible;
 
   // Every layer shows the same tooltip so the stacked values read together.
-  const tooltipPoints = points.map((point) => {
-    const parts = [
+  const tooltipPoints = points.map((point) =>
+    tooltipFrom(pointTitle(point), [
       debtVisible ? `${REPORT_ANALYSIS_LABELS.DEBT_BALANCE} ${point.liabilitiesText}` : null,
-      ratioVisible ? `${REPORT_ANALYSIS_LABELS.DEBT_RATIO} ${point.debtRatioText}` : null,
+      ratioVisible
+        ? `${REPORT_ANALYSIS_LABELS.DEBT_RATIO} ${point.debtRatioText}${
+            point.changeText === null ? '' : ` · ${point.changeText}`
+          }`
+        : null,
       leverageVisible ? `${REPORT_ANALYSIS_LABELS.LEVERAGE} ${point.leverageText}` : null,
-    ].filter((part): part is string => part !== null);
-    return {
-      title: point.label,
-      value: parts[0] ?? REPORT_ANALYSIS_LABELS.DASH,
-      meta: parts.slice(1).join(' · '),
-    };
-  });
+    ]),
+  );
 
   const barSeries: ComposedSeries[] = debtVisible
     ? [{ kind: 'bar', tone: 'negative', values: points.map((point) => point.liabilities) }]
@@ -80,9 +89,10 @@ export const DebtLeverageChart: React.FC<DebtLeverageChartProps> = ({
         series={barSeries}
         referenceLines={referenceLines}
         points={tooltipPoints}
-        height={isDesktop ? 240 : 160}
+        height={isDesktop ? (points.length < 6 ? 160 : 240) : 160}
         showLabels={barLabels}
         ariaLabel={REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_ARIA(visibleLabels.join('、'))}
+        selectedIndex={selectedIndex}
         onPointClick={activate}
       />
 
@@ -97,8 +107,10 @@ export const DebtLeverageChart: React.FC<DebtLeverageChartProps> = ({
               { kind: 'line', tone: 'neutral', values: points.map((point) => point.debtRatio) },
             ]}
             points={tooltipPoints}
-            referenceLines={referenceLines.map(({ index, tone }) => ({ index, tone }))}
+            referenceLines={withoutLabels(referenceLines)}
             height={96}
+            yTicks={3}
+            yDecimals={1}
             yUnit="%"
             showLabels={!leverageVisible}
             ariaLabel={REPORT_ANALYSIS_LABELS.DEBT_RATIO}
@@ -122,8 +134,10 @@ export const DebtLeverageChart: React.FC<DebtLeverageChartProps> = ({
               },
             ]}
             points={tooltipPoints}
-            referenceLines={referenceLines.map(({ index, tone }) => ({ index, tone }))}
+            referenceLines={withoutLabels(referenceLines)}
             height={96}
+            yTicks={3}
+            yDecimals={3}
             yUnit="x"
             ariaLabel={REPORT_ANALYSIS_LABELS.LEVERAGE}
             onPointClick={activate}
@@ -132,16 +146,13 @@ export const DebtLeverageChart: React.FC<DebtLeverageChartProps> = ({
       )}
 
       <ChartLegend
-        items={[
-          { label: REPORT_ANALYSIS_LABELS.DEBT_BALANCE, tone: 'negative' },
-          { label: REPORT_ANALYSIS_LABELS.DEBT_RATIO, tone: 'neutral' },
-          ...(showLeverage
-            ? [{ label: REPORT_ANALYSIS_LABELS.LEVERAGE, tone: 'investment' as const }]
-            : []),
-        ]}
+        items={SERIES.filter((item) => showLeverage || item.key !== 'leverage').map((item) => ({
+          label: item.label,
+          tone: item.tone,
+        }))}
         active={visibleLabels}
         onToggle={(label) => {
-          const key = SERIES_KEYS[label];
+          const key = SERIES.find((item) => item.label === label)?.key;
           if (key !== undefined) toggle(key);
         }}
       />

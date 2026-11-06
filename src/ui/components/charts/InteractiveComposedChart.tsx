@@ -17,10 +17,14 @@ type InteractiveComposedChartProps = {
   height?: number;
   yDomain?: { min: number; max: number };
   yTicks?: number;
+  /** Fixed tick decimals; use for narrow domains where rounding would repeat labels. */
+  yDecimals?: number;
   yUnit?: string;
   includeZero?: boolean;
   showLabels?: boolean;
   ariaLabel: string;
+  /** Persistently marked column, e.g. the page's selected period. */
+  selectedIndex?: number;
   /** Optional activation of a column (click, Enter, Space). */
   onPointClick?: (index: number) => void;
   className?: string;
@@ -47,10 +51,12 @@ export function InteractiveComposedChart({
   height = 200,
   yDomain,
   yTicks,
+  yDecimals,
   yUnit,
   includeZero,
   showLabels = true,
   ariaLabel,
+  selectedIndex,
   onPointClick,
   className,
 }: InteractiveComposedChartProps) {
@@ -71,6 +77,7 @@ export function InteractiveComposedChart({
       height={height}
       yDomain={yDomain}
       yTicks={yTicks}
+      yDecimals={yDecimals}
       yUnit={yUnit}
       includeZero={includeZero}
       showLabels={showLabels}
@@ -82,12 +89,16 @@ export function InteractiveComposedChart({
           plotHeight={height}
           points={points}
           ariaLabel={ariaLabel}
+          selectedIndex={selectedIndex}
           onActivate={onPointClick}
           className="absolute inset-0 flex cursor-crosshair items-stretch outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           resolveIndex={resolveIndex}
         >
           {({ active, tooltipRef, allowedTopRatio }) => {
-            const column = active === null ? undefined : layout.columns[active];
+            // The selected column keeps a marker while the pointer is elsewhere.
+            const shown =
+              active ?? (selectedIndex !== undefined && selectedIndex >= 0 ? selectedIndex : null);
+            const column = shown === null ? undefined : layout.columns[shown];
             const tip = active === null ? undefined : points[active];
             if (column === undefined) return null;
             const anchor = placement(column.index, layout.columns.length);
@@ -96,7 +107,10 @@ export function InteractiveComposedChart({
               <>
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 w-px bg-border-strong"
+                  className={cn(
+                    'pointer-events-none absolute inset-y-0 w-px',
+                    active === null ? 'bg-primary/70' : 'bg-border-strong',
+                  )}
                   style={{ left: `${column.xRatio * 100}%` }}
                 />
                 {tip !== undefined && (
@@ -105,6 +119,7 @@ export function InteractiveComposedChart({
                     title={tip.title}
                     value={tip.value}
                     meta={tip.meta}
+                    hint={onPointClick === undefined ? undefined : '點選選取期間'}
                     className={cn('absolute z-10', anchor.className)}
                     style={{
                       top: `${Math.max(column.topRatio, allowedTopRatio) * 100}%`,

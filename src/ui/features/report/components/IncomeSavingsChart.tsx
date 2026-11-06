@@ -5,12 +5,17 @@ import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
 import { type IncomeChartVM, type IncomeSeriesKey } from '../viewmodels/reportAnalysis.vm';
-import { unclosedReferenceLines } from './unclosedMarkers';
-import { pointActivator, useSeriesToggle } from './useSeriesToggle';
+import { pointActivator, useSeriesToggle } from './chartInteractions';
+import { pointTitle, tooltipFrom } from './seriesTooltip';
+import { unclosedReferenceLines, withoutLabels } from './unclosedMarkers';
 
 interface IncomeSavingsChartProps {
   points: IncomeChartVM[];
-  onPointActivate: (yearMonth: string) => void;
+  /** Draw the unclosed caption; only the first chart on a page needs it. */
+  markerLabels?: boolean;
+  /** Period key of the page's selected point. */
+  selectedPeriod: string;
+  onPointSelect: (yearMonth: string) => void;
 }
 
 const SERIES_KEYS: Record<string, IncomeSeriesKey> = {
@@ -25,7 +30,9 @@ const SERIES_KEYS: Record<string, IncomeSeriesKey> = {
  */
 export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
   points,
-  onPointActivate,
+  markerLabels = true,
+  selectedPeriod,
+  onPointSelect,
 }) => {
   const isDesktop = useIsDesktop();
   const { isActive, toggle } = useSeriesToggle<IncomeSeriesKey>([
@@ -34,7 +41,9 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
     'savingsRate',
   ]);
 
-  const referenceLines = unclosedReferenceLines(points);
+  const referenceLines = markerLabels
+    ? unclosedReferenceLines(points)
+    : withoutLabels(unclosedReferenceLines(points));
 
   const barSeries: ComposedSeries[] = [
     ...(isActive('income')
@@ -53,26 +62,18 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
   ].filter((label) => label !== null);
 
   const labels = points.map((point) => point.label);
-  const activate = pointActivator(points, onPointActivate);
+  const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
+  const activate = pointActivator(points, onPointSelect);
 
   // Both layers show the same tooltip so the stacked values read together.
-  const tooltipPoints = points.map((point) => {
-    const income = isActive('income')
-      ? `${REPORT_ANALYSIS_LABELS.INCOME} ${point.incomeText}`
-      : null;
-    const expense = isActive('expense')
-      ? `${REPORT_ANALYSIS_LABELS.EXPENSE} ${point.expenseText}`
-      : null;
-    const rate = savingsVisible
-      ? `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}`
-      : null;
-    const parts = [income, expense, rate].filter((part): part is string => part !== null);
-    return {
-      title: point.label,
-      value: parts[0] ?? REPORT_ANALYSIS_LABELS.DASH,
-      meta: parts.slice(1).join(' · '),
-    };
-  });
+  const tooltipPoints = points.map((point) =>
+    tooltipFrom(pointTitle(point), [
+      isActive('income') ? `${REPORT_ANALYSIS_LABELS.INCOME} ${point.incomeText}` : null,
+      isActive('expense') ? `${REPORT_ANALYSIS_LABELS.EXPENSE} ${point.expenseText}` : null,
+      savingsVisible ? `${REPORT_ANALYSIS_LABELS.SAVINGS_RATE} ${point.savingsRateText}` : null,
+      point.changeText,
+    ]),
+  );
 
   return (
     <div className="space-y-3">
@@ -81,10 +82,11 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
         series={barSeries}
         referenceLines={referenceLines}
         points={tooltipPoints}
-        height={isDesktop ? 240 : 160}
+        height={isDesktop ? (points.length < 6 ? 160 : 240) : 160}
         // The lower savings line owns the x labels while it is visible.
         showLabels={!savingsVisible}
         ariaLabel={REPORT_ANALYSIS_LABELS.INCOME_ARIA(visibleLabels.join('、'))}
+        selectedIndex={selectedIndex}
         onPointClick={activate}
       />
 
@@ -104,8 +106,10 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
             ]}
             points={tooltipPoints}
             // The bar chart above already labels each run.
-            referenceLines={referenceLines.map(({ index, tone }) => ({ index, tone }))}
+            referenceLines={withoutLabels(referenceLines)}
             height={96}
+            yTicks={3}
+            yDecimals={1}
             ariaLabel={REPORT_ANALYSIS_LABELS.SAVINGS_RATE}
             onPointClick={activate}
           />
@@ -124,7 +128,6 @@ export const IncomeSavingsChart: React.FC<IncomeSavingsChartProps> = ({
           if (key !== undefined) toggle(key);
         }}
       />
-      <p className="text-xs text-muted-foreground">{REPORT_ANALYSIS_LABELS.SAVINGS_FORMULA}</p>
     </div>
   );
 };

@@ -58,6 +58,7 @@ export const useChartScrubber = (
   count: number,
   plotHeight: number,
   onActivate?: (index: number) => void,
+  selectedIndex?: number,
 ) => {
   const [active, setActive] = React.useState<number | null>(null);
   const { ref: tooltipRef, allowedTopRatio } = useTooltipAllowance(plotHeight, active);
@@ -66,13 +67,14 @@ export const useChartScrubber = (
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
       event.preventDefault();
       const step = event.key === 'ArrowRight' ? 1 : -1;
-      setActive(clampIndex((active ?? -1) + step, count));
+      setActive(clampIndex((active ?? selectedIndex ?? -1) + step, count));
       return;
     }
     if (event.key === 'Enter' || event.key === ' ') {
-      if (onActivate === undefined || active === null) return;
+      const index = active ?? selectedIndex;
+      if (onActivate === undefined || index === undefined) return;
       event.preventDefault();
-      onActivate(active);
+      onActivate(index);
       return;
     }
     if (event.key === 'Escape') setActive(null);
