@@ -27,20 +27,28 @@ const groupByYear = <Point extends RollablePoint>(points: Point[]): [string, Poi
 const latestOf = <Point extends RollablePoint>(group: Point[]): Point =>
   group.reduce((latest, point) => (point.yearMonth > latest.yearMonth ? point : latest));
 
-/** The year key and its provisional flag: open when any covered month is open. */
+/**
+ * The year key and its provisional flag: open when any covered month is open, or
+ * when `unclosedYears` names the year — a month this series does not carry can
+ * still be open elsewhere in the analysis (docs/financial_analysis.md §1b).
+ */
 const yearFacts = <Point extends RollablePoint>(
   group: Point[],
   year: string,
+  unclosedYears: ReadonlySet<string>,
 ): { yearMonth: string; closed: boolean } => ({
   yearMonth: year,
-  closed: group.every((point) => point.closed),
+  closed: !unclosedYears.has(year) && group.every((point) => point.closed),
 });
 
 /** Stock series take the year's last month; the year key carries the provisional flag. */
-export const rollUpStock = <Point extends RollablePoint>(points: Point[]): Point[] =>
+export const rollUpStock = <Point extends RollablePoint>(
+  points: Point[],
+  unclosedYears: ReadonlySet<string> = new Set(),
+): Point[] =>
   groupByYear(points).map(([year, group]) => ({
     ...latestOf(group),
-    ...yearFacts(group, year),
+    ...yearFacts(group, year, unclosedYears),
   }));
 
 /**
@@ -50,8 +58,9 @@ export const rollUpStock = <Point extends RollablePoint>(points: Point[]): Point
 export const rollUpByYear = <Point extends RollablePoint>(
   points: Point[],
   combine: (group: Point[]) => Omit<Point, 'yearMonth' | 'closed'>,
+  unclosedYears: ReadonlySet<string> = new Set(),
 ): Point[] =>
   groupByYear(points).map(([year, group]) => ({
     ...combine(group),
-    ...yearFacts(group, year),
+    ...yearFacts(group, year, unclosedYears),
   })) as Point[];

@@ -13,7 +13,7 @@ export const investmentPerformanceChart: RenderChart = (vm, context) => (
     points={vm.investmentPerformance.points}
     selectedPeriod={context.selectedPeriod}
     onPointSelect={context.onPointSelect}
-    density="compact"
+    density="standard"
     layers={(points) => [
       {
         kind: 'bar',

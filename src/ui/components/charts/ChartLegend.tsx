@@ -4,6 +4,8 @@ import { CHART_TONE_COLOR, type ChartTone } from './chartTheme';
 
 export type ChartLegendItem = {
   label: string;
+  /** Stable identity for the toggle; defaults to `label`. Set it when labels can repeat. */
+  key?: string;
   /** Tone token for the swatch. Ignored when `color` is set. */
   tone?: ChartTone;
   /** Explicit swatch color (e.g. a donut slice color). */
@@ -17,8 +19,8 @@ type ChartLegendProps = {
   /** `horizontal` = inline swatch row (bar charts); `vertical` = label/value rows (donuts). */
   orientation?: 'horizontal' | 'vertical';
   /** When supplied, each item becomes an `aria-pressed` toggle button. */
-  onToggle?: (label: string) => void;
-  /** Labels currently switched on; defaults to every item. Ignored without `onToggle`. */
+  onToggle?: (key: string) => void;
+  /** Keys currently switched on; defaults to every item. Ignored without `onToggle`. */
   active?: readonly string[];
   className?: string;
 };
@@ -39,14 +41,16 @@ export function ChartLegend({
     />
   );
 
-  const isActive = (item: ChartLegendItem) => active === undefined || active.includes(item.label);
+  const itemKey = (item: ChartLegendItem) => item.key ?? item.label;
+  const isActive = (item: ChartLegendItem) =>
+    active === undefined || active.includes(itemKey(item));
   const interactive = onToggle !== undefined;
   const toggleProps = (item: ChartLegendItem) =>
     interactive
       ? {
           type: 'button' as const,
           'aria-pressed': isActive(item),
-          onClick: () => onToggle(item.label),
+          onClick: () => onToggle(itemKey(item)),
         }
       : {};
 
@@ -56,7 +60,7 @@ export function ChartLegend({
         {items.map((item) =>
           interactive ? (
             <button
-              key={item.label}
+              key={itemKey(item)}
               {...toggleProps(item)}
               className={cn(
                 'grid min-h-8 grid-cols-[10px_1fr_auto] items-center gap-2.5 text-left text-xs',
@@ -71,7 +75,7 @@ export function ChartLegend({
             </button>
           ) : (
             <div
-              key={item.label}
+              key={itemKey(item)}
               className="grid grid-cols-[10px_1fr_auto] items-center gap-2.5 text-xs"
             >
               {swatch(item)}
@@ -100,14 +104,14 @@ export function ChartLegend({
           'inline-flex min-h-8 items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground';
         return interactive ? (
           <button
-            key={item.label}
+            key={itemKey(item)}
             {...toggleProps(item)}
             className={cn(sharedClass, 'px-1', !isActive(item) && 'opacity-50')}
           >
             {content}
           </button>
         ) : (
-          <span key={item.label} className={sharedClass}>
+          <span key={itemKey(item)} className={sharedClass}>
             {content}
           </span>
         );

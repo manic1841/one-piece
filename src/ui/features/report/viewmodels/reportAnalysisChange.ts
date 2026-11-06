@@ -1,3 +1,4 @@
+import { changeRateOf } from '@/domains/report/analysisRatios';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 
@@ -11,9 +12,10 @@ import {
 export const withChange = (points: NetWorthChartVM[]): NetWorthChartVM[] =>
   points.map((point, index) => {
     const previous = points[index - 1];
-    if (previous === undefined || previous.netWorth === 0) return { ...point, changeText: null };
+    if (previous === undefined) return { ...point, changeText: null };
+    const rate = changeRateOf(previous.netWorth, point.netWorth);
+    if (rate === null) return { ...point, changeText: null };
     const delta = point.netWorth - previous.netWorth;
-    const rate = (delta / Math.abs(previous.netWorth)) * 100;
     const sign = delta >= 0 ? '+' : '';
     const value = `${sign}${formatCurrency(delta)}（${sign}${formatPercentage(rate, 1)}）`;
     return { ...point, changeText: REPORT_ANALYSIS_LABELS.PREVIOUS_PERIOD(value) };

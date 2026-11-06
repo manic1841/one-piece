@@ -1,4 +1,5 @@
 import { type FinancialAnalysis } from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+import { allPointsOf } from '@/domains/report/analysisPoints';
 import {
   ANALYSIS_GRANULARITIES,
   ANALYSIS_RANGES,
@@ -15,8 +16,6 @@ import { parseReportPeriod } from './reportHistory.vm';
 export const DEFAULT_RANGE: AnalysisRange = '3y';
 
 export const DEFAULT_GRANULARITY: AnalysisGranularity = 'monthly';
-
-const YEAR_PATTERN = /^(\d{4})$/;
 
 export interface AnalysisUrlState {
   range: AnalysisRange;
@@ -57,10 +56,6 @@ export const resolveAnalysisUrlState = (params: URLSearchParams): AnalysisUrlSta
   return { range, granularity, period: null };
 };
 
-/** A bare `YYYY` key, which the annual scale carries. */
-export const isYearKey = (key: string | null): key is string =>
-  key !== null && YEAR_PATTERN.test(key);
-
 /** `YYYY-MM` → `YYYY`. */
 export const yearOfMonth = (yearMonth: string): string => yearOf(yearMonth);
 
@@ -85,18 +80,16 @@ export const rangeForYear = (
   return null;
 };
 
-const monthsOf = (analysis: FinancialAnalysis): string[] => {
-  const all = [
-    ...analysis.netWorthPoints,
-    ...analysis.assetCompositionPoints,
-    ...analysis.investmentPerformancePoints,
-    ...analysis.incomePoints,
-    ...analysis.cashFlowPoints,
-    ...analysis.debtLeveragePoints,
-    ...analysis.cashCoveragePoints,
-  ];
-  return all.map((point) => point.yearMonth);
-};
+const monthsOf = (analysis: FinancialAnalysis): string[] =>
+  allPointsOf({
+    netWorth: analysis.netWorthPoints,
+    assetComposition: analysis.assetCompositionPoints,
+    investmentPerformance: analysis.investmentPerformancePoints,
+    income: analysis.incomePoints,
+    cashFlow: analysis.cashFlowPoints,
+    debtLeverage: analysis.debtLeveragePoints,
+    cashCoverage: analysis.cashCoveragePoints,
+  }).map((point) => point.yearMonth);
 
 /** Every year with a drawable point anywhere on the page, newest first. */
 export const drawableYears = (analysis: FinancialAnalysis): string[] =>

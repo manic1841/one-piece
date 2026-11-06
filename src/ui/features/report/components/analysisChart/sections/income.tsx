@@ -10,7 +10,7 @@ export const incomeChart: RenderChart = (vm, context) => (
     points={vm.income.points}
     selectedPeriod={context.selectedPeriod}
     onPointSelect={context.onPointSelect}
-    density="compact"
+    density="standard"
     layers={(points) => [
       {
         kind: 'bar',

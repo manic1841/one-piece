@@ -57,4 +57,25 @@ describe('ChartLegend', () => {
     fireEvent.click(off);
     expect(onToggle).toHaveBeenCalledWith('ASSETS');
   });
+
+  it('toggles by key so duplicate labels stay independent', () => {
+    const onToggle = vi.fn();
+    render(
+      <ChartLegend
+        items={[
+          { label: '負債', key: 'liabilities', tone: 'negative' },
+          { label: '負債', key: 'liabilitiesRatio', tone: 'neutral' },
+        ]}
+        active={['liabilities']}
+        onToggle={onToggle}
+      />,
+    );
+
+    const buttons = screen.getAllByRole('button', { name: '負債' });
+    expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
+    expect(buttons[1].getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(buttons[1]);
+    expect(onToggle).toHaveBeenCalledWith('liabilitiesRatio');
+  });
 });

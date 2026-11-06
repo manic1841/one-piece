@@ -1,3 +1,4 @@
+import { changeRateOf } from '@/domains/report/analysisRatios';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { formatPercentage } from '@/ui/utils';
 
@@ -35,10 +36,10 @@ export const takeawayOf = (points: Points, anchor: string | null): TakeawayVM =>
   }
   const parts: string[] = [];
   const previous = points.netWorthPoints[index - 1];
-  if (previous !== undefined && previous.netWorth !== 0) {
-    const delta = ((latest.netWorth - previous.netWorth) / Math.abs(previous.netWorth)) * 100;
-    const sign = delta >= 0 ? '+' : '';
-    parts.push(REPORT_ANALYSIS_LABELS.TAKEAWAY_DELTA(`${sign}${formatPercentage(delta, 1)}`));
+  const rate = previous === undefined ? null : changeRateOf(previous.netWorth, latest.netWorth);
+  if (rate !== null) {
+    const sign = rate >= 0 ? '+' : '';
+    parts.push(REPORT_ANALYSIS_LABELS.TAKEAWAY_DELTA(`${sign}${formatPercentage(rate, 1)}`));
   }
   const income = points.incomePoints[indexAt(points.incomePoints, anchor)];
   if (income !== undefined && income.savingsRate !== null) {

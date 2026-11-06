@@ -2,8 +2,8 @@ import type {
   DashboardNetWorthPoint,
   DashboardOverview,
 } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
-import { type ChartPoint, heroPoint } from '@/ui/components/charts/chartInteraction';
 import { formatCurrency, formatMonthLabel, formatYearMonth } from '@/ui/utils';
+import { type ChartPoint, heroPoint } from '@/ui/utils/chartInteraction';
 
 export type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 

@@ -13,7 +13,7 @@ const analysisOf = (overrides: Partial<FinancialAnalysis> = {}): FinancialAnalys
     savingsRate: 20,
     anchorClosed: true,
   },
-  unclosedMonths: ['2026-02'],
+  unclosedMonths: [],
   range: 'all',
   availableRanges: ['all'],
   netWorthPoints: [
@@ -143,6 +143,19 @@ describe('rollUpFinancialAnalysisUseCase', () => {
     );
 
     expect(open.incomePoints[0]?.closed).toBe(false);
+  });
+
+  it('marks a year provisional from an unclosed month another series carries', () => {
+    // No point here is open; the month only exists in the analysis-wide unclosed list.
+    const annual = rollUpFinancialAnalysisUseCase.execute(
+      analysisOf({ unclosedMonths: ['2026-02'] }),
+      'annual',
+    );
+
+    expect(annual.incomePoints).toEqual([
+      expect.objectContaining({ yearMonth: '2026', closed: false }),
+    ]);
+    expect(annual.investmentPerformancePoints[0]?.closed).toBe(false);
   });
 
   it('takes the yearly opening value from the year first month even when unsorted', () => {

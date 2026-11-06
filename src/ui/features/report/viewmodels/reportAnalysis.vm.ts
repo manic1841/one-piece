@@ -1,4 +1,5 @@
 import { type FinancialAnalysis } from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+import { allPointsOf } from '@/domains/report/analysisPoints';
 import {
   ANALYSIS_GRANULARITIES,
   ANALYSIS_RANGES,
@@ -26,7 +27,7 @@ import {
 import { type TakeawayVM, takeawayOf } from './reportAnalysisTakeaway';
 
 export { ANALYSIS_GRANULARITIES, ANALYSIS_RANGES };
-export { DEFAULT_GRANULARITY, DEFAULT_RANGE } from './reportAnalysisParams';
+export { DEFAULT_GRANULARITY } from './reportAnalysisParams';
 export type { AnalysisGranularity, AnalysisRange, SelectionVM };
 
 export type NetWorthSeriesKey = 'netWorth' | 'assets' | 'liabilities';
@@ -275,15 +276,15 @@ export const buildReportAnalysisVM = (
   const incomePoints = withSavingsChange(scaledAnalysis.income);
   const debtLeveragePoints = withRatioChange(scaledAnalysis.debtLeverage);
 
-  const allPoints = [
-    ...netWorthPoints,
-    ...assetCompositionPoints,
-    ...investmentPerformancePoints,
-    ...incomePoints,
-    ...cashFlowPoints,
-    ...debtLeveragePoints,
-    ...cashCoveragePoints,
-  ];
+  const allPoints = allPointsOf({
+    netWorth: netWorthPoints,
+    assetComposition: assetCompositionPoints,
+    investmentPerformance: investmentPerformancePoints,
+    income: incomePoints,
+    cashFlow: cashFlowPoints,
+    debtLeverage: debtLeveragePoints,
+    cashCoverage: cashCoveragePoints,
+  });
   const periodKeys = new Set(allPoints.map((point) => point.yearMonth));
   const anchorKey = anchorKeyOf(analysis, granularity);
   const selected = resolveSelected(analysis, granularity, requestedPeriod, periodKeys);

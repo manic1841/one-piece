@@ -1,8 +1,8 @@
 import type { DashboardCashFlowPoint } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 import type { BarChartSeries } from '@/ui/components/charts/BarChart';
-import { type ChartPoint, heroPoint } from '@/ui/components/charts/chartInteraction';
 import { DASHBOARD_CASHFLOW_LABELS } from '@/ui/constants/dashboard/cashFlowLabels';
 import { formatCurrency, formatMonthLabel } from '@/ui/utils';
+import { type ChartPoint, heroPoint } from '@/ui/utils/chartInteraction';
 
 export type { DashboardCashFlowPoint };
 

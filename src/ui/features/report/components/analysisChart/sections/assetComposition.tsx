@@ -48,6 +48,7 @@ export const assetCompositionChart: RenderChart = (vm, context) => (
     points={vm.assetComposition.points}
     selectedPeriod={context.selectedPeriod}
     onPointSelect={context.onPointSelect}
+    density="tall"
     yDomain={{ min: 0, max: 100 }}
     yTicks={5}
     yUnit={REPORT_ANALYSIS_LABELS.ASSET_COMPOSITION_UNIT}

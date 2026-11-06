@@ -12,7 +12,7 @@ export const cashFlowChart: RenderChart = (vm, context) => (
     initialActive={['netCashFlow']}
     selectedPeriod={context.selectedPeriod}
     onPointSelect={context.onPointSelect}
-    density="compact"
+    density="standard"
     layers={(points) => [
       {
         kind: 'bar',

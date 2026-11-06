@@ -739,6 +739,23 @@ describe('ReportAnalysisPage', () => {
     expect(await screen.findByText('REPORT LIST')).toBeInTheDocument();
   });
 
+  it('links the crumb straight back to the report list', async () => {
+    renderPage();
+
+    const crumb = await screen.findByRole('link', { name: '報表' });
+    expect(crumb).toHaveAttribute('href', '/reports');
+    fireEvent.click(crumb);
+    expect(await screen.findByText('REPORT LIST')).toBeInTheDocument();
+  });
+
+  it('closes the analysis with a back link to the report list', async () => {
+    renderPage();
+
+    const back = await screen.findByRole('button', { name: '返回報表' });
+    fireEvent.click(back);
+    expect(await screen.findByText('REPORT LIST')).toBeInTheDocument();
+  });
+
   it('shows the insufficient hint for blocks under two periods', async () => {
     mockExecute.mockResolvedValue(
       analysis({ netWorthPoints: analysis().netWorthPoints.slice(0, 1) }),

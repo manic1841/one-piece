@@ -145,6 +145,9 @@ export function AnalysisChart<
   const visibleLabels = allLayers
     .filter((layer) => isVisible(layer.seriesKey))
     .map((layer) => layer.label);
+  const visibleKeys = allLayers
+    .filter((layer) => isVisible(layer.seriesKey))
+    .map((layer) => layer.seriesKey);
   const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
   const activate = (index: number) => {
     const point = points[index];
@@ -220,6 +223,7 @@ export function AnalysisChart<
   };
 
   const legendItems = allLayers.map<ChartLegendItem>((layer) => ({
+    key: layer.seriesKey,
     label: layer.label,
     ...(layer.color === undefined
       ? layer.colorToken === undefined
@@ -266,14 +270,7 @@ export function AnalysisChart<
         </div>
       ))}
 
-      <ChartLegend
-        items={legendItems}
-        active={visibleLabels}
-        onToggle={(label) => {
-          const key = allLayers.find((layer) => layer.label === label)?.seriesKey;
-          if (key !== undefined) toggle(key);
-        }}
-      />
+      <ChartLegend items={legendItems} active={visibleKeys} onToggle={(key) => toggle(key)} />
     </div>
   );
 }

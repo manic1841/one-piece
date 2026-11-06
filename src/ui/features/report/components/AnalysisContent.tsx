@@ -18,6 +18,8 @@ import {
   groupSections,
 } from '@/ui/features/report/components/analysisChart';
 import {
+  type AnalysisGranularity,
+  type AnalysisRange,
   type NetWorthSeriesKey,
   type ReportAnalysisVM,
 } from '@/ui/features/report/viewmodels/reportAnalysis.vm';
@@ -27,12 +29,13 @@ export interface AnalysisContentProps {
   vm: ReportAnalysisVM;
   activeSection: string | null;
   initialSeries: NetWorthSeriesKey[];
-  onRangeChange: (next: string) => void;
-  onGranularityChange: (next: string) => void;
+  onRangeChange: (next: AnalysisRange) => void;
+  onGranularityChange: (next: AnalysisGranularity) => void;
   onYearChange: (year: string) => void;
   onPointSelect: (period: string) => void;
   onSectionClick: (event: MouseEvent<HTMLAnchorElement>, id: string) => void;
   onHistoryLink: () => void;
+  onBackToReports: () => void;
 }
 
 /** The resolved page body: takeaway, notes, index, controls, selection and sections. */
@@ -46,6 +49,7 @@ export const AnalysisContent: React.FC<AnalysisContentProps> = ({
   onPointSelect,
   onSectionClick,
   onHistoryLink,
+  onBackToReports,
 }) => {
   const renderSection = (spec: AnalysisSectionSpec) => {
     const section = vm[spec.vmKey];
@@ -134,7 +138,7 @@ export const AnalysisContent: React.FC<AnalysisContentProps> = ({
               <FilterStrip
                 items={vm.rangeItems}
                 value={vm.range}
-                onValueChange={onRangeChange}
+                onValueChange={(id) => onRangeChange(id as AnalysisRange)}
                 ariaLabel={REPORT_ANALYSIS_LABELS.RANGE_LABEL}
               />
             )}
@@ -142,7 +146,7 @@ export const AnalysisContent: React.FC<AnalysisContentProps> = ({
               <FilterStrip
                 items={vm.granularityItems}
                 value={vm.granularity}
-                onValueChange={onGranularityChange}
+                onValueChange={(id) => onGranularityChange(id as AnalysisGranularity)}
                 ariaLabel={REPORT_ANALYSIS_LABELS.GRANULARITY_LABEL}
               />
             )}
@@ -205,6 +209,12 @@ export const AnalysisContent: React.FC<AnalysisContentProps> = ({
             </div>
           ),
         )}
+
+        <div className="pt-2">
+          <Button variant="text" onClick={onBackToReports}>
+            {REPORT_ANALYSIS_LABELS.BACK}
+          </Button>
+        </div>
       </div>
     </>
   );

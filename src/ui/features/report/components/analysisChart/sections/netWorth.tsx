@@ -21,7 +21,7 @@ export const netWorthChart: RenderChart = (vm, context) => (
         kind: 'line',
         seriesKey: 'netWorth',
         label: REPORT_ANALYSIS_LABELS.NET_WORTH,
-        tone: 'primary',
+        tone: 'asset',
         area: true,
         values: points.map((point) => point.netWorth),
       },

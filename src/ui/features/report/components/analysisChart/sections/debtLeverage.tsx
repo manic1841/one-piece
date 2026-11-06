@@ -17,7 +17,7 @@ export const debtLeverageChart: RenderChart = (vm, context) => (
       points={vm.debtLeverage.points}
       selectedPeriod={context.selectedPeriod}
       onPointSelect={context.onPointSelect}
-      density="compact"
+      density="standard"
       layers={(points) => [
         {
           kind: 'bar',

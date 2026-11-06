@@ -6,6 +6,8 @@ import { listReportsUseCase } from '@/application/report/use_cases/listReportsUs
 import { type AuthContext } from '@/application/types';
 import { aggregateSnapshots, completeMonthsOf, monthOf } from '@/domains/portfolio/snapshotMonthly';
 import { cashCoverageOf } from '@/domains/report/analysisCoverage';
+import { allPointsOf } from '@/domains/report/analysisPoints';
+import { debtRatioOf, returnRateOf, savingsRateOf } from '@/domains/report/analysisRatios';
 import {
   ANALYSIS_RANGES,
   type AnalysisGranularity,
@@ -16,13 +18,7 @@ import {
 } from '@/domains/report/analysisScale';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
-import {
-  EMPTY_KPIS,
-  type FinancialAnalysisKpis,
-  isBalanceSheet,
-  isIncome,
-  savingsRateOf,
-} from './reportAnchor';
+import { EMPTY_KPIS, type FinancialAnalysisKpis, isBalanceSheet, isIncome } from './reportAnchor';
 import { resolveReportAnchorUseCase } from './resolveReportAnchorUseCase';
 import { rollUpFinancialAnalysisUseCase } from './rollUpFinancialAnalysisUseCase';
 
@@ -266,7 +262,7 @@ export class GetFinancialAnalysisWorkflow {
           closed,
           gain,
           openingValue,
-          returnRate: openingValue > 0 ? (gain / openingValue) * 100 : null,
+          returnRate: returnRateOf(gain, openingValue),
         };
       },
       (report) => completeMonths.has(monthCode(report.yearMonth)),
@@ -284,7 +280,7 @@ export class GetFinancialAnalysisWorkflow {
           closed,
           liabilities,
           assetsTotal,
-          debtRatio: assetsTotal > 0 ? (liabilities / assetsTotal) * 100 : null,
+          debtRatio: debtRatioOf(liabilities, assetsTotal),
           leverage:
             month !== undefined &&
             completeMonths.has(monthCode(report.yearMonth)) &&
@@ -333,15 +329,15 @@ export class GetFinancialAnalysisWorkflow {
 
     const unclosedMonths = [
       ...new Set(
-        [
-          ...netWorthPoints,
-          ...assetCompositionPoints,
-          ...investmentPerformancePoints,
-          ...incomePoints,
-          ...cashFlowPoints,
-          ...debtLeveragePoints,
-          ...cashCoveragePoints,
-        ].map((p) => p.yearMonth),
+        allPointsOf({
+          netWorth: netWorthPoints,
+          assetComposition: assetCompositionPoints,
+          investmentPerformance: investmentPerformancePoints,
+          income: incomePoints,
+          cashFlow: cashFlowPoints,
+          debtLeverage: debtLeveragePoints,
+          cashCoverage: cashCoveragePoints,
+        }).map((point) => point.yearMonth),
       ),
     ]
       .filter((month) => !closedMonths.has(month))

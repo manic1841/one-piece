@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
+import { CHART_INTERACTION_LABELS } from '@/ui/constants/charts/chartInteractionLabels';
+
 import { ChartTooltip } from './ChartTooltip';
 
 const hero = {
@@ -63,9 +65,15 @@ describe('ChartTooltip', () => {
   });
 
   it('renders the hint as a separated footer', () => {
-    render(<ChartTooltip title="SEP 2026" content={hero} hint="點選選取期間" />);
+    render(
+      <ChartTooltip
+        title="SEP 2026"
+        content={hero}
+        hint={CHART_INTERACTION_LABELS.SELECT_PERIOD_HINT}
+      />,
+    );
 
-    const hint = screen.getByText('點選選取期間');
+    const hint = screen.getByText(CHART_INTERACTION_LABELS.SELECT_PERIOD_HINT);
     expect(hint.className).toContain('border-t');
   });
 

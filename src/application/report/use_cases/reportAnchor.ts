@@ -1,3 +1,4 @@
+import { savingsRateOf } from '@/domains/report/analysisRatios';
 import { monthCode } from '@/domains/report/analysisScale';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
@@ -43,10 +44,6 @@ export const resolveAnchorReport = (
         : latest,
     null,
   );
-
-/** Null when there is no positive income to divide by. */
-export const savingsRateOf = (income: number, expense: number): number | null =>
-  income > 0 ? ((income - expense) / income) * 100 : null;
 
 /** The anchor month's headline figures; the savings rate needs that month's income statement. */
 export const kpisOf = (

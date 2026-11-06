@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { CHART_INTERACTION_LABELS } from '@/ui/constants/charts/chartInteractionLabels';
 import { cn } from '@/ui/utils/cn';
 
 import { ChartScrubber } from './ChartScrubber';
@@ -118,7 +119,11 @@ export function InteractiveComposedChart({
                     ref={tooltipRef}
                     title={tip.title}
                     content={tip.content}
-                    hint={onPointClick === undefined ? undefined : '點選選取期間'}
+                    hint={
+                      onPointClick === undefined
+                        ? undefined
+                        : CHART_INTERACTION_LABELS.SELECT_PERIOD_HINT
+                    }
                     className={cn('absolute z-10', anchor.className)}
                     style={{
                       top: `${Math.max(column.topRatio, allowedTopRatio) * 100}%`,

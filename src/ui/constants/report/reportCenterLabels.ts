@@ -1,3 +1,5 @@
+import { DASH } from '@/ui/utils/number';
+
 import { type ReportViewId } from './reportViewLabels';
 
 /**
@@ -54,7 +56,7 @@ export const REPORT_SUMMARY_LABELS = {
   SAVINGS_RATE: '儲蓄率',
   VIEW_ANALYSIS: '查看完整分析',
   UNCLOSED: '未關帳',
-  MISSING: '—',
+  MISSING: DASH,
   LOAD_ERROR: '無法載入財務摘要。',
   RETRY_ACTION: '重試',
   ARIA_TOTAL_ASSETS: '總資產，前往淨資產趨勢',
@@ -149,7 +151,6 @@ export const REPORT_ANALYSIS_LABELS = {
   INCOME_ARIA: (visible: string) => `收支與儲蓄率，顯示：${visible}`,
   CASH_FLOW_ARIA: (visible: string) => `淨現金流，顯示：${visible}`,
   CASH_COVERAGE_ARIA: (visible: string) => `現金覆蓋，顯示：${visible}`,
-  DASH: REPORT_SUMMARY_LABELS.MISSING,
 } as const;
 
 export const REPORT_DETAIL_LABELS = {

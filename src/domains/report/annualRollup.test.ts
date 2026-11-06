@@ -45,6 +45,26 @@ describe('annualRollup', () => {
     expect(rolled[0]?.closed).toBe(false);
   });
 
+  it('marks a year provisional from a month another series carries', () => {
+    // Every carried month here is closed, but the year is open elsewhere in the analysis.
+    const rolled = rollUpStock(
+      [month('2026-01', true, 1), month('2026-02', true, 2)],
+      new Set(['2026']),
+    );
+
+    expect(rolled[0]?.closed).toBe(false);
+  });
+
+  it('keeps a year closed when another year is the open one', () => {
+    const rolled = rollUpByYear(
+      [month('2025-12', true, 4), month('2026-01', true, 1)],
+      (group) => ({ value: group.reduce((total, point) => total + point.value, 0) }),
+      new Set(['2026']),
+    );
+
+    expect(rolled.map((point) => point.closed)).toEqual([true, false]);
+  });
+
   it('combines flow series across the year and keeps the year key', () => {
     const rolled = rollUpByYear(
       [month('2025-12', true, 4), month('2026-01', true, 1), month('2026-02', false, 2)],
