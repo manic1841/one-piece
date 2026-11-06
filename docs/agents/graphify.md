@@ -29,5 +29,9 @@ for both the CLI and the `PreToolUse` hooks in `.claude/settings.json`.
 graphify . --code-only
 ```
 
+`package.json` is skipped via `.graphifyignore` — its dependency nodes add nothing the source
+graph doesn't already carry. Add `--force` when the build now prunes nodes (graphify refuses a
+rebuild that yields fewer nodes than the previous graph).
+
 Output goes to `graphify-out/` (gitignored). Rebuild is required on a fresh clone;
 after that, `graphify update .` keeps it current incrementally.
