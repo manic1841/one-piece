@@ -1,4 +1,4 @@
-import { type MouseEvent, type ReactNode, useEffect, useState } from 'react';
+import { type MouseEvent, useEffect, useState } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -6,19 +6,17 @@ import { EmptyState } from '@/ui/components/EmptyState';
 import { FilterStrip } from '@/ui/components/FilterStrip';
 import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { PageHeader } from '@/ui/components/PageHeader';
-import { PageSection } from '@/ui/components/PageSection';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Button } from '@/ui/components/ui/button';
-import { ANALYSIS_ANCHORS, REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
+import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import { AssetCompositionChart } from '@/ui/features/report/components/AssetCompositionChart';
-import { CashCoverageChart } from '@/ui/features/report/components/CashCoverageChart';
-import { DebtLeverageChart } from '@/ui/features/report/components/DebtLeverageChart';
-import { IncomeSavingsChart } from '@/ui/features/report/components/IncomeSavingsChart';
-import { InvestmentPerformanceChart } from '@/ui/features/report/components/InvestmentPerformanceChart';
-import { NetCashFlowChart } from '@/ui/features/report/components/NetCashFlowChart';
-import { NetWorthTrendChart } from '@/ui/features/report/components/NetWorthTrendChart';
+import {
+  ANALYSIS_SECTIONS,
+  type AnalysisSectionSpec,
+  groupSections,
+} from '@/ui/features/report/components/analysisChart/analysisChartSpecs';
+import { AnalysisSection } from '@/ui/features/report/components/analysisChart/AnalysisSection';
 import { useFinancialAnalysis } from '@/ui/features/report/hooks/useFinancialAnalysis';
 import {
   ANALYSIS_GRANULARITIES,
@@ -49,46 +47,6 @@ const parseSeries = (raw: string | null): NetWorthSeriesKey[] => {
   return [];
 };
 
-interface AnalysisSectionProps {
-  id: string;
-  title: string;
-  latestText: string | null;
-  /** One-line methodology note, pinned to the section's bottom so paired bands align. */
-  footnote?: string;
-  insufficient: boolean;
-  /** Extra classes on the section band, e.g. to tighten its top padding. */
-  sectionClassName?: string;
-  children: ReactNode;
-}
-
-const AnalysisSection: React.FC<AnalysisSectionProps> = ({
-  id,
-  title,
-  latestText,
-  footnote,
-  insufficient,
-  sectionClassName,
-  children,
-}) => (
-  <div id={id} tabIndex={-1} className="h-full scroll-mt-32 outline-none">
-    <PageSection
-      title={title}
-      spacing="compact"
-      hint={latestText ?? undefined}
-      className={cn('flex h-full flex-col', sectionClassName)}
-    >
-      {insufficient ? (
-        <p className="py-6 text-sm text-muted-foreground">{REPORT_ANALYSIS_LABELS.INSUFFICIENT}</p>
-      ) : (
-        children
-      )}
-      {footnote !== undefined && (
-        <p className="mt-auto pt-3 text-xs text-muted-foreground">{footnote}</p>
-      )}
-    </PageSection>
-  </div>
-);
-
 const ReportAnalysisPage: React.FC = () => {
   const { userProfile } = useAuthState();
   const householdId = userProfile?.householdId ?? '';
@@ -117,7 +75,7 @@ const ReportAnalysisPage: React.FC = () => {
   // Highlight the section crossing the upper third of the viewport.
   useEffect(() => {
     if (analysisVM === null) return;
-    const sections = analysisVM.indexItems
+    const sections = ANALYSIS_SECTIONS
       .map((item) => document.getElementById(item.id))
       .filter((element): element is HTMLElement => element !== null);
     if (sections.length === 0) return;
@@ -170,6 +128,29 @@ const ReportAnalysisPage: React.FC = () => {
     const target = document.getElementById(id);
     target?.scrollIntoView({ block: 'start' });
     target?.focus({ preventScroll: true });
+  };
+
+  const renderSection = (spec: AnalysisSectionSpec) => {
+    if (analysisVM === null) return null;
+    const section = analysisVM[spec.vmKey];
+    return (
+      <AnalysisSection
+        key={spec.id}
+        id={spec.id}
+        title={spec.title}
+        latestText={section.latestText}
+        footnote={spec.footnote}
+        insufficient={section.insufficient}
+        className={spec.sectionClassName}
+      >
+        {spec.chart(analysisVM, {
+          selectedPeriod: analysisVM.selection.periodKey,
+          onPointSelect: selectPeriod,
+          initialSeries,
+          showUnclosedLabels: spec.showUnclosedLabels === true,
+        })}
+      </AnalysisSection>
+    );
   };
 
   return (
@@ -242,7 +223,7 @@ const ReportAnalysisPage: React.FC = () => {
                 className="-mx-4 sticky top-16 z-20 border-y border-border bg-background/95 px-4 backdrop-blur md:-mx-8 md:px-8"
               >
                 <div className="flex gap-5 overflow-x-auto">
-                  {analysisVM.indexItems.map((item) => (
+                  {ANALYSIS_SECTIONS.map((item) => (
                     <a
                       key={item.id}
                       href={`#${item.id}`}
@@ -255,7 +236,7 @@ const ReportAnalysisPage: React.FC = () => {
                           : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
-                      {item.label}
+                      {item.title}
                     </a>
                   ))}
                 </div>
@@ -318,112 +299,18 @@ const ReportAnalysisPage: React.FC = () => {
                 </section>
               )}
 
-              <AnalysisSection
-                id={ANALYSIS_ANCHORS.NET_WORTH}
-                title={REPORT_ANALYSIS_LABELS.NET_WORTH_SECTION}
-                latestText={analysisVM.netWorth.latestText}
-                insufficient={analysisVM.netWorth.insufficient}
-              >
-                <NetWorthTrendChart
-                  points={analysisVM.netWorth.points}
-                  initialSeries={initialSeries}
-                  selectedPeriod={analysisVM.selection.periodKey}
-                  onPointSelect={selectPeriod}
-                />
-              </AnalysisSection>
-
-              <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-10">
-                <AnalysisSection
-                  id={ANALYSIS_ANCHORS.ASSET_COMPOSITION}
-                  title={REPORT_ANALYSIS_LABELS.ASSET_COMPOSITION_SECTION}
-                  latestText={analysisVM.assetComposition.latestText}
-                  insufficient={analysisVM.assetComposition.insufficient}
-                >
-                  <AssetCompositionChart
-                    points={analysisVM.assetComposition.points}
-                    markerLabels={false}
-                    selectedPeriod={analysisVM.selection.periodKey}
-                    onPointSelect={selectPeriod}
-                  />
-                </AnalysisSection>
-
-                <AnalysisSection
-                  id={ANALYSIS_ANCHORS.INVESTMENT_PERFORMANCE}
-                  title={REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_SECTION}
-                  latestText={analysisVM.investmentPerformance.latestText}
-                  footnote={REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_HINT}
-                  insufficient={analysisVM.investmentPerformance.insufficient}
-                >
-                  <InvestmentPerformanceChart
-                    points={analysisVM.investmentPerformance.points}
-                    markerLabels={false}
-                    selectedPeriod={analysisVM.selection.periodKey}
-                    onPointSelect={selectPeriod}
-                  />
-                </AnalysisSection>
-              </div>
-
-              <div className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-10">
-                <AnalysisSection
-                  id={ANALYSIS_ANCHORS.INCOME}
-                  title={REPORT_ANALYSIS_LABELS.INCOME_SECTION}
-                  latestText={analysisVM.income.latestText}
-                  footnote={REPORT_ANALYSIS_LABELS.SAVINGS_FORMULA}
-                  insufficient={analysisVM.income.insufficient}
-                >
-                  <IncomeSavingsChart
-                    points={analysisVM.income.points}
-                    markerLabels={false}
-                    selectedPeriod={analysisVM.selection.periodKey}
-                    onPointSelect={selectPeriod}
-                  />
-                </AnalysisSection>
-
-                <AnalysisSection
-                  id={ANALYSIS_ANCHORS.CASH_FLOW}
-                  title={REPORT_ANALYSIS_LABELS.CASH_FLOW_SECTION}
-                  latestText={analysisVM.cashFlow.latestText}
-                  footnote={REPORT_ANALYSIS_LABELS.CASH_FLOW_HINT}
-                  insufficient={analysisVM.cashFlow.insufficient}
-                >
-                  <NetCashFlowChart
-                    points={analysisVM.cashFlow.points}
-                    markerLabels={false}
-                    selectedPeriod={analysisVM.selection.periodKey}
-                    onPointSelect={selectPeriod}
-                  />
-                </AnalysisSection>
-              </div>
-
-              <AnalysisSection
-                id={ANALYSIS_ANCHORS.DEBT_LEVERAGE}
-                title={REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_SECTION}
-                latestText={analysisVM.debtLeverage.latestText}
-                insufficient={analysisVM.debtLeverage.insufficient}
-              >
-                <DebtLeverageChart
-                  points={analysisVM.debtLeverage.points}
-                  showLeverage={analysisVM.debtLeverage.showLeverage}
-                  markerLabels={false}
-                  selectedPeriod={analysisVM.selection.periodKey}
-                  onPointSelect={selectPeriod}
-                />
-              </AnalysisSection>
-
-              <AnalysisSection
-                id={ANALYSIS_ANCHORS.CASH_COVERAGE}
-                title={REPORT_ANALYSIS_LABELS.CASH_COVERAGE_SECTION}
-                latestText={analysisVM.cashCoverage.latestText}
-                footnote={REPORT_ANALYSIS_LABELS.CASH_COVERAGE_HINT}
-                insufficient={analysisVM.cashCoverage.insufficient}
-                sectionClassName="pt-4"
-              >
-                <CashCoverageChart
-                  points={analysisVM.cashCoverage.points}
-                  selectedPeriod={analysisVM.selection.periodKey}
-                  onPointSelect={selectPeriod}
-                />
-              </AnalysisSection>
+              {groupSections(ANALYSIS_SECTIONS).map((row) =>
+                row.length === 1 ? (
+                  <div key={row[0].id}>{renderSection(row[0])}</div>
+                ) : (
+                  <div
+                    key={row.map((item) => item.id).join('-')}
+                    className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-10"
+                  >
+                    {row.map(renderSection)}
+                  </div>
+                ),
+              )}
             </div>
           </>
         )}

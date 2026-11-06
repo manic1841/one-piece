@@ -164,7 +164,6 @@ export interface ReportAnalysisVM {
   granularityItems: { id: AnalysisGranularity; label: string }[];
   showGranularityControl: boolean;
   selection: SelectionVM;
-  indexItems: { id: string; label: string }[];
   unclosedNote: { text: string; showHistoryLink: boolean } | null;
   netWorth: AnalysisSectionVM<NetWorthChartVM>;
   assetComposition: AnalysisSectionVM<AssetCompositionChartVM>;
@@ -477,21 +476,6 @@ export const buildReportAnalysisVM = (
     // Keep the control reachable when an annual deep link lands on a single year.
     showGranularityControl: years.size > 1 || granularity === 'annual',
     selection,
-    indexItems: [
-      { id: ANALYSIS_ANCHORS.NET_WORTH, label: REPORT_ANALYSIS_LABELS.NET_WORTH_SECTION },
-      {
-        id: ANALYSIS_ANCHORS.ASSET_COMPOSITION,
-        label: REPORT_ANALYSIS_LABELS.ASSET_COMPOSITION_SECTION,
-      },
-      {
-        id: ANALYSIS_ANCHORS.INVESTMENT_PERFORMANCE,
-        label: REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_SECTION,
-      },
-      { id: ANALYSIS_ANCHORS.INCOME, label: REPORT_ANALYSIS_LABELS.INCOME_SECTION },
-      { id: ANALYSIS_ANCHORS.CASH_FLOW, label: REPORT_ANALYSIS_LABELS.CASH_FLOW_SECTION },
-      { id: ANALYSIS_ANCHORS.DEBT_LEVERAGE, label: REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_SECTION },
-      { id: ANALYSIS_ANCHORS.CASH_COVERAGE, label: REPORT_ANALYSIS_LABELS.CASH_COVERAGE_SECTION },
-    ],
     unclosedNote,
     netWorth: section(
       netWorthPoints,
