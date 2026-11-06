@@ -29,6 +29,7 @@
 
 - [ui/ui-layer-architecture.md](ui/ui-layer-architecture.md) — UI 分層、依賴方向與動作位置。
 - [ui/design-system.md](ui/design-system.md) — token 與元件表面契約。
+- [ui/motion-system.md](ui/motion-system.md) — 動態契約、動畫清單與驗收。
 - [ui/visual-standards.md](ui/visual-standards.md) — 頁面層級版面與互動標準。
 - [ui/states-and-a11y.md](ui/states-and-a11y.md) — 三態義務與無障礙。
 - [ui/component-catalog.md](ui/component-catalog.md) — 共用元件目錄。

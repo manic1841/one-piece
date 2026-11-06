@@ -2,7 +2,7 @@
 
 > 依據：Apple《Designing Fluid Interfaces》(WWDC 2018)、《The Details of UI Typography》(WWDC 2020)、《Principles of Great Design》(WWDC 2026) 的 web 平台轉譯。
 >
-> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與 hover／focus／disabled 等視覺狀態、spacing 級距）。**頁面層級的佈局、間距用途、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)；**分層、導航／Header 契約與 RWD 斷點**屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；**資料狀態義務與無障礙契約**屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
+> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、字體排印、元件尺寸與 hover／focus／disabled 等視覺狀態、spacing 級距）。**動態**（動態 token、動畫清單、行為與驗收）屬 [`motion-system.md`](motion-system.md)；**頁面層級的佈局、間距用途、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)；**分層、導航／Header 契約與 RWD 斷點**屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；**資料狀態義務與無障礙契約**屬 [`states-and-a11y.md`](states-and-a11y.md)。五份文件權威不重疊。
 
 本文件是設計 token 與元件表面契約的唯一真相來源。實作以本文件為準；若與 `ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——呈現層契約不涉入資料流、ViewModel/Hook 職責邊界與 display label API。
 
@@ -50,24 +50,7 @@
 
 ## 2. 動態（Motion）
 
-原則：**回饋在按下瞬間、動畫可被中斷、路徑對稱**。本專案的互動以點擊/觸發為主（無拖曳手勢），因此以 CSS transition + `tailwindcss-animate` 為動態基礎，不為觸發式動畫引入 spring 函式庫。
-
-Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述，只留 token 與它的對應：
-
-| Token            | 對應                                               |
-| ---------------- | -------------------------------------------------- |
-| `duration-fast`  | press 回饋、小狀態切換                             |
-| `duration-base`  | hover、開合、色彩過渡                              |
-| `duration-slow`  | 位移、materialize（對應 response 0.4s）            |
-| `ease-out-quint` | 進場、展開（類似 critically damped，無 overshoot） |
-| `ease-in-quint`  | 退場（`ease-out-quint` 的反向控制點），使路徑對稱  |
-
-規則：
-
-- 按壓回饋：`active:scale-[0.97]` + `duration-fast`，所有可互動元素一律具備。
-- 開合類（dialog、sheet、dropdown）：進場 `ease-out-quint`、退場 `ease-in-quint`，時長 `duration-slow` 內。
-- 可逆轉換（開 ↔ 關、進 ↔ 退）必須鏡像 easing；單向回饋（hover、focus）用單一 `ease-out`。
-- 僅動 `transform`、`opacity`、`backdrop-filter`；避免逐幀動 layout 屬性（width/height/top/left）。
+動態契約見 [`motion-system.md`](motion-system.md)：方向、token 對應、全域規則、動畫清單、場景、頁面層級套用與驗收都在那裡。本節不重述。
 
 ## 3. 材質與層級
 
@@ -92,7 +75,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
 ### 3.1 半徑與陰影收斂
 
 - 半徑依表面尺度選擇。`rounded-lg` 是多數容器與互動元件的預設起點，不是硬性上限：次級元素往下降（`rounded-md`/`rounded-sm` 用於按鈕與小型 chip，`rounded` 用於 inline badge），需要更大圓角時往上升——目前只有貼齊視窗邊緣的 sheet 用 `rounded-t-2xl`，且只圓露出的一側。`rounded-xl` 已由守門測試排除，不再使用。
-- `rounded-full` 僅保留本質圓形元素：avatar、switch、spinner、狀態點、資料膠囊（progress 軌道）；pill / badge / icon button 類一律方角。
+- `rounded-full` 僅保留本質圓形元素：avatar、switch、spinner、狀態點、資料膠囊（progress 軌道）、bottom sheet 的 drag handle。pill / badge / icon button 類一律方角。
 - 陰影預設不使用；僅浮出層保留（dialog、sheet、dropdown、popover、select、toast、command palette、switch knob、L1 浮動 chrome）。Card base 無陰影，hover 不升起陰影。
 - Summary / Metric / Section / History / Table / Workflow 表面不強制 Card，改以 Typography / Divider / Whitespace 分層；Card 保留給 distinct module、interactive module、alert、special state。
 
@@ -157,6 +140,7 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）。值不複述�
 - `YearMonthPicker`：按鈕式（`MON YYYY ▾` outline 按鈕）+ Popover 內雙 Select；選擇僅暫存在 picker 內部（draft state），按 APPLY 才 commit，Escape/外點取消。
 - **Popover 內 radio 單選**：用共用 `RadioGroup` / `Radio`（選項為原生 `input type="radio"` + `<label>` 包覆，以 `useId` 的 name 分組）。radix `DropdownMenuRadioGroup` 適合 dropdown 選單；popover 內需要即時 commit 的單選用共用 `RadioGroup`，測試與鍵盤語意都直接。
 - 確認對話：以 promise-based `useConfirm()`（`ConfirmDialogProvider` 全站掛載）取代 `window.confirm`；結構為 Title → Context → Consequence → Actions（outline Cancel + destructive 確認）。字串輸入預設 destructive "DELETE"（不可逆刪除）；可逆動作必須傳結構化 options 並使用非 destructive 標籤（如 "DISABLE"）。
+- `sheet`（`side="bottom"`）：頂端有一條固定的 drag handle 帶——高 `h-6`、垂直置中，帶上放 36×4 的 `rounded-full bg-border-strong` handle，`touch-none` 掛在帶上。帶固定在捲動區之外，內文由帶下的獨立捲動區承擔，`max-h` 留在 sheet 本身。handle 純視覺、`aria-hidden`，鍵盤仍靠 Escape 與關閉按鈕。可拖曳範圍與門檻屬 [`motion-system.md`](motion-system.md) §5.3。
 - `sortable-list`：共用 `src/ui/components/sortable/` 模式——`GripHandle` activator button（h-8 w-8、`touch-none`、focus ring、`active:scale-[0.97]`）+ 三感應器（Pointer distance 8px、Touch delay 180ms、Keyboard sortableKeyboardCoordinates）；僅 grip 可拖曳，row click 導覽不受干擾；DndContext 放在 Table 外層。細節見 ADR-0059。
 - `data-table`：全站表格共通原則。
   - **通則**：所有 Data Table 遵循同一標準——表頭 muted、數字右對齊、財務數字 monospace、細分隔線；不使用厚重 border、不使用 zebra striping。可查看 Detail 的資料整列可點擊（List → Detail），不用 row 端常駐 View/Edit 按鈕。
