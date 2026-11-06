@@ -3,7 +3,7 @@ import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cas
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
 
-import { type FinancialAnalysisKpis, EMPTY_KPIS } from './reportAnchor';
+import { EMPTY_KPIS, type FinancialAnalysisKpis } from './reportAnchor';
 import { resolveReportAnchorUseCase } from './resolveReportAnchorUseCase';
 
 /** The landing page's four headline figures, at the analysis anchor. */

@@ -1,11 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
-import {
-  buildBalanceSheetReport,
-  buildFinancialPeriod,
-  buildIncomeReport,
-} from '@/test/factories';
+import { buildBalanceSheetReport, buildFinancialPeriod, buildIncomeReport } from '@/test/factories';
 
 import { getReportSummaryWorkflow } from './getReportSummaryWorkflow';
 
