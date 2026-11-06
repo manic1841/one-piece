@@ -180,6 +180,32 @@ describe('ReportDetailPage', () => {
     expect(screen.queryByRole('button', { name: /前往關帳/ })).not.toBeInTheDocument();
   });
 
+  it('links a yearly report to the annual analysis', async () => {
+    const navigate = vi.fn();
+    mockNavigate.mockReturnValue(navigate);
+    mocks.getBundleExecute.mockResolvedValue(bundle);
+    mocks.getPeriodExecute.mockResolvedValue(null);
+
+    renderPage('2026');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: REPORT_DETAIL_LABELS.VIEW_YEAR_ANALYSIS }),
+    );
+    expect(navigate).toHaveBeenCalledWith('/reports/analysis?period=2026');
+  });
+
+  it('does not offer the annual analysis link on a monthly report', async () => {
+    mocks.getBundleExecute.mockResolvedValue(bundle);
+    mocks.getPeriodExecute.mockResolvedValue({ yearMonth: '2026-06', status: 'CLOSED' });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('薪資')).toBeInTheDocument());
+    expect(
+      screen.queryByRole('button', { name: REPORT_DETAIL_LABELS.VIEW_YEAR_ANALYSIS }),
+    ).not.toBeInTheDocument();
+  });
+
   it('steps to the previous calendar month', async () => {
     const navigate = vi.fn();
     mockNavigate.mockReturnValue(navigate);

@@ -153,6 +153,14 @@ const ReportDetailPage: React.FC = () => {
         description={formatReportPeriodDisplay(period)}
         actions={
           <div className="flex items-center gap-2">
+            {period.mode === 'YEARLY' && (
+              <Button
+                variant="text"
+                onClick={() => navigate(`/reports/analysis?period=${period.raw}`)}
+              >
+                {REPORT_DETAIL_LABELS.VIEW_YEAR_ANALYSIS}
+              </Button>
+            )}
             {showCloseAction && (
               <Button variant="text" onClick={() => navigate(`/close/${period.raw}`)}>
                 {REPORT_DETAIL_LABELS.GO_TO_CLOSE} →

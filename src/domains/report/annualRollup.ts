@@ -1,4 +1,4 @@
-import { yearOf } from './analysisScale';
+import { byMonth, yearOf } from './analysisScale';
 
 /** The fields every drawable analysis month carries. */
 export interface RollablePoint {
@@ -8,13 +8,19 @@ export interface RollablePoint {
   closed: boolean;
 }
 
+/** Groups by year, oldest year and oldest month first, so callers need no order contract. */
 const groupByYear = <Point extends RollablePoint>(points: Point[]): [string, Point[]][] => {
   const groups = new Map<string, Point[]>();
   for (const point of points) {
     const year = yearOf(point.yearMonth);
     groups.set(year, [...(groups.get(year) ?? []), point]);
   }
-  return [...groups];
+  return [...groups]
+    .map(([year, group]): [string, Point[]] => [
+      year,
+      [...group].sort((a, b) => byMonth(a.yearMonth, b.yearMonth)),
+    ])
+    .sort(([a], [b]) => a.localeCompare(b));
 };
 
 /** The latest month in the group, independent of the input order. */

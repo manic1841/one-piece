@@ -1,44 +1,29 @@
-import { type MouseEvent, useEffect, useState } from 'react';
+import { type MouseEvent, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { EmptyState } from '@/ui/components/EmptyState';
-import { FilterStrip } from '@/ui/components/FilterStrip';
 import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { Skeleton } from '@/ui/components/Skeleton';
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { Button } from '@/ui/components/ui/button';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
-import {
-  ANALYSIS_SECTIONS,
-  AnalysisSection,
-  type AnalysisSectionSpec,
-  groupSections,
-} from '@/ui/features/report/components/analysisChart';
+import { AnalysisContent } from '@/ui/features/report/components/AnalysisContent';
+import { ANALYSIS_SECTIONS, groupSections } from '@/ui/features/report/components/analysisChart';
 import { useFinancialAnalysis } from '@/ui/features/report/hooks/useFinancialAnalysis';
 import {
-  ANALYSIS_GRANULARITIES,
-  ANALYSIS_RANGES,
-  type AnalysisGranularity,
-  type AnalysisRange,
-  DEFAULT_GRANULARITY,
-  DEFAULT_RANGE,
   type NetWorthSeriesKey,
   type SeriesParam,
 } from '@/ui/features/report/viewmodels/reportAnalysis.vm';
-import { cn } from '@/ui/utils/cn';
-
-const parseRange = (raw: string | null): AnalysisRange =>
-  raw !== null && ANALYSIS_RANGES.includes(raw as AnalysisRange)
-    ? (raw as AnalysisRange)
-    : DEFAULT_RANGE;
-
-const parseGranularity = (raw: string | null): AnalysisGranularity =>
-  raw !== null && ANALYSIS_GRANULARITIES.includes(raw as AnalysisGranularity)
-    ? (raw as AnalysisGranularity)
-    : DEFAULT_GRANULARITY;
+import {
+  drawableYears,
+  latestMonthOfYear,
+  monthsNeededForYear,
+  rangeForYear,
+  resolveAnalysisUrlState,
+  widerRange,
+  yearOfMonth,
+} from '@/ui/features/report/viewmodels/reportAnalysisParams';
 
 const parseSeries = (raw: string | null): NetWorthSeriesKey[] => {
   const series = raw as SeriesParam | null;
@@ -52,11 +37,12 @@ const ReportAnalysisPage: React.FC = () => {
   const householdId = userProfile?.householdId ?? '';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const range = parseRange(searchParams.get('range'));
-  const granularity = parseGranularity(searchParams.get('granularity'));
-  const selectedPeriod = searchParams.get('period');
+  const { range, granularity, period: selectedPeriod } = resolveAnalysisUrlState(searchParams);
   const [initialSeries] = useState(() => parseSeries(searchParams.get('series')));
   const [activeSection, setActiveSection] = useState<string | null>(null);
+  // A year carried by the first URL may need the range widened once, not on every edit.
+  const initialYearRef = useRef(selectedPeriod !== null && selectedPeriod.length === 4);
+  const expandedYearRef = useRef(false);
 
   const { analysis, analysisVM, loading, errorMessage, reload } = useFinancialAnalysis(
     householdId,
@@ -64,6 +50,60 @@ const ReportAnalysisPage: React.FC = () => {
     granularity,
     selectedPeriod,
   );
+
+  const updateParams = useCallback(
+    (update: (params: URLSearchParams) => void) => {
+      setSearchParams(
+        (current) => {
+          const params = new URLSearchParams(current);
+          update(params);
+          return params;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
+  // A deep-linked year outside the range widens it once to the smallest range that
+  // reaches the year; a year that still has no point falls back to the anchor year.
+  useEffect(() => {
+    if (analysis === null || granularity !== 'annual' || selectedPeriod === null) return;
+    if (selectedPeriod.length !== 4) return;
+    // The resolved analysis lags a URL range change; deciding on it would undo the
+    // expansion before the wider response lands.
+    if (analysis.range !== range) return;
+    if (drawableYears(analysis).includes(selectedPeriod)) {
+      // The initial year is already reachable; later range edits must not re-expand.
+      expandedYearRef.current = true;
+      return;
+    }
+
+    if (initialYearRef.current && !expandedYearRef.current && analysis.anchor !== null) {
+      expandedYearRef.current = true;
+      const needed = monthsNeededForYear(selectedPeriod, analysis.anchor.yearMonth);
+      const smallest = rangeForYear(analysis.availableRanges, needed);
+      const nextRange = smallest === null ? null : widerRange(range, smallest);
+      if (nextRange !== null && nextRange !== range) {
+        updateParams((params) => params.set('range', nextRange));
+        return;
+      }
+    }
+
+    if (analysis.anchor === null) return;
+    const anchorYear = yearOfMonth(analysis.anchor.yearMonth);
+    if (anchorYear !== selectedPeriod) {
+      updateParams((params) => params.set('period', anchorYear));
+    }
+  }, [analysis, granularity, selectedPeriod, range, updateParams]);
+
+  const rawPeriod = searchParams.get('period');
+
+  // A month key on the annual scale is carried in the URL as its year.
+  useEffect(() => {
+    if (granularity !== 'annual' || rawPeriod === null || rawPeriod.length <= 4) return;
+    updateParams((params) => params.set('period', yearOfMonth(rawPeriod)));
+  }, [granularity, rawPeriod, updateParams]);
 
   // The anchored sections only exist once the analysis resolves, so re-run on new data.
   useEffect(() => {
@@ -99,24 +139,37 @@ const ReportAnalysisPage: React.FC = () => {
     active?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   }, [activeSection]);
 
-  const updateParams = (update: (params: URLSearchParams) => void) => {
-    setSearchParams(
-      (current) => {
-        const params = new URLSearchParams(current);
-        update(params);
-        return params;
-      },
-      { replace: true },
-    );
-  };
-
   const changeRange = (next: string) => updateParams((params) => params.set('range', next));
 
   const changeGranularity = (next: string) => {
-    // Period keys change shape between scales, so the selection is dropped.
+    if (next === granularity) return;
     updateParams((params) => {
       params.set('granularity', next);
-      params.delete('period');
+      if (next === 'annual') {
+        const year =
+          selectedPeriod !== null && selectedPeriod.length > 4
+            ? yearOfMonth(selectedPeriod)
+            : analysis?.anchor
+              ? yearOfMonth(analysis.anchor.yearMonth)
+              : null;
+        if (year !== null) params.set('period', year);
+        else params.delete('period');
+        return;
+      }
+      // Back on the monthly scale, keep looking at the same year when it has a month.
+      const month =
+        selectedPeriod !== null && selectedPeriod.length === 4 && analysis !== null
+          ? latestMonthOfYear(analysis, selectedPeriod)
+          : null;
+      if (month !== null) params.set('period', month);
+      else params.delete('period');
+    });
+  };
+
+  const selectYear = (year: string) => {
+    updateParams((params) => {
+      params.set('granularity', 'annual');
+      params.set('period', year);
     });
   };
 
@@ -129,30 +182,6 @@ const ReportAnalysisPage: React.FC = () => {
     const target = document.getElementById(id);
     target?.scrollIntoView({ block: 'start' });
     target?.focus({ preventScroll: true });
-  };
-
-  const renderSection = (spec: AnalysisSectionSpec) => {
-    if (analysisVM === null) return null;
-    const section = analysisVM[spec.vmKey];
-    return (
-      <AnalysisSection
-        key={spec.id}
-        id={spec.id}
-        title={spec.title}
-        latestText={section.latestText}
-        footnote={spec.footnote}
-        insufficient={section.insufficient}
-        className={spec.sectionClassName}
-      >
-        {spec.chart(analysisVM, {
-          selectedPeriod: analysisVM.selection.periodKey,
-          onPointSelect: openPeriod,
-          initialSeries,
-          // The caption is a page-level concern; only the first block carries it.
-          showUnclosedLabels: spec === ANALYSIS_SECTIONS[0],
-        })}
-      </AnalysisSection>
-    );
   };
 
   return (
@@ -200,133 +229,19 @@ const ReportAnalysisPage: React.FC = () => {
         />
       )}
 
-      {!loading &&
-        errorMessage === null &&
-        analysisVM !== null &&
-        analysis?.anchor !== null &&
-        analysis !== null && (
-          <>
-            <p className="text-base text-foreground">
-              {analysisVM.takeaway.before !== '' && `${analysisVM.takeaway.before} `}
-              <span className="text-xl font-medium tabular-nums">{analysisVM.takeaway.value}</span>
-              {analysisVM.takeaway.after}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span>{analysisVM.cutoffText}</span>
-              {analysisVM.unclosedNote !== null && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <StatusGlyph type="review" label={REPORT_ANALYSIS_LABELS.UNCLOSED_NOTE_LABEL} />
-                  <span>{analysisVM.unclosedNote.text}</span>
-                  {analysisVM.unclosedNote.showHistoryLink && (
-                    <Button variant="text" onClick={() => navigate('/reports')}>
-                      {REPORT_ANALYSIS_LABELS.UNCLOSED_HISTORY_LINK}
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* The index sticks only while its own block is on screen, so it must
-                share a parent with the sections it navigates. */}
-            <div className="space-y-8">
-              <nav
-                aria-label={REPORT_ANALYSIS_LABELS.INDEX_LABEL}
-                className="-mx-4 sticky top-16 z-20 border-y border-border bg-background/95 px-4 backdrop-blur md:-mx-8 md:px-8"
-              >
-                <div className="flex gap-5 overflow-x-auto">
-                  {ANALYSIS_SECTIONS.map((item) => (
-                    <a
-                      key={item.id}
-                      href={`#${item.id}`}
-                      aria-current={activeSection === item.id ? 'true' : undefined}
-                      onClick={(event) => goToSection(event, item.id)}
-                      className={cn(
-                        'flex min-h-10 shrink-0 items-center border-b-2 border-transparent text-xs transition-colors duration-fast',
-                        activeSection === item.id
-                          ? 'border-foreground text-foreground'
-                          : 'text-muted-foreground hover:text-foreground',
-                      )}
-                    >
-                      {item.title}
-                    </a>
-                  ))}
-                </div>
-              </nav>
-
-              <div className="-mt-6 space-y-2">
-                <p className="text-xs text-muted-foreground">{REPORT_ANALYSIS_LABELS.POINT_HINT}</p>
-                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-                  {analysisVM.showRangeControl && (
-                    <FilterStrip
-                      items={analysisVM.rangeItems}
-                      value={analysisVM.range}
-                      onValueChange={changeRange}
-                      ariaLabel={REPORT_ANALYSIS_LABELS.RANGE_LABEL}
-                    />
-                  )}
-                  {analysisVM.showGranularityControl && (
-                    <FilterStrip
-                      items={analysisVM.granularityItems}
-                      value={analysisVM.granularity}
-                      onValueChange={changeGranularity}
-                      ariaLabel={REPORT_ANALYSIS_LABELS.GRANULARITY_LABEL}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {analysisVM.selection.periodKey !== '' && (
-                <section
-                  aria-label={REPORT_ANALYSIS_LABELS.SELECTION_LABEL}
-                  className="border-y border-border py-4"
-                >
-                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
-                    <p className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
-                      {REPORT_ANALYSIS_LABELS.SELECTED_PERIOD(analysisVM.selection.periodText)}
-                      {analysisVM.selection.unclosed && (
-                        <StatusGlyph
-                          type="review"
-                          label={REPORT_ANALYSIS_LABELS.PROVISIONAL_SHORT}
-                        />
-                      )}
-                    </p>
-                    <Button
-                      variant="text"
-                      onClick={() => navigate(analysisVM.selection.reportHref)}
-                    >
-                      {analysisVM.selection.reportLabel}
-                    </Button>
-                  </div>
-                  <dl className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-5">
-                    {analysisVM.selection.rows.map((row) => (
-                      <div key={row.label}>
-                        <dt className="text-xs text-muted-foreground">{row.label}</dt>
-                        <dd className="font-mono text-sm tabular-nums text-foreground">
-                          {row.value}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              )}
-
-              {groupSections(ANALYSIS_SECTIONS).map((row) =>
-                row.length === 1 ? (
-                  <div key={row[0].id}>{renderSection(row[0])}</div>
-                ) : (
-                  <div
-                    key={row.map((item) => item.id).join('-')}
-                    className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-10"
-                  >
-                    {row.map(renderSection)}
-                  </div>
-                ),
-              )}
-            </div>
-          </>
-        )}
+      {!loading && errorMessage === null && analysisVM !== null && analysis?.anchor !== null && (
+        <AnalysisContent
+          vm={analysisVM}
+          activeSection={activeSection}
+          initialSeries={initialSeries}
+          onRangeChange={changeRange}
+          onGranularityChange={changeGranularity}
+          onYearChange={selectYear}
+          onPointSelect={openPeriod}
+          onSectionClick={goToSection}
+          onHistoryLink={() => navigate('/reports')}
+        />
+      )}
     </div>
   );
 };

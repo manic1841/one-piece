@@ -57,6 +57,21 @@ describe('annualRollup', () => {
     ]);
   });
 
+  it('orders the months inside a year so the first month is a stable base', () => {
+    const rolled = rollUpByYear(
+      [month('2025-12', true, 12), month('2025-01', true, 1), month('2025-06', true, 6)],
+      (group) => ({ value: group[0]?.value ?? 0 }),
+    );
+
+    expect(rolled[0]?.value).toBe(1);
+  });
+
+  it('orders years oldest first regardless of input order', () => {
+    const rolled = rollUpStock([month('2026-01', true, 2), month('2025-01', true, 1)]);
+
+    expect(rolled.map((point) => point.yearMonth)).toEqual(['2025', '2026']);
+  });
+
   it('leaves a monthly series alone and starts the year order from the oldest', () => {
     const points = [month('2026-01', true, 1), month('2026-02', true, 2)];
 

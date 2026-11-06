@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useParams } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -100,16 +100,31 @@ const analysis = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const DetailEcho = () => <div>REPORT DETAIL {useParams().period}</div>;
+
 const renderPage = (url = '/reports/analysis') =>
   render(
     <MemoryRouter initialEntries={[url]}>
       <Routes>
         <Route path="/reports/analysis" element={<ReportAnalysisPage />} />
-        <Route path="/reports/:period" element={<div>REPORT DETAIL</div>} />
+        <Route path="/reports/:period" element={<DetailEcho />} />
         <Route path="/reports" element={<div>REPORT LIST</div>} />
       </Routes>
     </MemoryRouter>,
   );
+
+const analysisWithYears = (years: string[]) =>
+  analysis({
+    availableRanges: ['1y', '3y', '5y', 'all'],
+    netWorthPoints: years.flatMap((year) =>
+      ['01', '11'].map((month) => ({
+        ...point(`${year}-${month}`, true),
+        netWorth: 100,
+        assets: 200,
+        liabilities: 100,
+      })),
+    ),
+  });
 
 describe('ReportAnalysisPage', () => {
   beforeEach(() => {
@@ -274,7 +289,7 @@ describe('ReportAnalysisPage', () => {
     const chart = await screen.findByRole('slider', { name: /資產類別構成/ });
     fireEvent.keyDown(chart, { key: 'Enter' });
 
-    expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
+    expect(await screen.findByText(/REPORT DETAIL/)).toBeInTheDocument();
   });
 
   it('keeps section values on the anchor while a ?period= selection is shown', async () => {
@@ -356,7 +371,7 @@ describe('ReportAnalysisPage', () => {
     chart.getBoundingClientRect = () => ({ left: 0, width: 300 }) as DOMRect;
     fireEvent.click(chart, { clientX: 10 });
 
-    expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
+    expect(await screen.findByText(/REPORT DETAIL/)).toBeInTheDocument();
   });
 
   it('reads the gain, return rate and opening value in a fixed tooltip order', async () => {
@@ -562,7 +577,7 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'Enter' });
 
-    expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
+    expect(await screen.findByText(/REPORT DETAIL/)).toBeInTheDocument();
   });
 
   it('pins the coverage formula and puts the block last and full width', async () => {
@@ -688,7 +703,7 @@ describe('ReportAnalysisPage', () => {
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'Enter' });
 
-    expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
+    expect(await screen.findByText(/REPORT DETAIL/)).toBeInTheDocument();
   });
 
   it('marks unclosed runs and lists the affected months', async () => {
@@ -786,5 +801,174 @@ describe('ReportAnalysisPage', () => {
 
     expect(await screen.findByText('載入分析中…')).toBeInTheDocument();
     expect(document.querySelectorAll('.animate-pulse')).toHaveLength(7);
+  });
+
+  it('enters a single-year annual deep link with the note and can switch back', async () => {
+    renderPage('/reports/analysis?granularity=annual');
+
+    expect(
+      await screen.findByText('此範圍僅一個年度，年粒度只有一期；圖表需要兩期才成線。'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '月' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: '年度選取' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: '月' }));
+
+    expect(await screen.findByText('2026-03 · NT$900（未關帳）')).toBeInTheDocument();
+  });
+
+  it('marks the cutoff as monthly only on the annual scale', async () => {
+    mockExecute.mockResolvedValue(analysisWithYears(['2024', '2026']));
+
+    renderPage();
+    expect(await screen.findByText('資料截至 2026-03，含 1 期未關帳')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '年' }));
+
+    expect(
+      await screen.findByText('資料截至 2026-03，含 1 期未關帳（月尺度）'),
+    ).toBeInTheDocument();
+  });
+
+  it('turns a monthly period into its year on the annual scale', async () => {
+    mockExecute.mockResolvedValue(analysisWithYears(['2025', '2026']));
+
+    renderPage('/reports/analysis?granularity=annual&period=2026-02');
+
+    expect(await screen.findByText('已選取 2026')).toBeInTheDocument();
+  });
+
+  it('widens the range once for a deep-linked year outside it', async () => {
+    mockExecute.mockImplementation(({ range }: { range: string }) =>
+      Promise.resolve(
+        range === '5y'
+          ? analysisWithYears(['2023', '2026'])
+          : analysis({ availableRanges: ['1y', '3y', '5y', 'all'] }),
+      ),
+    );
+
+    renderPage('/reports/analysis?period=2023');
+
+    expect(await screen.findByText('已選取 2023')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockExecute).toHaveBeenLastCalledWith(expect.objectContaining({ range: '5y' })),
+    );
+  });
+
+  it('keeps the deep-linked year while the wider read is still in flight', async () => {
+    let resolveWide: (value: unknown) => void = () => {};
+    mockExecute.mockImplementation(({ range }: { range: string }) =>
+      range === '5y'
+        ? new Promise((resolve) => {
+            resolveWide = resolve;
+          })
+        : Promise.resolve(analysis({ availableRanges: ['1y', '3y', '5y', 'all'] })),
+    );
+
+    renderPage('/reports/analysis?period=2023');
+
+    await waitFor(() =>
+      expect(mockExecute).toHaveBeenCalledWith(expect.objectContaining({ range: '5y' })),
+    );
+    expect(screen.queryByText('已選取 2026')).toBeNull();
+
+    await act(async () => resolveWide(analysisWithYears(['2023', '2026'])));
+
+    expect(await screen.findByText('已選取 2023')).toBeInTheDocument();
+  });
+
+  it('reports the year as the period key, not the entered month', async () => {
+    mockExecute.mockResolvedValue(analysisWithYears(['2025', '2026']));
+
+    renderPage('/reports/analysis?granularity=annual&period=2026-02');
+
+    expect(await screen.findByText('已選取 2026')).toBeInTheDocument();
+    expect(screen.queryByText('已選取 2026-02')).toBeNull();
+  });
+
+  it('falls back the takeaway to the closest earlier net-worth year', async () => {
+    mockExecute.mockResolvedValue(
+      analysis({
+        availableRanges: ['1y', '3y', '5y', 'all'],
+        netWorthPoints: [
+          { ...point('2024-01', true), netWorth: 1234, assets: 1300, liabilities: 66 },
+          { ...point('2026-01', true), netWorth: 900, assets: 1000, liabilities: 100 },
+        ],
+        incomePoints: [{ ...point('2025-06', true), income: 100, expense: 50, savingsRate: 50 }],
+      }),
+    );
+
+    renderPage('/reports/analysis?granularity=annual&period=2025');
+
+    expect(await screen.findByText(/本期淨資產/)).toHaveTextContent('NT$1,234');
+    expect(screen.getByText('已選取 2025')).toBeInTheDocument();
+  });
+
+  it('falls back to the anchor year when no range can reach it', async () => {
+    mockExecute.mockResolvedValue(analysis({ availableRanges: ['1y', '3y'] }));
+
+    renderPage('/reports/analysis?period=2020');
+
+    expect(await screen.findByText('已選取 2026')).toBeInTheDocument();
+  });
+
+  it('falls back to the anchor year when the range excludes the selection', async () => {
+    mockExecute.mockImplementation(({ range }: { range: string }) =>
+      Promise.resolve(range === '5y' ? analysisWithYears(['2024', '2026']) : analysis()),
+    );
+
+    renderPage('/reports/analysis?period=2024&range=5y');
+    expect(await screen.findByText('已選取 2024')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '1Y' }));
+
+    expect(await screen.findByText('已選取 2026')).toBeInTheDocument();
+  });
+
+  it('selects a year from the filter without refetching', async () => {
+    mockExecute.mockResolvedValue(analysisWithYears(['2024', '2026']));
+
+    renderPage('/reports/analysis?granularity=annual');
+    const trigger = await screen.findByRole('combobox', { name: '年度選取' });
+    const calls = mockExecute.mock.calls.length;
+
+    fireEvent.pointerDown(trigger);
+    fireEvent.click(trigger);
+    fireEvent.click(await screen.findByRole('option', { name: '2024' }));
+
+    expect(await screen.findByText('已選取 2024')).toBeInTheDocument();
+    expect(mockExecute).toHaveBeenCalledTimes(calls);
+  });
+
+  it('drills an annual point to the yearly report', async () => {
+    mockExecute.mockResolvedValue(analysisWithYears(['2024', '2026']));
+
+    renderPage('/reports/analysis?granularity=annual');
+    const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
+    chart.getBoundingClientRect = () => ({ left: 0, width: 300 }) as DOMRect;
+    fireEvent.click(chart, { clientX: 10 });
+
+    expect(await screen.findByText('REPORT DETAIL 2024')).toBeInTheDocument();
+  });
+
+  it('keeps the same year, at its last month, when switching back to monthly', async () => {
+    mockExecute.mockResolvedValue(analysisWithYears(['2024', '2026']));
+
+    renderPage('/reports/analysis?period=2024&granularity=annual');
+    expect(await screen.findByText('已選取 2024')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '月' }));
+
+    expect(await screen.findByText('已選取 2024-11')).toBeInTheDocument();
+  });
+
+  it('takes the selected month year when switching to annual', async () => {
+    mockExecute.mockResolvedValue(analysisWithYears(['2024', '2026']));
+
+    renderPage('/reports/analysis?period=2024-11');
+
+    fireEvent.click(await screen.findByRole('button', { name: '年' }));
+
+    expect(await screen.findByText('已選取 2024')).toBeInTheDocument();
   });
 });

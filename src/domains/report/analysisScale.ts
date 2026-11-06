@@ -2,6 +2,13 @@
 export const ANALYSIS_RANGES = ['1y', '3y', '5y', 'all'] as const;
 export type AnalysisRange = (typeof ANALYSIS_RANGES)[number];
 
+/** Months covered by each bounded range. */
+export const RANGE_MONTHS: Record<Exclude<AnalysisRange, 'all'>, number> = {
+  '1y': 12,
+  '3y': 36,
+  '5y': 60,
+};
+
 /** The drawable scale: monthly points, or the annual rollup of the same data. */
 export const ANALYSIS_GRANULARITIES = ['monthly', 'annual'] as const;
 export type AnalysisGranularity = (typeof ANALYSIS_GRANULARITIES)[number];

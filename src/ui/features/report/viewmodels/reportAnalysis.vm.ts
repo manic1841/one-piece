@@ -4,25 +4,30 @@ import {
   ANALYSIS_RANGES,
   type AnalysisGranularity,
   type AnalysisRange,
-  yearOf,
 } from '@/domains/report/analysisScale';
 import {
   ANALYSIS_RANGE_LABELS,
   REPORT_ANALYSIS_LABELS,
-  REPORT_SUMMARY_LABELS,
 } from '@/ui/constants/report/reportCenterLabels';
 import { formatCurrency, formatPercentage, formatPercentageOrDash } from '@/ui/utils';
 import { formatMonthLabel } from '@/ui/utils/date';
 
 import { withChange, withRatioChange, withSavingsChange } from './reportAnalysisChange';
+import { DEFAULT_GRANULARITY, drawableYears } from './reportAnalysisParams';
+import {
+  MISSING,
+  type SelectionVM,
+  anchorKeyOf,
+  buildSelection,
+  cutoffTextOf,
+  resolveSelected,
+  takeawayAnchorOf,
+} from './reportAnalysisSelection';
 import { type TakeawayVM, takeawayOf } from './reportAnalysisTakeaway';
 
 export { ANALYSIS_GRANULARITIES, ANALYSIS_RANGES };
-export type { AnalysisGranularity, AnalysisRange };
-
-export const DEFAULT_RANGE: AnalysisRange = '3y';
-
-export const DEFAULT_GRANULARITY: AnalysisGranularity = 'monthly';
+export { DEFAULT_GRANULARITY, DEFAULT_RANGE } from './reportAnalysisParams';
+export type { AnalysisGranularity, AnalysisRange, SelectionVM };
 
 export type NetWorthSeriesKey = 'netWorth' | 'assets' | 'liabilities';
 export type AssetCompositionSeriesKey = 'cash' | 'investment' | 'property';
@@ -118,16 +123,6 @@ interface AnalysisSectionVM<Point> {
   latestText: string | null;
 }
 
-export interface SelectionVM {
-  /** Resolved period key (`YYYY-MM`, or `YYYY` on the annual scale). */
-  periodKey: string;
-  periodText: string;
-  unclosed: boolean;
-  rows: { label: string; value: string }[];
-  reportHref: string;
-  reportLabel: string;
-}
-
 export interface ReportAnalysisVM {
   /** One-line reading of the selected period; the page's answer before its evidence. */
   takeaway: TakeawayVM;
@@ -138,6 +133,12 @@ export interface ReportAnalysisVM {
   granularity: AnalysisGranularity;
   granularityItems: { id: AnalysisGranularity; label: string }[];
   showGranularityControl: boolean;
+  /** Newest first; only years drawable inside the range. */
+  yearItems: string[];
+  year: string;
+  showYearFilter: boolean;
+  /** Shown when the annual scale can only draw a single year. */
+  singleYearNote: string | null;
   selection: SelectionVM;
   unclosedNote: { text: string; showHistoryLink: boolean } | null;
   netWorth: AnalysisSectionVM<NetWorthChartVM>;
@@ -149,7 +150,7 @@ export interface ReportAnalysisVM {
   cashCoverage: AnalysisSectionVM<CashCoverageChartVM>;
 }
 
-const DASH = REPORT_SUMMARY_LABELS.MISSING;
+const DASH = MISSING;
 
 const pointLabel = (yearMonth: string, granularity: AnalysisGranularity): string => {
   if (granularity === 'annual') return yearMonth;
@@ -284,15 +285,8 @@ export const buildReportAnalysisVM = (
     ...cashCoveragePoints,
   ];
   const periodKeys = new Set(allPoints.map((point) => point.yearMonth));
-  const anchorKey =
-    analysis.anchor === null
-      ? null
-      : granularity === 'annual'
-        ? yearOf(analysis.anchor.yearMonth)
-        : analysis.anchor.yearMonth;
-  // An unknown deep link falls back to the anchor instead of showing nothing.
-  const selected =
-    requestedPeriod !== null && periodKeys.has(requestedPeriod) ? requestedPeriod : anchorKey;
+  const anchorKey = anchorKeyOf(analysis, granularity);
+  const selected = resolveSelected(analysis, granularity, requestedPeriod, periodKeys);
 
   // Section headers carry the block's anchor-period value (ADR/spec §layout), not
   // the selected period; the value is flagged when that period is still open.
@@ -306,7 +300,10 @@ export const buildReportAnalysisVM = (
     return `${point.yearMonth} · ${value(point)}${provisional}`;
   };
 
-  const takeaway = takeawayOf({ netWorthPoints, incomePoints, debtLeveragePoints }, selected);
+  const takeaway = takeawayOf(
+    { netWorthPoints, incomePoints, debtLeveragePoints },
+    takeawayAnchorOf(netWorthPoints, selected, granularity),
+  );
 
   const unclosed = analysis.unclosedMonths;
   const unclosedNote =
@@ -321,65 +318,28 @@ export const buildReportAnalysisVM = (
           showHistoryLink: unclosed.length > 6,
         };
 
-  const selectedNetWorth =
-    selected === null ? undefined : netWorthPoints.find((point) => point.yearMonth === selected);
-  const selectedIncome =
-    selected === null ? undefined : incomePoints.find((point) => point.yearMonth === selected);
-  const selectedDebt =
-    selected === null
-      ? undefined
-      : debtLeveragePoints.find((point) => point.yearMonth === selected);
-  const selection: SelectionVM =
-    selected === null
-      ? {
-          periodKey: '',
-          periodText: '',
-          unclosed: false,
-          rows: [],
-          reportHref: '',
-          reportLabel: '',
-        }
-      : {
-          periodKey: selected,
-          periodText: selected,
-          unclosed: allPoints.some((point) => point.yearMonth === selected && point.unclosed),
-          rows: [
-            {
-              label: REPORT_ANALYSIS_LABELS.NET_WORTH,
-              value: selectedNetWorth?.netWorthText ?? DASH,
-            },
-            {
-              label: REPORT_ANALYSIS_LABELS.TOTAL_ASSETS,
-              value: selectedNetWorth?.assetsText ?? DASH,
-            },
-            {
-              label: REPORT_ANALYSIS_LABELS.TOTAL_LIABILITIES,
-              value: selectedNetWorth?.liabilitiesText ?? DASH,
-            },
-            {
-              label: REPORT_ANALYSIS_LABELS.SAVINGS_RATE,
-              value: selectedIncome?.savingsRateText ?? DASH,
-            },
-            {
-              label: REPORT_ANALYSIS_LABELS.DEBT_RATIO,
-              value: selectedDebt?.debtRatioText ?? DASH,
-            },
-          ],
-          reportHref: `/reports/${selected}`,
-          reportLabel: REPORT_ANALYSIS_LABELS.VIEW_PERIOD_REPORT(selected),
-        };
+  const selection = buildSelection(
+    selected,
+    {
+      netWorth:
+        selected === null
+          ? undefined
+          : netWorthPoints.find((point) => point.yearMonth === selected),
+      income:
+        selected === null ? undefined : incomePoints.find((point) => point.yearMonth === selected),
+      debt:
+        selected === null
+          ? undefined
+          : debtLeveragePoints.find((point) => point.yearMonth === selected),
+    },
+    selected !== null && allPoints.some((point) => point.yearMonth === selected && point.unclosed),
+  );
 
-  const years = new Set(allPoints.map((point) => yearOf(point.yearMonth)));
+  const years = drawableYears(analysis);
 
   return {
     takeaway,
-    // The cut-off sentence always names how many periods inside it are provisional.
-    cutoffText:
-      analysis.anchor === null
-        ? ''
-        : unclosed.length === 0
-          ? REPORT_ANALYSIS_LABELS.CUTOFF_AT(analysis.anchor.yearMonth)
-          : REPORT_ANALYSIS_LABELS.CUTOFF_WITH_UNCLOSED(analysis.anchor.yearMonth, unclosed.length),
+    cutoffText: cutoffTextOf(analysis, granularity, unclosed.length),
     range: analysis.range,
     rangeItems: analysis.availableRanges.map((range) => ({
       id: range,
@@ -392,7 +352,14 @@ export const buildReportAnalysisVM = (
       { id: 'annual', label: REPORT_ANALYSIS_LABELS.GRANULARITY_ANNUAL },
     ],
     // Keep the control reachable when an annual deep link lands on a single year.
-    showGranularityControl: years.size > 1 || granularity === 'annual',
+    showGranularityControl: years.length > 1 || granularity === 'annual',
+    yearItems: years,
+    year: selected ?? '',
+    showYearFilter: granularity === 'annual' && years.length > 1,
+    singleYearNote:
+      granularity === 'annual' && years.length === 1
+        ? REPORT_ANALYSIS_LABELS.SINGLE_YEAR_ANNUAL_NOTE
+        : null,
     selection,
     unclosedNote,
     netWorth: section(

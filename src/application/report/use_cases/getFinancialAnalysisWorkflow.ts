@@ -10,6 +10,7 @@ import {
   ANALYSIS_RANGES,
   type AnalysisGranularity,
   type AnalysisRange,
+  RANGE_MONTHS,
   byMonth,
   monthCode,
 } from '@/domains/report/analysisScale';
@@ -26,12 +27,6 @@ import { resolveReportAnchorUseCase } from './resolveReportAnchorUseCase';
 import { rollUpFinancialAnalysisUseCase } from './rollUpFinancialAnalysisUseCase';
 
 export type { AnalysisGranularity, AnalysisRange } from '@/domains/report/analysisScale';
-
-const RANGE_MONTHS: Record<Exclude<AnalysisRange, 'all'>, number> = {
-  '1y': 12,
-  '3y': 36,
-  '5y': 60,
-};
 
 interface AnalysisPointBase {
   yearMonth: string;
