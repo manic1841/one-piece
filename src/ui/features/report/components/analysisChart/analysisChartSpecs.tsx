@@ -1,29 +1,21 @@
-import { type ReactNode } from 'react';
-
 import { ANALYSIS_ANCHORS, REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 
-import { type NetWorthSeriesKey, type ReportAnalysisVM } from '../../viewmodels/reportAnalysis.vm';
-import { SECTION_CHARTS } from './analysisSectionCharts';
+import { type ReportAnalysisVM } from '../../viewmodels/reportAnalysis.vm';
+import { type RenderChart } from './engine/types';
+import { assetCompositionChart } from './sections/assetComposition';
+import { cashCoverageChart } from './sections/cashCoverage';
+import { cashFlowChart } from './sections/cashFlow';
+import { debtLeverageChart } from './sections/debtLeverage';
+import { incomeChart } from './sections/income';
+import { investmentPerformanceChart } from './sections/investmentPerformance';
+import { netWorthChart } from './sections/netWorth';
 
 /** VM keys that hold a chart section; excludes the page-level fields. */
-export type SectionVmKey =
-  | 'netWorth'
-  | 'assetComposition'
-  | 'investmentPerformance'
-  | 'income'
-  | 'cashFlow'
-  | 'debtLeverage'
-  | 'cashCoverage';
-
-export interface ChartContext {
-  /** Period key of the page's selected point. */
-  selectedPeriod: string;
-  onPointSelect: (yearMonth: string) => void;
-  /** Context series preselected from `?series=`. */
-  initialSeries: NetWorthSeriesKey[];
-  /** Draw the unclosed caption; only the first block and the last block carry it. */
-  showUnclosedLabels: boolean;
-}
+export type SectionVmKey = {
+  [Key in keyof ReportAnalysisVM]: ReportAnalysisVM[Key] extends { points: unknown[] }
+    ? Key
+    : never;
+}[keyof ReportAnalysisVM];
 
 /**
  * One analysis block. Order here is the page order and the index order; `pair`
@@ -37,26 +29,24 @@ export interface AnalysisSectionSpec {
   footnote?: string;
   /** Extra classes on the section band, e.g. to tighten its top padding. */
   sectionClassName?: string;
-  /** Draw the unclosed caption; only the first block needs it. */
-  showUnclosedLabels?: boolean;
-  chart: (vm: ReportAnalysisVM, context: ChartContext) => ReactNode;
+  chart: RenderChart;
 }
 
-type SectionMeta = Omit<AnalysisSectionSpec, 'chart'>;
-
-const SECTIONS: readonly SectionMeta[] = [
+/** The analysis page's blocks, in display order. Adding a block is one entry. */
+export const ANALYSIS_SECTIONS: readonly AnalysisSectionSpec[] = [
   {
     id: ANALYSIS_ANCHORS.NET_WORTH,
     vmKey: 'netWorth',
     layout: 'full',
     title: REPORT_ANALYSIS_LABELS.NET_WORTH_SECTION,
-    showUnclosedLabels: true,
+    chart: netWorthChart,
   },
   {
     id: ANALYSIS_ANCHORS.ASSET_COMPOSITION,
     vmKey: 'assetComposition',
     layout: 'pair',
     title: REPORT_ANALYSIS_LABELS.ASSET_COMPOSITION_SECTION,
+    chart: assetCompositionChart,
   },
   {
     id: ANALYSIS_ANCHORS.INVESTMENT_PERFORMANCE,
@@ -64,6 +54,7 @@ const SECTIONS: readonly SectionMeta[] = [
     layout: 'pair',
     title: REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_SECTION,
     footnote: REPORT_ANALYSIS_LABELS.INVESTMENT_PERFORMANCE_HINT,
+    chart: investmentPerformanceChart,
   },
   {
     id: ANALYSIS_ANCHORS.INCOME,
@@ -71,6 +62,7 @@ const SECTIONS: readonly SectionMeta[] = [
     layout: 'pair',
     title: REPORT_ANALYSIS_LABELS.INCOME_SECTION,
     footnote: REPORT_ANALYSIS_LABELS.SAVINGS_FORMULA,
+    chart: incomeChart,
   },
   {
     id: ANALYSIS_ANCHORS.CASH_FLOW,
@@ -78,12 +70,14 @@ const SECTIONS: readonly SectionMeta[] = [
     layout: 'pair',
     title: REPORT_ANALYSIS_LABELS.CASH_FLOW_SECTION,
     footnote: REPORT_ANALYSIS_LABELS.CASH_FLOW_HINT,
+    chart: cashFlowChart,
   },
   {
     id: ANALYSIS_ANCHORS.DEBT_LEVERAGE,
     vmKey: 'debtLeverage',
     layout: 'full',
     title: REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_SECTION,
+    chart: debtLeverageChart,
   },
   {
     id: ANALYSIS_ANCHORS.CASH_COVERAGE,
@@ -92,15 +86,9 @@ const SECTIONS: readonly SectionMeta[] = [
     title: REPORT_ANALYSIS_LABELS.CASH_COVERAGE_SECTION,
     footnote: REPORT_ANALYSIS_LABELS.CASH_COVERAGE_HINT,
     sectionClassName: 'pt-4',
-    showUnclosedLabels: true,
+    chart: cashCoverageChart,
   },
 ];
-
-/** The analysis page's blocks, in display order. Adding a block is one entry. */
-export const ANALYSIS_SECTIONS: readonly AnalysisSectionSpec[] = SECTIONS.map((section) => ({
-  ...section,
-  chart: SECTION_CHARTS[section.vmKey],
-}));
 
 /** Group `pair` neighbours into rows; `full` blocks stand alone. */
 export const groupSections = (

@@ -26,7 +26,11 @@ export const AnalysisSection: React.FC<AnalysisSectionProps> = ({
   className,
   children,
 }) => (
-  <div id={id} tabIndex={-1} className="h-full scroll-mt-32 outline-none">
+  <div
+    id={id}
+    tabIndex={-1}
+    className="h-full scroll-mt-32 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+  >
     <PageSection
       title={title}
       spacing="compact"

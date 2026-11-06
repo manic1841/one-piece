@@ -27,9 +27,12 @@ describe('analysis section registry', () => {
     );
   });
 
-  it('carries the unclosed caption only on the first and last blocks', () => {
-    expect(ANALYSIS_SECTIONS.filter((section) => section.showUnclosedLabels).map((s) => s.id)).toEqual(
-      ['net-worth', 'cash-coverage'],
-    );
+  it('carries one renderer per entry', () => {
+    expect(ANALYSIS_SECTIONS.every((section) => typeof section.chart === 'function')).toBe(true);
+  });
+
+  it('puts the unclosed caption on the first block only', () => {
+    // The page derives the caption from position, so order alone decides it.
+    expect(ANALYSIS_SECTIONS[0]?.id).toBe('net-worth');
   });
 });

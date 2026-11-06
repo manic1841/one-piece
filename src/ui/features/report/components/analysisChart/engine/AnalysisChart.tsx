@@ -2,81 +2,52 @@ import { useState } from 'react';
 
 import { ChartLegend, type ChartLegendItem } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
-import { heroPoint, listPoint, type TooltipItem } from '@/ui/components/charts/chartInteraction';
-import { type ChartColorToken, type ChartTone } from '@/ui/components/charts/chartTheme';
-import { type ComposedSeries, type ComposedReferenceLine } from '@/ui/components/charts/composedChartGeometry';
+import { type TooltipItem, heroPoint, listPoint } from '@/ui/components/charts/chartInteraction';
+import { CHART_COLOR_TOKEN_COLOR } from '@/ui/components/charts/chartTheme';
+import {
+  type ComposedReferenceLine,
+  type ComposedSeries,
+} from '@/ui/components/charts/composedChartGeometry';
 import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels';
 import { useIsDesktop } from '@/ui/features/app/layout/useIsDesktop';
 
-/** A tooltip row. `seriesKey` ties it to a layer so hiding the layer drops the row. */
-export type ChartTooltipItem = TooltipItem & { seriesKey?: string };
+import {
+  type ChartBandLayer,
+  type ChartDensity,
+  type ChartLayer,
+  type ChartMainLayer,
+  type ChartTooltipSpec,
+} from './types';
 
-export type ChartTooltipSpec =
-  | { primary?: ChartTooltipItem; secondary?: (ChartTooltipItem | null)[] }
-  | { mode: 'list'; items: (ChartTooltipItem | null)[] };
+type ChartHeight = { mobile: number; desktop: number };
 
-export type ChartLayer =
-  | {
-      kind: 'line';
-      seriesKey: string;
-      values: (number | null)[];
-      tone: ChartTone;
-      colorToken?: ChartColorToken;
-      axis?: 'right';
-      dashed?: boolean;
-      area?: boolean;
-      /** Stack this band on the layers before it instead of the zero baseline. */
-      baseline?: 'stack';
-    }
-  | {
-      kind: 'bar';
-      seriesKey: string;
-      values: number[];
-      tone: ChartTone;
-      toneBySign?: boolean;
-    };
-
-/** A narrow band under the main plot, owning its own scale and unit caption. */
-export type ChartSecondary = {
-  seriesKey: string;
-  unit: string;
-  tone: ChartTone;
-  values: (number | null)[];
-  includeZero?: boolean;
-  yTicks?: number;
-  yDecimals?: number;
-  yUnit?: string;
-  /** Let this band label x; the module labels through the lowest visible band. */
-  showLabels?: boolean;
+const HEIGHT: Record<ChartDensity, ChartHeight> = {
+  tall: { mobile: 200, desktop: 320 },
+  standard: { mobile: 160, desktop: 240 },
+  compact: { mobile: 160, desktop: 160 },
 };
+const SECONDARY_HEIGHT = 96;
 
-type ChartHeight = {
-  mobile: number;
-  desktop: number;
-  /** Desktop height while the series is dense (fewer than 6 points). */
-  shortDesktop?: number;
-};
-
-export interface AnalysisChartProps<Point extends { yearMonth: string; label: string; unclosed: boolean }> {
+export interface AnalysisChartProps<
+  SeriesKey extends string,
+  Point extends { yearMonth: string; label: string; unclosed: boolean },
+> {
   points: Point[];
-  /** The chart's layers, given the points and the current visibility. */
-  layers: (points: Point[], isVisible: (seriesKey: string) => boolean) => ChartLayer[];
+  /** Every layer, visible or not; the module drops the hidden ones and builds the legend. */
+  layers: (points: Point[]) => ChartLayer<SeriesKey>[];
   /** Semantic tooltip content; hidden layers are filtered out by the module. */
-  tooltip: (point: Point, isVisible: (seriesKey: string) => boolean) => ChartTooltipSpec;
-  /** Series toggles. Omitted charts render without a legend and cannot hide layers. */
-  legend?: { items: { key: string; label: string; tone?: ChartTone; color?: string }[] };
+  tooltip: (point: Point) => ChartTooltipSpec;
+  /** Height pair from the visual standard. Defaults to `standard`. */
+  density?: ChartDensity;
   /** Accessible name; called with the labels currently visible. */
-  ariaLabel: (visibleLabels: string[]) => string;
+  ariaLabel?: (visibleLabels: string[]) => string;
   /** Period key of the page's selected point. */
   selectedPeriod: string;
   onPointSelect: (yearMonth: string) => void;
   /** Series switched on at mount, e.g. from `?series=`. */
-  initialActive?: string[];
+  initialActive?: SeriesKey[];
   /** Draw the unclosed caption; only the first chart on a page needs it. */
   showUnclosedLabels?: boolean;
-  /** Extra bands under the main plot (e.g. a rate line). All hidden, the main plot labels x. */
-  secondary?: (points: Point[]) => ChartSecondary[];
-  height?: ChartHeight;
   yDomain?: { min: number; max: number };
   yTicks?: number;
   yDecimals?: number;
@@ -84,16 +55,12 @@ export interface AnalysisChartProps<Point extends { yearMonth: string; label: st
   includeZero?: boolean;
 }
 
-const DEFAULT_HEIGHT: ChartHeight = { mobile: 160, desktop: 240, shortDesktop: 160 };
-const SECONDARY_HEIGHT = 96;
-
 const pointTitle = (point: { label: string; unclosed: boolean }): string =>
   `${point.label}${point.unclosed ? REPORT_ANALYSIS_LABELS.PROVISIONAL_SUFFIX : ''}`;
 
 /** Series visibility for one chart, seeded with the series that start visible. */
 const useSeriesVisibility = (initial: readonly string[]) => {
   const [active, setActive] = useState<ReadonlySet<string>>(() => new Set(initial));
-  const isVisible = (key: string): boolean => active.has(key);
   const toggle = (key: string) =>
     setActive((current) => {
       const next = new Set(current);
@@ -101,7 +68,7 @@ const useSeriesVisibility = (initial: readonly string[]) => {
       else next.add(key);
       return next;
     });
-  return { active, isVisible, toggle };
+  return { active, toggle };
 };
 
 const stackBaseline = (values: (number | null)[], baseline: number[]): number[] =>
@@ -124,7 +91,10 @@ const unclosedReferenceLines = (
  * The baseline each stacked layer should sit on: the running sum of the stacked
  * layers before it. Non-stacked layers get none.
  */
-const stackOffsets = (layerList: ChartLayer[], count: number): (number[] | undefined)[] => {
+const stackOffsets = <S extends string>(
+  layerList: ChartMainLayer<S>[],
+  count: number,
+): (number[] | undefined)[] => {
   const offsets: (number[] | undefined)[] = [];
   let running = Array.from({ length: count }, () => 0);
   for (const layer of layerList) {
@@ -138,36 +108,43 @@ const stackOffsets = (layerList: ChartLayer[], count: number): (number[] | undef
   return offsets;
 };
 
+const isBand = <S extends string>(layer: ChartLayer<S>): layer is ChartBandLayer<S> =>
+  layer.kind === 'band';
+
 /**
  * One analysis chart: the shared interaction pipeline (series toggles, tooltip
- * content, unclosed markers, keyboard activation, responsive height, a11y)
- * behind a caller-supplied layer and tooltip description. Callers keep the
- * series definitions; this module keeps the wiring.
+ * filtering, unclosed markers, keyboard activation, responsive height, a11y)
+ * behind a caller-supplied layer and tooltip description.
  */
-export function AnalysisChart<Point extends { yearMonth: string; label: string; unclosed: boolean }>({
+export function AnalysisChart<
+  SeriesKey extends string,
+  Point extends { yearMonth: string; label: string; unclosed: boolean },
+>({
   points,
   layers,
   tooltip,
-  legend,
+  density = 'standard',
   ariaLabel,
   selectedPeriod,
   onPointSelect,
   initialActive,
   showUnclosedLabels = false,
-  secondary,
-  height = DEFAULT_HEIGHT,
   yDomain,
   yTicks,
   yDecimals,
   yUnit,
   includeZero,
-}: AnalysisChartProps<Point>) {
+}: AnalysisChartProps<SeriesKey, Point>) {
   const isDesktop = useIsDesktop();
-  const legendKeys = legend?.items.map((item) => item.key) ?? [];
-  const { isVisible, toggle } = useSeriesVisibility(initialActive ?? legendKeys);
+  const allLayers = layers(points);
+  // A key with no legend entry cannot be toggled, so it always stays visible.
+  const legendKeys: string[] = allLayers.map((layer) => layer.seriesKey);
+  const { active, toggle } = useSeriesVisibility(initialActive ?? legendKeys);
+  const isVisible = (key: string): boolean => !legendKeys.includes(key) || active.has(key);
 
-  const visibleLegendItems = (legend?.items ?? []).filter((item) => isVisible(item.key));
-  const visibleLabels = visibleLegendItems.map((item) => item.label);
+  const visibleLabels = allLayers
+    .filter((layer) => isVisible(layer.seriesKey))
+    .map((layer) => layer.label);
   const selectedIndex = points.findIndex((point) => point.yearMonth === selectedPeriod);
   const activate = (index: number) => {
     const point = points[index];
@@ -178,10 +155,13 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
     ? unclosedReferenceLines(points)
     : withoutLabels(unclosedReferenceLines(points));
 
-  // Stacked layers sit on everything before them; hidden layers collapse out.
-  const requestedLayers = layers(points, isVisible);
-  const offsets = stackOffsets(requestedLayers, points.length);
-  const series: ComposedSeries[] = requestedLayers.map((layer, index) => {
+  // Hidden layers collapse out, and stacked layers sit on everything before them.
+  const visibleLayers = allLayers.filter((layer) => isVisible(layer.seriesKey));
+  const visibleMain = visibleLayers.filter(
+    (layer): layer is ChartMainLayer<SeriesKey> => !isBand(layer),
+  );
+  const offsets = stackOffsets(visibleMain, points.length);
+  const series: ComposedSeries[] = visibleMain.map((layer, index) => {
     if (layer.kind === 'bar') {
       return {
         kind: 'bar' as const,
@@ -190,13 +170,13 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
         ...(layer.toneBySign === undefined ? {} : { toneBySign: layer.toneBySign }),
       };
     }
-    const values = layer.values;
     const baseline = offsets[index];
-    const baselineValues = baseline === undefined ? undefined : stackBaseline(values, baseline);
+    const baselineValues =
+      baseline === undefined ? undefined : stackBaseline(layer.values, baseline);
     return {
       kind: 'line' as const,
       tone: layer.tone,
-      values,
+      values: layer.values,
       ...(layer.colorToken === undefined ? {} : { colorToken: layer.colorToken }),
       ...(layer.axis === undefined ? {} : { axis: layer.axis }),
       ...(layer.dashed === undefined ? {} : { dashed: layer.dashed }),
@@ -205,32 +185,30 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
     };
   });
 
-  const visibleSecondaries = (secondary?.(points) ?? []).filter((band) =>
-    isVisible(band.seriesKey),
-  );
+  const visibleSecondaries = visibleLayers.filter(isBand);
 
   const tooltipPoints = points.map((point) => {
-    const spec = tooltip(point, isVisible);
+    const spec = tooltip(point);
     if ('mode' in spec && spec.mode === 'list') {
       const items = (spec.items ?? []).filter(
-        (item): item is ChartTooltipItem =>
+        (item): item is NonNullable<typeof item> =>
           item !== null && (item.seriesKey === undefined || isVisible(item.seriesKey)),
       );
       return listPoint(pointTitle(point), items);
     }
-    const hero = spec as Extract<ChartTooltipSpec, { primary?: ChartTooltipItem }>;
+    const hero = spec as Extract<ChartTooltipSpec, { primary?: TooltipItem }>;
+    const primary =
+      hero.primary?.seriesKey !== undefined && !isVisible(hero.primary.seriesKey)
+        ? undefined
+        : hero.primary;
     const secondaryItems = (hero.secondary ?? []).filter(
-      (item): item is ChartTooltipItem =>
+      (item): item is NonNullable<typeof item> =>
         item !== null && (item.seriesKey === undefined || isVisible(item.seriesKey)),
     );
-    return heroPoint(pointTitle(point), hero.primary, secondaryItems);
+    return heroPoint(pointTitle(point), primary, secondaryItems);
   });
 
-  const chartHeight = isDesktop
-    ? points.length < 6
-      ? (height.shortDesktop ?? height.desktop)
-      : height.desktop
-    : height.mobile;
+  const chartHeight = HEIGHT[density][isDesktop ? 'desktop' : 'mobile'];
 
   // The lowest visible layer owns the x labels; the main plot only labels while
   // no band is showing.
@@ -241,6 +219,15 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
     onPointClick: activate,
   };
 
+  const legendItems = allLayers.map<ChartLegendItem>((layer) => ({
+    label: layer.label,
+    ...(layer.color === undefined
+      ? layer.colorToken === undefined
+        ? { tone: layer.tone }
+        : { color: CHART_COLOR_TOKEN_COLOR[layer.colorToken] }
+      : { color: layer.color }),
+  }));
+
   return (
     <div className="space-y-3">
       <InteractiveComposedChart
@@ -249,7 +236,7 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
         referenceLines={referenceLines}
         height={chartHeight}
         showLabels={showLabels}
-        ariaLabel={ariaLabel(visibleLabels)}
+        ariaLabel={(ariaLabel ?? ((visible) => visible.join('、')))(visibleLabels)}
         selectedIndex={selectedIndex}
         {...(yDomain === undefined ? {} : { yDomain })}
         {...(yTicks === undefined ? {} : { yTicks })}
@@ -269,30 +256,24 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
             referenceLines={withoutLabels(referenceLines)}
             height={SECONDARY_HEIGHT}
             // Only the lowest visible band carries the x labels.
-            showLabels={band.showLabels ?? index === visibleSecondaries.length - 1}
+            showLabels={index === visibleSecondaries.length - 1}
             yTicks={band.yTicks ?? 3}
             yDecimals={band.yDecimals ?? 1}
-            ariaLabel={legend?.items.find((item) => item.key === band.seriesKey)?.label ?? band.unit}
+            ariaLabel={band.label}
             {...(band.yUnit === undefined ? {} : { yUnit: band.yUnit })}
             {...(band.includeZero === undefined ? {} : { includeZero: band.includeZero })}
           />
         </div>
       ))}
 
-      {legend !== undefined && (
-        <ChartLegend
-          items={legend.items.map<ChartLegendItem>((item) => ({
-            label: item.label,
-            ...(item.tone === undefined ? {} : { tone: item.tone }),
-            ...(item.color === undefined ? {} : { color: item.color }),
-          }))}
-          active={visibleLabels}
-          onToggle={(label) => {
-            const key = legend.items.find((item) => item.label === label)?.key;
-            if (key !== undefined) toggle(key);
-          }}
-        />
-      )}
+      <ChartLegend
+        items={legendItems}
+        active={visibleLabels}
+        onToggle={(label) => {
+          const key = allLayers.find((layer) => layer.label === label)?.seriesKey;
+          if (key !== undefined) toggle(key);
+        }}
+      />
     </div>
   );
 }

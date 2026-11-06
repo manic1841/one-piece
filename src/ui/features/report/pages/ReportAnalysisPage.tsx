@@ -13,10 +13,10 @@ import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import {
   ANALYSIS_SECTIONS,
+  AnalysisSection,
   type AnalysisSectionSpec,
   groupSections,
-} from '@/ui/features/report/components/analysisChart/analysisChartSpecs';
-import { AnalysisSection } from '@/ui/features/report/components/analysisChart/AnalysisSection';
+} from '@/ui/features/report/components/analysisChart';
 import { useFinancialAnalysis } from '@/ui/features/report/hooks/useFinancialAnalysis';
 import {
   ANALYSIS_GRANULARITIES,
@@ -75,9 +75,9 @@ const ReportAnalysisPage: React.FC = () => {
   // Highlight the section crossing the upper third of the viewport.
   useEffect(() => {
     if (analysisVM === null) return;
-    const sections = ANALYSIS_SECTIONS
-      .map((item) => document.getElementById(item.id))
-      .filter((element): element is HTMLElement => element !== null);
+    const sections = ANALYSIS_SECTIONS.map((item) => document.getElementById(item.id)).filter(
+      (element): element is HTMLElement => element !== null,
+    );
     if (sections.length === 0) return;
     const observer = new IntersectionObserver(
       (entries) => {
@@ -147,7 +147,8 @@ const ReportAnalysisPage: React.FC = () => {
           selectedPeriod: analysisVM.selection.periodKey,
           onPointSelect: selectPeriod,
           initialSeries,
-          showUnclosedLabels: spec.showUnclosedLabels === true,
+          // The caption is a page-level concern; only the first block carries it.
+          showUnclosedLabels: spec === ANALYSIS_SECTIONS[0],
         })}
       </AnalysisSection>
     );

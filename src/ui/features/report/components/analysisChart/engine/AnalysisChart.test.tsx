@@ -1,7 +1,9 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { AnalysisChart, type ChartLayer } from './AnalysisChart';
+import { AnalysisChart } from './AnalysisChart';
+import { type AnalysisChartProps } from './AnalysisChart';
+import { type ChartLayer } from './types';
 
 interface Point {
   label: string;
@@ -11,61 +13,53 @@ interface Point {
   rate: number;
 }
 
+type SeriesKey = 'base' | 'value' | 'rate';
+
 const points: Point[] = [
   { label: 'JAN 2026', yearMonth: '2026-01', unclosed: false, value: 10, rate: 5 },
   { label: 'FEB 2026', yearMonth: '2026-02', unclosed: true, value: 20, rate: 6 },
   { label: 'MAR 2026', yearMonth: '2026-03', unclosed: true, value: 30, rate: 7 },
 ];
 
-const renderChart = (overrides: Partial<Parameters<typeof AnalysisChart<Point>>[0]> = {}) => {
+const renderChart = (overrides: Partial<AnalysisChartProps<SeriesKey, Point>> = {}) => {
   const onPointSelect = vi.fn();
   render(
-    <AnalysisChart
+    <AnalysisChart<SeriesKey, Point>
       points={points}
       selectedPeriod=""
       onPointSelect={onPointSelect}
-      initialActive={['value', 'rate']}
-      legend={{
-        items: [
-          { key: 'value', label: 'VALUE', tone: 'positive' },
-          { key: 'rate', label: 'RATE', tone: 'neutral' },
-        ],
-      }}
-      layers={(chartPoints, isVisible) => {
-        // A bare line keeps columns alive while `value` is toggled off, so the
-        // chart can still anchor a tooltip.
-        const layers: ChartLayer[] = [
+      initialActive={['base', 'value', 'rate']}
+      layers={(chartPoints) => {
+        const layers: ChartLayer<SeriesKey>[] = [
           {
             kind: 'line',
             seriesKey: 'base',
+            label: 'BASE',
             tone: 'neutral',
             values: chartPoints.map((point) => point.value),
           },
-        ];
-        if (isVisible('value')) {
-          layers.push({
+          {
             kind: 'bar',
             seriesKey: 'value',
+            label: 'VALUE',
             tone: 'positive',
             values: chartPoints.map((point) => point.value),
-          });
-        }
+          },
+          {
+            kind: 'band',
+            seriesKey: 'rate',
+            label: 'RATE',
+            unit: 'RATE %',
+            tone: 'neutral',
+            values: chartPoints.map((point) => point.rate),
+          },
+        ];
         return layers;
       }}
-      tooltip={(point, isVisible) => ({
-        primary: isVisible('value')
-          ? { id: 'value', label: 'VALUE', value: String(point.value) }
-          : undefined,
+      tooltip={(point) => ({
+        primary: { id: 'value', seriesKey: 'value', label: 'VALUE', value: String(point.value) },
         secondary: [{ id: 'rate', seriesKey: 'rate', label: 'RATE', value: String(point.rate) }],
       })}
-      secondary={(chartPoints) => [
-        {
-          seriesKey: 'rate',
-          unit: 'RATE %',
-          tone: 'neutral',
-          values: chartPoints.map((point) => point.rate),
-        },
-      ]}
       showUnclosedLabels
       ariaLabel={(visible) => `chart ${visible.join(',')}`}
       {...overrides}
@@ -100,9 +94,33 @@ describe('AnalysisChart', () => {
   it('passes only the visible labels to the accessibility name', () => {
     renderChart();
 
-    expect(screen.getAllByRole('slider')[0].getAttribute('aria-label')).toBe('chart VALUE,RATE');
+    expect(screen.getAllByRole('slider')[0].getAttribute('aria-label')).toBe(
+      'chart BASE,VALUE,RATE',
+    );
     fireEvent.click(screen.getByRole('button', { name: 'RATE' }));
-    expect(screen.getAllByRole('slider')[0].getAttribute('aria-label')).toBe('chart VALUE');
+    expect(screen.getAllByRole('slider')[0].getAttribute('aria-label')).toBe('chart BASE,VALUE');
+  });
+
+  it('builds the legend from the layers', () => {
+    renderChart();
+
+    expect(screen.getByRole('button', { name: 'BASE' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'VALUE' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'RATE' })).toBeInTheDocument();
+  });
+
+  it('renders a secondary band without a legend entry', () => {
+    renderChart({
+      // A row keyed outside the layers cannot be toggled, so it always shows.
+      tooltip: () => ({
+        primary: { id: 'value', seriesKey: 'value', label: 'VALUE', value: '1' },
+        secondary: [{ id: 'extra', seriesKey: 'extra', label: 'EXTRA', value: '2' }],
+      }),
+    });
+
+    const chart = screen.getAllByRole('slider')[0];
+    fireEvent.keyDown(chart, { key: 'ArrowRight' });
+    expect(within(chart).getByRole('tooltip').textContent).toContain('EXTRA 2');
   });
 
   it('labels one unclosed run once, and only when asked', () => {

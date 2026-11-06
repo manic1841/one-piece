@@ -352,7 +352,7 @@
 - **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。提供 `onToggle` 時每個項目成為切換鈕（`aria-pressed`），以 `active` 標示目前是否顯示；關閉的項目降透明度，命中高度至少 32px。
   - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`、`onToggle?`、`active?`（目前可見的 label 清單）。
   - **不要用於**：非序列的篩選（那用 `FilterStrip`）。沒有 `onToggle` 時純展示，與圖表互動無關。
-  - 範例：`src/ui/components/charts/DonutChart.tsx`（`vertical` 模式）；`src/ui/features/report/components/analysisChart/AnalysisChart.tsx`（可切換）。
+  - 範例：`src/ui/components/charts/DonutChart.tsx`（`vertical` 模式）；`src/ui/features/report/components/analysisChart/engine/AnalysisChart.tsx`（可切換）。
 
 - **`charts / ChartTooltip`** — 圖表 hover 卡片表面（標題／數值／次要行）。定位由呼叫端負責。
   - Props：`title`、`value`、`meta?`、`className?`、`style?`。
