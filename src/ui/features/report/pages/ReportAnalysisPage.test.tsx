@@ -4,11 +4,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ReportAnalysisPage from './ReportAnalysisPage';
 
+import {
+  type AnalysisGranularity,
+  type FinancialAnalysis,
+} from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+
 const mockExecute = vi.hoisted(() => vi.fn());
 
-vi.mock('@/application/report/use_cases/getFinancialAnalysisWorkflow', () => ({
-  getFinancialAnalysisWorkflow: { execute: mockExecute },
-}));
+// `execute` is mocked; the scale is applied by the real, pure `rollUp`.
+vi.mock('@/application/report/use_cases/getFinancialAnalysisWorkflow', async () => {
+  const actual = await vi.importActual<
+    typeof import('@/application/report/use_cases/getFinancialAnalysisWorkflow')
+  >('@/application/report/use_cases/getFinancialAnalysisWorkflow');
+  return {
+    ...actual,
+    getFinancialAnalysisWorkflow: {
+      execute: mockExecute,
+      rollUp: (value: FinancialAnalysis, granularity: AnalysisGranularity) =>
+        actual.getFinancialAnalysisWorkflow.rollUp(value, granularity),
+    },
+  };
+});
 
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: () => ({ userProfile: { householdId: 'h1' } }),
@@ -309,6 +325,8 @@ describe('ReportAnalysisPage', () => {
 
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: '年' }));
+    // Switching the scale rescales what was read; it must not fetch again.
+    expect(mockExecute).toHaveBeenCalledTimes(1);
 
     expect(await screen.findByText('2026 · NT$900（未關帳）')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '查看 2026 完整報表' })).toBeInTheDocument();

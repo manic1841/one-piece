@@ -567,6 +567,40 @@ describe('getFinancialAnalysisWorkflow', () => {
     expect(result.cashCoveragePoints.map((point) => point.yearMonth)).toEqual(['2026-12']);
   });
 
+  it('rolls a resolved analysis up to years without another read', async () => {
+    listReportsMock.mockResolvedValue([
+      balanceSheet('2025-12', 800, 100),
+      income('2025-12', 5000, 4000),
+      cashFlow('2025-12', -100),
+      balanceSheet('2026-01', 900, 100),
+      income('2026-01', 6000, 5000),
+      cashFlow('2026-01', -200),
+      balanceSheet('2026-02', 1000, 100),
+      income('2026-02', 8000, 4000),
+    ]);
+    const monthly = await run();
+    const reads = listReportsMock.mock.calls.length;
+
+    const annual = getFinancialAnalysisWorkflow.rollUp(monthly, 'annual');
+
+    expect(listReportsMock).toHaveBeenCalledTimes(reads);
+    // Stocks keep the year's last month; flows sum over the year.
+    expect(annual.netWorthPoints.map((point) => [point.yearMonth, point.netWorth])).toEqual([
+      ['2025', 700],
+      ['2026', 900],
+    ]);
+    expect(annual.incomePoints.map((point) => [point.yearMonth, point.income])).toEqual([
+      ['2025', 5000],
+      ['2026', 14000],
+    ]);
+    expect(annual.incomePoints[1]?.savingsRate).toBeCloseTo(((14000 - 9000) / 14000) * 100);
+    expect(annual.cashFlowPoints.map((point) => point.netCashFlow)).toEqual([-100, -200]);
+    // The monthly analysis is untouched, and monthly returns the same object.
+    expect(monthly.netWorthPoints[0]?.yearMonth).toBe('2025-12');
+    expect(monthly.incomePoints).toHaveLength(3);
+    expect(getFinancialAnalysisWorkflow.rollUp(monthly, 'monthly')).toBe(monthly);
+  });
+
   it('returns an empty page when there is no balance sheet at all', async () => {
     listReportsMock.mockResolvedValue([income('2026-03', 1000, 500)]);
 

@@ -30,7 +30,8 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
 
 const mockAnalysis = vi.hoisted(() => vi.fn());
 vi.mock('@/application/report/use_cases/getFinancialAnalysisWorkflow', () => ({
-  getFinancialAnalysisWorkflow: { execute: mockAnalysis },
+  // The landing page has no scale control, so the monthly no-op is enough.
+  getFinancialAnalysisWorkflow: { execute: mockAnalysis, rollUp: (value: unknown) => value },
 }));
 
 const analysisResult = (overrides: Record<string, unknown> = {}) => ({

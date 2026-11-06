@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   type AnalysisRange,
@@ -36,10 +36,16 @@ export function useFinancialAnalysis(
     return () => controller.abort();
   }, [householdId, auth, range, run, reloadNonce]);
 
+  // Switching the scale rescales what was already read; only the range refetches.
+  const scaled = useMemo(
+    () => (analysis === null ? null : getFinancialAnalysisWorkflow.rollUp(analysis, granularity)),
+    [analysis, granularity],
+  );
+
   return {
     analysis,
     summaryVM: analysis ? buildReportSummaryVM(analysis) : null,
-    analysisVM: analysis ? buildReportAnalysisVM(analysis, granularity, selectedPeriod) : null,
+    analysisVM: scaled === null ? null : buildReportAnalysisVM(scaled, granularity, selectedPeriod),
     loading,
     errorMessage: error === null ? null : REPORT_ANALYSIS_LABELS.LOAD_ERROR,
     reload: () => setReloadNonce((nonce) => nonce + 1),

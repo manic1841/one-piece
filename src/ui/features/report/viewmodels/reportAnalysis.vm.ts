@@ -1,4 +1,5 @@
 import {
+  type AnalysisGranularity,
   type AnalysisRange,
   type FinancialAnalysis,
   type FinancialAnalysisKpis,
@@ -15,23 +16,24 @@ import { formatCurrency, formatPercentage } from '@/ui/utils';
 import { formatMonthLabel } from '@/ui/utils/date';
 
 import {
-  applyGranularity,
   withChange,
   withRatioChange,
   withSavingsChange,
-  yearOf,
-} from './reportAnalysisGranularity';
+} from './reportAnalysisChange';
 import { type TakeawayVM, takeawayOf } from './reportAnalysisTakeaway';
 import { formatReportPeriodDisplay, parseReportPeriod } from './reportHistory.vm';
 
-export { ANALYSIS_RANGES } from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
-export type { AnalysisRange };
+export {
+  ANALYSIS_GRANULARITIES,
+  ANALYSIS_RANGES,
+} from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+export type { AnalysisGranularity, AnalysisRange };
 
 export const DEFAULT_RANGE: AnalysisRange = '3y';
 
-export const ANALYSIS_GRANULARITIES = ['monthly', 'annual'] as const;
-export type AnalysisGranularity = (typeof ANALYSIS_GRANULARITIES)[number];
 export const DEFAULT_GRANULARITY: AnalysisGranularity = 'monthly';
+
+const yearOf = (yearMonth: string): string => yearMonth.slice(0, 4);
 
 export type NetWorthSeriesKey = 'netWorth' | 'assets' | 'liabilities';
 export type AssetCompositionSeriesKey = 'cash' | 'investment' | 'property';
@@ -350,7 +352,8 @@ export const buildReportAnalysisVM = (
   granularity: AnalysisGranularity = DEFAULT_GRANULARITY,
   requestedPeriod: string | null = null,
 ): ReportAnalysisVM => {
-  const scaled = applyGranularity(pointsOf(analysis, granularity), granularity);
+  // The analysis already arrives on the requested scale; only its text is built here.
+  const scaled = pointsOf(analysis, granularity);
   const {
     assetComposition: assetCompositionPoints,
     investmentPerformance: investmentPerformancePoints,

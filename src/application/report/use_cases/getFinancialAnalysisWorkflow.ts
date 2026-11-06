@@ -7,8 +7,13 @@ import { type AuthContext } from '@/application/types';
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
+import { rollUpAnalysis } from './rollUpFinancialAnalysis';
+
 export const ANALYSIS_RANGES = ['1y', '3y', '5y', 'all'] as const;
 export type AnalysisRange = (typeof ANALYSIS_RANGES)[number];
+
+export const ANALYSIS_GRANULARITIES = ['monthly', 'annual'] as const;
+export type AnalysisGranularity = (typeof ANALYSIS_GRANULARITIES)[number];
 
 const RANGE_MONTHS: Record<Exclude<AnalysisRange, 'all'>, number> = {
   '1y': 12,
@@ -448,6 +453,13 @@ export class GetFinancialAnalysisWorkflow {
       debtLeveragePoints,
       cashCoveragePoints,
     };
+  }
+
+  /**
+   * Rescale the resolved analysis without another read. See `rollUpAnalysis`.
+   */
+  rollUp(analysis: FinancialAnalysis, granularity: AnalysisGranularity): FinancialAnalysis {
+    return rollUpAnalysis(analysis, granularity);
   }
 }
 
