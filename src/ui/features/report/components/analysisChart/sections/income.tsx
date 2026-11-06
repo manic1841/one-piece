@@ -33,6 +33,8 @@ export const incomeChart: RenderChart = (vm, context) => (
         unit: REPORT_ANALYSIS_LABELS.SAVINGS_RATE_UNIT,
         tone: 'asset',
         values: points.map((point) => point.savingsRate),
+        // A negative savings rate must be able to sit below the zero baseline.
+        includeZero: true,
         yTicks: 3,
         yDecimals: 1,
       },

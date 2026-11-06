@@ -124,7 +124,7 @@ export const REPORT_ANALYSIS_LABELS = {
   UNCLOSED_MARKER: '未關帳',
   PROVISIONAL_SUFFIX: '（未關帳）',
   UNCLOSED_NOTE_LABEL: '未關帳月份',
-  POINT_HINT: '點選任一期間可查看該期摘要；再按「查看完整報表」進入報表。',
+  POINT_HINT: '點選圖上任一期間即開啟該期報表。',
   SELECTION_LABEL: '選取期間摘要',
   SELECTED_PERIOD: (period: string) => `已選取 ${period}`,
   PROVISIONAL_SHORT: '暫估',
@@ -134,6 +134,8 @@ export const REPORT_ANALYSIS_LABELS = {
   UNCLOSED_HISTORY_LINK: '查看報表歷史',
   INSUFFICIENT: '此範圍內不足 2 期',
   CUTOFF_AT: (cutoff: string) => `資料截至 ${cutoff}`,
+  CUTOFF_WITH_UNCLOSED: (cutoff: string, count: number) =>
+    `資料截至 ${cutoff}，含 ${count} 期未關帳`,
   TAKEAWAY_NET_WORTH: '本期淨資產',
   PERCENTAGE_POINT: '個百分點',
   TAKEAWAY_DELTA: (value: string) => `較上期 ${value}`,

@@ -120,7 +120,8 @@ const ReportAnalysisPage: React.FC = () => {
     });
   };
 
-  const selectPeriod = (period: string) => updateParams((params) => params.set('period', period));
+  // A point is a drill-down: it opens that period's report rather than reselecting in place.
+  const openPeriod = (period: string) => navigate(`/reports/${period}`);
 
   const goToSection = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault();
@@ -145,7 +146,7 @@ const ReportAnalysisPage: React.FC = () => {
       >
         {spec.chart(analysisVM, {
           selectedPeriod: analysisVM.selection.periodKey,
-          onPointSelect: selectPeriod,
+          onPointSelect: openPeriod,
           initialSeries,
           // The caption is a page-level concern; only the first block carries it.
           showUnclosedLabels: spec === ANALYSIS_SECTIONS[0],
@@ -173,11 +174,22 @@ const ReportAnalysisPage: React.FC = () => {
       )}
 
       {loading && (
-        <div role="status" className="space-y-4">
+        <div role="status" className="space-y-8">
           <span className="sr-only">{REPORT_ANALYSIS_LABELS.LOADING}</span>
-          <Skeleton className="h-56 w-full" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-48 w-full" />
+          {groupSections(ANALYSIS_SECTIONS).map((row) =>
+            row.length === 1 ? (
+              <Skeleton key={row[0].id} className="h-56 w-full" />
+            ) : (
+              <div
+                key={row.map((item) => item.id).join('-')}
+                className="grid grid-cols-1 gap-y-8 lg:grid-cols-2 lg:gap-x-10"
+              >
+                {row.map((item) => (
+                  <Skeleton key={item.id} className="h-40 w-full" />
+                ))}
+              </div>
+            ),
+          )}
         </div>
       )}
 

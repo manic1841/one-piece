@@ -142,7 +142,7 @@ describe('ReportAnalysisPage', () => {
 
     const index = screen.getByRole('navigation', { name: '分析區塊' });
     expect(index.querySelectorAll('a')).toHaveLength(7);
-    expect(screen.getByText('資料截至 2026-03')).toBeInTheDocument();
+    expect(screen.getByText('資料截至 2026-03，含 1 期未關帳')).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: '1Y' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: '3Y' })).toHaveAttribute('aria-pressed', 'true');
@@ -268,28 +268,29 @@ describe('ReportAnalysisPage', () => {
     expect(tooltip.closest('ul')?.textContent).not.toContain('現金');
   });
 
-  it('selects the composition month, then leaves for its report from the summary', async () => {
+  it('opens the report for the composition period on Enter', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /資產類別構成/ });
     fireEvent.keyDown(chart, { key: 'Enter' });
 
-    expect(await screen.findByText('已選取 2026-03')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '查看 2026-03 完整報表' }));
-
     expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
   });
 
-  it('keeps one selected period across every section', async () => {
-    renderPage();
-
-    const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
-    chart.getBoundingClientRect = () => ({ left: 0, width: 300 }) as DOMRect;
-    fireEvent.click(chart, { clientX: 10 });
+  it('keeps section values on the anchor while a ?period= selection is shown', async () => {
+    renderPage('/reports/analysis?period=2026-01');
 
     expect(await screen.findByText('已選取 2026-01')).toBeInTheDocument();
-    expect(screen.getByText('2026-01 · 總資產 NT$1,000')).toBeInTheDocument();
-    expect(screen.getByText('2026-01 · 負債比 10.0%')).toBeInTheDocument();
+    // The selection grid follows ?period=...
+    expect(
+      screen
+        .getAllByText('總資產')
+        .some((label) => label.parentElement?.textContent?.includes('NT$900')),
+    ).toBe(true);
+    // ...but block headers stay pinned to the anchor.
+    expect(screen.getByText('2026-03 · NT$900（未關帳）')).toBeInTheDocument();
+    expect(screen.getByText('2026-03 · 負債比 14.0%（未關帳）')).toBeInTheDocument();
+    expect(screen.queryByText('2026-01 · 負債比 10.0%')).toBeNull();
   });
 
   it('names an open period as provisional in the tooltip', async () => {
@@ -348,15 +349,14 @@ describe('ReportAnalysisPage', () => {
     expect(scrollIntoView.mock.contexts[0]).toBe(document.getElementById('income'));
   });
 
-  it('selects a month from a mouse click instead of navigating', async () => {
+  it('opens the clicked period report from a mouse click', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /資產類別構成/ });
     chart.getBoundingClientRect = () => ({ left: 0, width: 300 }) as DOMRect;
     fireEvent.click(chart, { clientX: 10 });
 
-    expect(await screen.findByText('已選取 2026-01')).toBeInTheDocument();
-    expect(screen.queryByText('REPORT DETAIL')).toBeNull();
+    expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
   });
 
   it('reads the gain, return rate and opening value in a fixed tooltip order', async () => {
@@ -511,6 +511,10 @@ describe('ReportAnalysisPage', () => {
 
     const chart = await screen.findByRole('slider', { name: /負債與槓桿/ });
     expect(chart.getAttribute('aria-label')).not.toContain('加權平均槓桿');
+
+    fireEvent.keyDown(chart, { key: 'ArrowLeft' });
+    const tooltip = await within(chart).findByRole('tooltip');
+    expect(tooltip.textContent).not.toContain('加權平均槓桿');
   });
 
   it('lists debt balance before the ratio in the tooltip', async () => {
@@ -551,15 +555,12 @@ describe('ReportAnalysisPage', () => {
     expect(tooltip.textContent).toContain('近三月平均支出 —');
   });
 
-  it('selects a coverage point and opens its report from the summary', async () => {
+  it('opens the coverage point report on Enter', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /現金覆蓋/ });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'Enter' });
-
-    expect(await screen.findByText('已選取 2026-02')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '查看 2026-02 完整報表' }));
 
     expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
   });
@@ -650,6 +651,25 @@ describe('ReportAnalysisPage', () => {
     expect(figure?.closest('p')?.textContent).toContain('本期淨資產');
   });
 
+  it('keeps zero on the savings-rate axis so a negative rate reads below it', async () => {
+    mockExecute.mockResolvedValue(
+      analysis({
+        incomePoints: [
+          { ...point('2026-01', true), income: 5000, expense: 4500, savingsRate: 10 },
+          { ...point('2026-02', false), income: 5000, expense: 4200, savingsRate: 16 },
+          { ...point('2026-03', false), income: 5000, expense: 4000, savingsRate: 20 },
+        ],
+      }),
+    );
+
+    renderPage();
+
+    await screen.findByRole('slider', { name: '儲蓄率' });
+    const band = screen.getByText('儲蓄率 %').parentElement;
+    expect(band).not.toBeNull();
+    expect(within(band as HTMLElement).getByText('0.0')).toBeInTheDocument();
+  });
+
   it('lists the savings change against the previous period', async () => {
     renderPage();
 
@@ -661,15 +681,12 @@ describe('ReportAnalysisPage', () => {
     expect(tooltip.textContent).toContain('較前期 -NT$2,000');
   });
 
-  it('selects on Enter and opens the report from the summary', async () => {
+  it('opens the report of the point selected with the keyboard', async () => {
     renderPage();
 
     const chart = await screen.findByRole('slider', { name: /淨資產趨勢/ });
     fireEvent.keyDown(chart, { key: 'ArrowLeft' });
     fireEvent.keyDown(chart, { key: 'Enter' });
-
-    expect(await screen.findByText('已選取 2026-02')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '查看 2026-02 完整報表' }));
 
     expect(await screen.findByText('REPORT DETAIL')).toBeInTheDocument();
   });
@@ -762,11 +779,12 @@ describe('ReportAnalysisPage', () => {
     expect(income?.parentElement?.parentElement).toBe(cashFlow?.parentElement?.parentElement);
   });
 
-  it('shows a skeleton while loading', async () => {
+  it('shows a skeleton for every block while loading', async () => {
     mockExecute.mockReturnValue(new Promise(() => {}));
 
     renderPage();
 
     expect(await screen.findByText('載入分析中…')).toBeInTheDocument();
+    expect(document.querySelectorAll('.animate-pulse')).toHaveLength(7);
   });
 });

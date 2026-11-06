@@ -68,12 +68,17 @@ export const debtLeverageChart: RenderChart = (vm, context) => (
             value: point.debtRatioText,
             ...(point.changeText === null ? {} : { detail: point.changeText }),
           },
-          {
-            id: 'leverage',
-            seriesKey: 'leverage',
-            label: REPORT_ANALYSIS_LABELS.LEVERAGE,
-            value: point.leverageText,
-          },
+          // Only when the layer exists at all; hidden-layer filtering is the chart's job.
+          ...(vm.debtLeverage.showLeverage
+            ? [
+                {
+                  id: 'leverage',
+                  seriesKey: 'leverage' as const,
+                  label: REPORT_ANALYSIS_LABELS.LEVERAGE,
+                  value: point.leverageText,
+                },
+              ]
+            : []),
         ],
       })}
       ariaLabel={(visible) => REPORT_ANALYSIS_LABELS.DEBT_LEVERAGE_ARIA(visible.join('、'))}

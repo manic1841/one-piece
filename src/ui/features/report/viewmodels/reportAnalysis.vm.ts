@@ -294,13 +294,13 @@ export const buildReportAnalysisVM = (
   const selected =
     requestedPeriod !== null && periodKeys.has(requestedPeriod) ? requestedPeriod : anchorKey;
 
-  // Section headers name the selected period so the bare value cannot be misread;
-  // the value is flagged when the period it comes from is still open.
+  // Section headers carry the block's anchor-period value (ADR/spec §layout), not
+  // the selected period; the value is flagged when that period is still open.
   const valueAt = <T extends { yearMonth: string; unclosed: boolean }>(
     points: T[],
     value: (point: T) => string,
   ): string | null => {
-    const point = selected === null ? undefined : points.find((p) => p.yearMonth === selected);
+    const point = anchorKey === null ? undefined : points.find((p) => p.yearMonth === anchorKey);
     if (point === undefined) return null;
     const provisional = point.unclosed ? REPORT_ANALYSIS_LABELS.PROVISIONAL_SUFFIX : '';
     return `${point.yearMonth} · ${value(point)}${provisional}`;
@@ -373,8 +373,13 @@ export const buildReportAnalysisVM = (
 
   return {
     takeaway,
+    // The cut-off sentence always names how many periods inside it are provisional.
     cutoffText:
-      analysis.anchor === null ? '' : REPORT_ANALYSIS_LABELS.CUTOFF_AT(analysis.anchor.yearMonth),
+      analysis.anchor === null
+        ? ''
+        : unclosed.length === 0
+          ? REPORT_ANALYSIS_LABELS.CUTOFF_AT(analysis.anchor.yearMonth)
+          : REPORT_ANALYSIS_LABELS.CUTOFF_WITH_UNCLOSED(analysis.anchor.yearMonth, unclosed.length),
     range: analysis.range,
     rangeItems: analysis.availableRanges.map((range) => ({
       id: range,
