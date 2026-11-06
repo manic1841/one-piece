@@ -109,7 +109,7 @@ const StatementRowView: React.FC<{
               onClick={() => onToggle(row.key)}
               aria-expanded={!isCollapsed}
               aria-label={row.label}
-              className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground"
+              className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground transition-transform duration-fast ease-out-quint active:scale-[0.97]"
             >
               <ChevronRight
                 className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}

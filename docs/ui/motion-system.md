@@ -39,7 +39,8 @@ Token 全部定義於 `tailwind.config.js`，值不複述。只有一條事實�
 
 - 只動 `transform`、`opacity`、`backdrop-filter`；不逐幀動 layout 屬性。
 - 一般進場位移 4–12px；資料表與財務數字保持空間穩定。
-- 按壓可用 `scale(0.97)`；不縮放重要的財務值。
+- 按壓縮放 `scale(0.97)` 留給按鈕、icon 與小型控制；列、input 形狀的欄位與底線式 tabs 靠底色／字色變化，不縮放以避免大面積位移。
+- 不縮放重要的財務值。
 - 優先自然減速，不用 overshoot。彈性保留給直接操作（bottom sheet 拖曳）。
 - `primary` 是聚焦強調色，不是每個元件的發光色。
 - 不為每次小型資料刷新重播頁面進場。

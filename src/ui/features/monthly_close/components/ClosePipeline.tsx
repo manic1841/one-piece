@@ -71,8 +71,8 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
           aria-controls="close-pipeline-stages"
           data-testid="close-pipeline-toggle"
           className={cn(
-            'inline-flex h-8 shrink-0 items-center gap-1.5 border-0 bg-transparent px-0 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-colors',
-            'hover:text-foreground',
+            'inline-flex h-8 shrink-0 items-center gap-1.5 border-0 bg-transparent px-0 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-[color,transform] duration-fast ease-out-quint',
+            'hover:text-foreground active:scale-[0.97]',
             'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           )}
         >

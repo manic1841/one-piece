@@ -42,7 +42,7 @@ export function ExpenseCategoryPicker({ categories, onChange }: ExpenseCategoryP
         <div className="space-y-2">
           <button
             type="button"
-            className="text-muted-foreground hover:text-foreground text-xs font-medium"
+            className="text-muted-foreground hover:text-foreground text-xs font-medium transition-transform duration-fast ease-out-quint active:scale-[0.97]"
             aria-expanded={expanded}
             onClick={() => setExpanded((previous) => !previous)}
             data-testid="expense-more-toggle"

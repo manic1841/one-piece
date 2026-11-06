@@ -164,3 +164,23 @@ describe('design system radius/shadow contract (issue #125)', () => {
     expect(violations).toEqual([]);
   });
 });
+
+/**
+ * Motion contract (motion-system §2): a bare `duration-<number>` picks its own
+ * length and drifts from the token scale. The gallery is exempt — it *shows*
+ * motion, so it may hardcode what it demonstrates.
+ */
+const MOTION_ALLOWED = new Set<string>([]);
+
+describe('motion duration contract (motion-system §2)', () => {
+  const sourceFiles = collectSourceFiles(UI_DIR)
+    .map(toRelative)
+    .filter((file) => !file.startsWith('features/app/pages/'));
+
+  it('uses duration tokens, never bare numeric durations', () => {
+    const violations = sourceFiles
+      .filter((file) => !MOTION_ALLOWED.has(file))
+      .filter((file) => read(file).match(/\bduration-(?![a-z[])\d/));
+    expect(violations).toEqual([]);
+  });
+});

@@ -18,7 +18,7 @@ function JumpYear({ year, onJump }: { year: number; onJump: (year: number) => vo
   return (
     <button
       type="button"
-      className="text-muted-foreground text-xs underline-offset-2 hover:underline"
+      className="text-muted-foreground text-xs underline-offset-2 transition-transform duration-fast ease-out-quint hover:underline active:scale-[0.97]"
       aria-label={WORKSPACE_RAIL_LABELS.JUMP_TO_YEAR.replace('{year}', String(year))}
       onClick={() => onJump(year)}
     >

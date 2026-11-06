@@ -10,7 +10,7 @@ const HEADER_CLASS = 'flex flex-col space-y-2 text-center sm:text-left';
 const TITLE_CLASS = 'text-lg font-semibold text-foreground';
 const DESCRIPTION_CLASS = 'text-sm text-muted-foreground';
 const CLOSE_CLASS =
-  'absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary';
+  'absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-[opacity,transform] duration-fast ease-out-quint hover:opacity-100 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary';
 const FOOTER_CLASS = 'mt-auto flex gap-3 pt-5';
 
 type DrawerPanelProps = {
