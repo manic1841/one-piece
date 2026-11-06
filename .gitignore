@@ -46,3 +46,6 @@ playwright/.cache/
 
 # Household backup fixtures (real live financial data, never committed)
 examples/
+
+# Local codebase knowledge graph (rebuilt with `graphify . --code-only`)
+graphify-out/
