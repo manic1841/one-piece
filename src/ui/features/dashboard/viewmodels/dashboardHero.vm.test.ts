@@ -49,13 +49,19 @@ describe('mapDashboardOverviewToHeroVM trend data', () => {
     expect(vm.trend.points).toHaveLength(12);
     expect(vm.trend.points[0]).toEqual({
       title: 'SEP 2025',
-      value: 'NT$1,000,000',
-      meta: '—',
+      content: {
+        mode: 'hero',
+        primary: { id: 'netWorth', value: 'NT$1,000,000' },
+        secondary: [{ id: 'change', value: '—' }],
+      },
     });
     expect(vm.trend.points[11]).toEqual({
       title: 'AUG 2026',
-      value: 'NT$2,100,000',
-      meta: '+5.0% MoM',
+      content: {
+        mode: 'hero',
+        primary: { id: 'netWorth', value: 'NT$2,100,000' },
+        secondary: [{ id: 'change', value: '+5.0% MoM' }],
+      },
     });
   });
 

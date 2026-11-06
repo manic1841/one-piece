@@ -48,6 +48,12 @@
     scrollbar-gutter: stable;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border-strong)) transparent;

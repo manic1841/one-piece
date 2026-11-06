@@ -1,4 +1,5 @@
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import {
   type ComposedReferenceLine,
   type ComposedSeries,
@@ -60,10 +61,13 @@ export function NetWorthChart({
       labels={labels}
       series={series}
       referenceLines={[...byPriority.values()]}
-      points={projection.chartData.map((point) => ({
-        title: `${PROJECTION_CHART_LABELS.tooltipYearPrefix} ${point.year}`,
-        value: `${PROJECTION_CHART_LABELS.netWorth} ${point.savingsText}`,
-      }))}
+      points={projection.chartData.map((point) =>
+        heroPoint(`${PROJECTION_CHART_LABELS.tooltipYearPrefix} ${point.year}`, {
+          id: 'netWorth',
+          label: PROJECTION_CHART_LABELS.netWorth,
+          value: point.savingsText,
+        }),
+      )}
       height={320}
       ariaLabel={PROJECTION_CHART_LABELS.netWorthAriaLabel}
       {...(onSelectYear === undefined

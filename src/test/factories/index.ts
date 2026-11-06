@@ -33,3 +33,5 @@ export {
   buildDebtSnapshot,
 } from './debt';
 export { type EntryDoc, type TransactionDoc, buildTransaction } from './transaction';
+export { buildBalanceSheetReport, buildCashFlowReport, buildIncomeReport } from './report';
+export { buildFinancialPeriod } from './financialPeriod';

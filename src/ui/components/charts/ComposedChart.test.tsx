@@ -20,6 +20,13 @@ describe('ComposedChart', () => {
     expect(screen.getByText('C')).toBeDefined();
   });
 
+  it('renders without a scale when every series is hidden', () => {
+    const { container } = render(<ComposedChart labels={['A', 'B']} series={[]} />);
+
+    expect(container.querySelector('svg')).toBeDefined();
+    expect(screen.queryByText('A')).toBeNull();
+  });
+
   it('draws an area path when a line requests one', () => {
     const { container } = render(
       <ComposedChart
@@ -144,7 +151,9 @@ describe('ComposedChart', () => {
       </ComposedChart>,
     );
 
-    expect(seen).toEqual([3]);
+    // The width measurement re-renders once; every pass must expose the same layout.
+    expect(seen[0]).toBe(3);
+    expect(seen.every((count) => count === 3)).toBe(true);
   });
 
   it('drops the img role once an overlay owns the semantics', () => {
@@ -155,6 +164,53 @@ describe('ComposedChart', () => {
     );
 
     expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('breaks a line path at null values instead of drawing through zero', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B', 'C', 'D']}
+        series={[{ kind: 'line', tone: 'asset', values: [1, null, 3, 4] }]}
+      />,
+    );
+
+    const path = container.querySelector('path')?.getAttribute('d') ?? '';
+    expect(path.match(/M/g)).toHaveLength(2);
+    expect(path).not.toContain('L10.00 null');
+  });
+
+  it('uses a categorical token over the semantic tone when one is given', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[
+          { kind: 'line', tone: 'neutral', colorToken: 'chart-1', area: true, values: [1, 2] },
+          { kind: 'bar', tone: 'neutral', colorToken: 'chart-4', values: [3, 4] },
+        ]}
+      />,
+    );
+
+    const strokePath = [...container.querySelectorAll('path')].find(
+      (path) => path.getAttribute('fill') === 'none',
+    );
+    expect(strokePath?.getAttribute('stroke')).toBe('hsl(var(--chart-1))');
+    expect(container.querySelector('linearGradient stop')?.getAttribute('stop-color')).toBe(
+      'hsl(var(--chart-1))',
+    );
+    expect(container.querySelector('rect')?.getAttribute('fill')).toBe('hsl(var(--chart-4))');
+  });
+
+  it('colours bars by sign when asked', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[{ kind: 'bar', tone: 'positive', toneBySign: true, values: [10, -10] }]}
+      />,
+    );
+
+    const rects = [...container.querySelectorAll('rect')];
+    expect(rects[0].getAttribute('fill')).toBe('hsl(var(--positive))');
+    expect(rects[1].getAttribute('fill')).toBe('hsl(var(--negative))');
   });
 
   it('labels the plot for assistive tech when no overlay is present', () => {

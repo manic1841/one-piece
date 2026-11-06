@@ -2,13 +2,16 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { InteractiveLineChart } from './InteractiveLineChart';
+import { heroPoint } from './chartInteraction';
 
 const VALUES = [4120000, 4180000, 4160000, 4812430];
 const POINTS = [
-  { title: 'OCT 2025', value: '$4,120,000', meta: '—' },
-  { title: 'NOV 2025', value: '$4,180,000', meta: '+1.5%' },
-  { title: 'DEC 2025', value: '$4,160,000', meta: '+1.0%' },
-  { title: 'SEP 2026', value: '$4,812,430', meta: '+8.42% YTD' },
+  heroPoint('OCT 2025', { id: 'value', value: '$4,120,000' }, [{ id: 'change', value: '—' }]),
+  heroPoint('NOV 2025', { id: 'value', value: '$4,180,000' }, [{ id: 'change', value: '+1.5%' }]),
+  heroPoint('DEC 2025', { id: 'value', value: '$4,160,000' }, [{ id: 'change', value: '+1.0%' }]),
+  heroPoint('SEP 2026', { id: 'value', value: '$4,812,430' }, [
+    { id: 'change', value: '+8.42% YTD' },
+  ]),
 ];
 
 describe('InteractiveLineChart', () => {

@@ -6,6 +6,7 @@ import { listReportsUseCase } from '@/application/report/use_cases/listReportsUs
 import { type AuthContext } from '@/application/types';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { type PortfolioSnapshot } from '@/domains/portfolio/types/portfolio';
+import { byMonth } from '@/domains/report/analysisScale';
 import { ReportType } from '@/domains/report/schemas';
 import { type FinancialReport } from '@/domains/report/schemas';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
@@ -80,11 +81,6 @@ const isBalanceSheet = (report: FinancialReport): report is BalanceSheetReport =
 const isCashFlow = (report: FinancialReport): report is CashFlowReport =>
   report.type === ReportType.CASH_FLOW;
 
-const toMonthCode = (yearMonth: string): number => {
-  const [year, month] = yearMonth.split('-').map(Number);
-  return year * 100 + month;
-};
-
 const shiftMonth = (
   year: number,
   month: number,
@@ -134,7 +130,7 @@ export class GetDashboardOverviewUseCase {
     const reports = await listReportsUseCase.execute({ householdId, auth });
     const balanceSheets = reports
       .filter(isBalanceSheet)
-      .sort((a, b) => toMonthCode(b.yearMonth) - toMonthCode(a.yearMonth));
+      .sort((a, b) => byMonth(b.yearMonth, a.yearMonth));
 
     for (const report of balanceSheets) {
       const period = await this.getFinancialPeriod.execute({
@@ -303,7 +299,7 @@ const resolveYtdBaseline = (
   const baselineReport =
     january ??
     sameYearEarlier.reduce((earliest, report) =>
-      toMonthCode(report.yearMonth) < toMonthCode(earliest.yearMonth) ? report : earliest,
+      byMonth(report.yearMonth, earliest.yearMonth) < 0 ? report : earliest,
     );
 
   return {

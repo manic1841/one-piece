@@ -5,7 +5,7 @@
  * scales, column positions, bar rects, line paths and axis ticks are derived
  * here so every composed chart in the app shares one layout algorithm.
  */
-import { type ChartTone } from './chartTheme';
+import { type ChartColorToken, type ChartTone } from './chartTheme';
 import { formatAxisValue } from './lineChartGeometry';
 
 export const COMPOSED_CHART_WIDTH = 700;
@@ -15,7 +15,7 @@ const PADDING_TOP = 16;
 const PADDING_BOTTOM = 16;
 const PADDING_SIDE = 10;
 const GRID_LINE_COUNT = 4;
-const MAX_X_LABELS = 6;
+export const MAX_X_LABELS = 6;
 /** Fraction of a column slot the whole bar group occupies. */
 const COLUMN_FILL = 0.7;
 /** Fraction of each bar slot left as a gap between neighbouring bars. */
@@ -28,14 +28,21 @@ export type ComposedAxis = 'left' | 'right';
 export type ComposedBarSeries = {
   kind: 'bar';
   tone: ChartTone;
+  /** Categorical token; overrides `tone` for the fill. */
+  colorToken?: ChartColorToken;
   values: number[];
+  /** Bars below zero use the `negative` tone instead of `tone`. */
+  toneBySign?: boolean;
   axis?: ComposedAxis;
 };
 
 export type ComposedLineSeries = {
   kind: 'line';
   tone: ChartTone;
-  values: number[];
+  /** Categorical token; overrides `tone` for the stroke and area fill. */
+  colorToken?: ChartColorToken;
+  /** A null value breaks the path at that column. */
+  values: (number | null)[];
   axis?: ComposedAxis;
   /** Fill the area between the line and the axis zero baseline. */
   area?: boolean;
@@ -74,6 +81,7 @@ export type ComposedColumn = {
 export type ComposedBar = {
   key: string;
   tone: ChartTone;
+  colorToken?: ChartColorToken;
   /** Source column index. */
   columnIndex: number;
   x: number;
@@ -85,6 +93,7 @@ export type ComposedBar = {
 export type ComposedLine = {
   key: string;
   tone: ChartTone;
+  colorToken?: ChartColorToken;
   path: string;
   /** Thin dashed stroke instead of a solid one. */
   dashed?: boolean;
@@ -95,7 +104,7 @@ export type ComposedLine = {
    * to run bottom-up then, or full strength would land on the baseline instead of the line.
    */
   areaFlipped?: boolean;
-  points: { xRatio: number; topRatio: number }[];
+  points: { xRatio: number; topRatio: number; isEmpty?: boolean }[];
 };
 
 export type ComposedChartLayout = {
@@ -126,19 +135,35 @@ interface Scale {
   max: number;
 }
 
+export interface ComposedGeometryOptions {
+  /** Fixed value domain, e.g. a 0–100 percentage axis. */
+  yDomain?: Scale;
+  /** Number of gridlines and tick labels. Defaults to 4. */
+  yTicks?: number;
+  /** Fixed tick decimals; use for narrow domains where rounding would repeat labels. */
+  yDecimals?: number;
+  /** Pin a line-only scale to include the zero baseline. */
+  includeZero?: boolean;
+}
+
 /**
- * Include 0 (bars need a baseline), then pad the data extremes so they breathe.
- * A side that is only the 0 baseline is not padded, so all-positive data never
- * shows a negative tick.
+ * Bars need a 0 baseline; line-only charts do not, and anchoring them at 0
+ * flattens small moves on a high base (a balance-sheet trend, a savings rate),
+ * so those scale to the data instead. Either way the extremes are padded.
  */
-const buildScale = (values: number[]): Scale => {
-  const min = Math.min(0, ...values);
-  const max = Math.max(0, ...values);
+const buildScale = (values: number[], includeZero: boolean): Scale => {
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values);
+  const min = includeZero ? Math.min(0, dataMin) : dataMin;
+  const max = includeZero ? Math.max(0, dataMax) : dataMax;
   if (min === max) {
     const pad = Math.abs(max || 1) * 0.1;
     return { min: min - pad, max: max + pad };
   }
   const pad = (max - min) * RANGE_PAD;
+  if (!includeZero) return { min: min - pad, max: max + pad };
+  // A side that is only the 0 baseline is not padded, so all-positive data
+  // never shows a negative tick.
   return { min: min < 0 ? min - pad : min, max: max > 0 ? max + pad : max };
 };
 
@@ -150,15 +175,23 @@ const yFor = (value: number, scale: Scale): number => {
   return PADDING_TOP + (1 - ratio) * innerHeight;
 };
 
-const gridValueAt = (scale: Scale, index: number): number => {
-  const ratio = index / (GRID_LINE_COUNT - 1);
+/** The zero line, kept inside the plot when the domain does not include 0. */
+const clampedZeroY = (scale: Scale): number =>
+  Math.min(PADDING_TOP + innerHeight, Math.max(PADDING_TOP, yFor(0, scale)));
+
+const gridValueAt = (scale: Scale, index: number, count: number): number => {
+  const ratio = index / (count - 1);
   return scale.max - ratio * (scale.max - scale.min);
 };
 
-const buildAxisLabels = (scale: Scale): { y: number; text: string }[] =>
-  Array.from({ length: GRID_LINE_COUNT }, (_, index) => ({
-    y: Number((PADDING_TOP + (index / (GRID_LINE_COUNT - 1)) * innerHeight).toFixed(2)),
-    text: formatAxisValue(gridValueAt(scale, index)),
+const buildAxisLabels = (
+  scale: Scale,
+  count: number,
+  format: (value: number) => string,
+): { y: number; text: string }[] =>
+  Array.from({ length: count }, (_, index) => ({
+    y: Number((PADDING_TOP + (index / (count - 1)) * innerHeight).toFixed(2)),
+    text: format(gridValueAt(scale, index, count)),
   }));
 
 /**
@@ -170,17 +203,32 @@ export function buildComposedGeometry(
   labels: string[],
   series: ComposedSeries[],
   referenceLines: ComposedReferenceLine[] = [],
+  options: ComposedGeometryOptions = {},
 ): ComposedChartLayout {
   const count = labels.length;
   if (count === 0) return EMPTY_LAYOUT;
+  const tickCount = options.yTicks ?? GRID_LINE_COUNT;
+  const formatTick =
+    options.yDecimals === undefined
+      ? formatAxisValue
+      : (value: number) => `${value.toFixed(options.yDecimals)}`;
 
+  const defined = (values: (number | null)[]): number[] =>
+    values.filter((value): value is number => value !== null);
   const leftValues = series
     .filter((item) => (item.axis ?? 'left') === 'left')
-    .flatMap((item) => item.values);
-  const rightValues = series.filter((item) => item.axis === 'right').flatMap((item) => item.values);
+    .flatMap((item) => defined(item.values));
+  const rightValues = series
+    .filter((item) => item.axis === 'right')
+    .flatMap((item) => defined(item.values));
 
-  const leftScale = leftValues.length > 0 ? buildScale(leftValues) : undefined;
-  const rightScale = rightValues.length > 0 ? buildScale(rightValues) : undefined;
+  const hasBars = series.some((item) => item.kind === 'bar');
+  const leftScale =
+    options.yDomain ??
+    (leftValues.length > 0
+      ? buildScale(leftValues, hasBars || options.includeZero === true)
+      : undefined);
+  const rightScale = rightValues.length > 0 ? buildScale(rightValues, hasBars) : undefined;
   const primaryScale = leftScale ?? rightScale;
   if (!primaryScale) return EMPTY_LAYOUT;
 
@@ -206,7 +254,8 @@ export function buildComposedGeometry(
       const height = Math.abs(valueY - zeroY);
       bars.push({
         key: `bar-${seriesIndex}-${index}`,
-        tone: item.tone,
+        tone: item.toneBySign === true && value < 0 ? 'negative' : item.tone,
+        ...(item.colorToken !== undefined ? { colorToken: item.colorToken } : {}),
         columnIndex: index,
         x: Number(
           (
@@ -227,40 +276,75 @@ export function buildComposedGeometry(
 
   const lines: ComposedLine[] = lineSeries.map((item, seriesIndex) => {
     const scale = scaleOf(item.axis ?? 'left');
-    const zeroY = yFor(0, scale);
+    const zeroY = clampedZeroY(scale);
     const coords = labels.map((_, index) => {
+      const value = item.values[index];
       const baseline = item.baselineValues?.[index];
       return {
         x: centerAt(index),
-        y: yFor(item.values[index] ?? 0, scale),
+        y: value === null || value === undefined ? null : yFor(value, scale),
         baselineY: baseline === undefined ? zeroY : yFor(baseline, scale),
       };
     });
-    const path = coords
-      .map(
-        (point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
+    // Null values break the path; each contiguous run becomes its own subpath.
+    const segments: (typeof coords)[] = [];
+    let current: typeof coords = [];
+    for (const point of coords) {
+      if (point.y === null) {
+        if (current.length > 0) segments.push(current);
+        current = [];
+      } else {
+        current.push(point);
+      }
+    }
+    if (current.length > 0) segments.push(current);
+
+    const path = segments
+      .map((segment) =>
+        segment
+          .map(
+            (point, index) =>
+              `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${(point.y ?? 0).toFixed(2)}`,
+          )
+          .join(' '),
       )
       .join(' ');
-    const first = coords[0];
-    const last = coords[coords.length - 1];
-    // Trace the baseline point by point when it varies: a stacked band's baseline is
-    // another line, and closing with a single straight segment would cut across it and let
-    // the band bleed into the one below. A flat baseline needs only its two corners.
-    const flatBaseline = coords.every((point) => point.baselineY === first.baselineY);
-    const baselineEdge = flatBaseline
-      ? `L${last.x.toFixed(2)} ${last.baselineY.toFixed(2)} L${first.x.toFixed(2)} ${first.baselineY.toFixed(2)}`
-      : [...coords]
-          .reverse()
-          .map((point) => `L${point.x.toFixed(2)} ${point.baselineY.toFixed(2)}`)
-          .join(' ');
-    const areaPath = item.area ? `${path} ${baselineEdge} Z` : undefined;
-    const meanLineY = coords.reduce((total, point) => total + point.y, 0) / coords.length;
+    const areaPaths = item.area
+      ? segments.map((segment) => {
+          const first = segment[0];
+          const last = segment[segment.length - 1];
+          // Trace the baseline point by point when it varies: a stacked band's baseline is
+          // another line, and closing with a single straight segment would cut across it and
+          // let the band bleed into the one below. A flat baseline needs only its two corners.
+          const flatBaseline = segment.every((point) => point.baselineY === first.baselineY);
+          const baselineEdge = flatBaseline
+            ? `L${last.x.toFixed(2)} ${last.baselineY.toFixed(2)} L${first.x.toFixed(2)} ${first.baselineY.toFixed(2)}`
+            : [...segment]
+                .reverse()
+                .map((point) => `L${point.x.toFixed(2)} ${point.baselineY.toFixed(2)}`)
+                .join(' ');
+          const line = segment
+            .map(
+              (point, index) =>
+                `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${(point.y ?? 0).toFixed(2)}`,
+            )
+            .join(' ');
+          return `${line} ${baselineEdge} Z`;
+        })
+      : [];
+    const areaPath = areaPaths.length > 0 ? areaPaths.join(' ') : undefined;
+    const definedCoords = coords.filter((point) => point.y !== null);
+    const meanLineY =
+      definedCoords.reduce((total, point) => total + (point.y ?? 0), 0) /
+      Math.max(1, definedCoords.length);
     const meanBaselineY =
-      coords.reduce((total, point) => total + point.baselineY, 0) / coords.length;
+      definedCoords.reduce((total, point) => total + point.baselineY, 0) /
+      Math.max(1, definedCoords.length);
 
     return {
       key: `line-${seriesIndex}`,
       tone: item.tone,
+      ...(item.colorToken !== undefined ? { colorToken: item.colorToken } : {}),
       path,
       ...(item.dashed ? { dashed: true } : {}),
       ...(areaPath ? { areaPath } : {}),
@@ -269,7 +353,8 @@ export function buildComposedGeometry(
       ...(areaPath ? { areaFlipped: meanBaselineY < meanLineY } : {}),
       points: coords.map(({ x, y }) => ({
         xRatio: Number((x / COMPOSED_CHART_WIDTH).toFixed(4)),
-        topRatio: Number((y / COMPOSED_CHART_HEIGHT).toFixed(4)),
+        topRatio: Number(((y ?? zeroY) / COMPOSED_CHART_HEIGHT).toFixed(4)),
+        ...(y === null ? { isEmpty: true } : {}),
       })),
     };
   });
@@ -281,7 +366,7 @@ export function buildComposedGeometry(
     });
     lines.forEach((line) => {
       const point = line.points[index];
-      if (point) candidates.push(point.topRatio);
+      if (point !== undefined && point.isEmpty !== true) candidates.push(point.topRatio);
     });
     return {
       index,
@@ -291,8 +376,8 @@ export function buildComposedGeometry(
     };
   });
 
-  const gridLines = Array.from({ length: GRID_LINE_COUNT }, (_, index) =>
-    Number((PADDING_TOP + (index / (GRID_LINE_COUNT - 1)) * innerHeight).toFixed(2)),
+  const gridLines = Array.from({ length: tickCount }, (_, index) =>
+    Number((PADDING_TOP + (index / (tickCount - 1)) * innerHeight).toFixed(2)),
   );
 
   return {
@@ -300,9 +385,11 @@ export function buildComposedGeometry(
     bars,
     lines,
     gridLines,
-    leftLabels: leftScale ? buildAxisLabels(leftScale) : [],
-    rightLabels: rightScale ? buildAxisLabels(rightScale) : [],
-    ...(leftScale ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) } : {}),
+    leftLabels: leftScale ? buildAxisLabels(leftScale, tickCount, formatTick) : [],
+    rightLabels: rightScale ? buildAxisLabels(rightScale, tickCount, formatTick) : [],
+    ...(leftScale && leftScale.min <= 0 && leftScale.max >= 0
+      ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) }
+      : {}),
     referenceLines: referenceLines
       .filter((line) => line.index >= 0 && line.index < count)
       .map((line) => ({
@@ -316,9 +403,9 @@ export function buildComposedGeometry(
 }
 
 /** Column indices to render as x-axis labels (subset, always including the last). */
-export function pickComposedXLabels(count: number): number[] {
+export function pickComposedXLabels(count: number, maxLabels: number = MAX_X_LABELS): number[] {
   if (count === 0) return [];
-  const step = Math.max(1, Math.ceil(count / MAX_X_LABELS));
+  const step = Math.max(1, Math.ceil(count / Math.max(2, maxLabels)));
   const indices: number[] = [];
   for (let index = 0; index < count; index += step) indices.push(index);
   if (indices[indices.length - 1] !== count - 1) indices.push(count - 1);
