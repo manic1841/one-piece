@@ -225,7 +225,6 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
   const shared = {
     labels: points.map((point) => point.label),
     points: tooltipPoints,
-    selectedIndex,
     onPointClick: activate,
   };
 
@@ -238,6 +237,7 @@ export function AnalysisChart<Point extends { yearMonth: string; label: string; 
         height={chartHeight}
         showLabels={showLabels}
         ariaLabel={ariaLabel(visibleLabels)}
+        selectedIndex={selectedIndex}
         {...(yDomain === undefined ? {} : { yDomain })}
         {...(yTicks === undefined ? {} : { yTicks })}
         {...(yDecimals === undefined ? {} : { yDecimals })}
