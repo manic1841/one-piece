@@ -3,8 +3,8 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  REPORT_ANALYSIS_LABELS,
   REPORT_LIST_LABELS,
+  REPORT_SUMMARY_LABELS,
 } from '@/ui/constants/report/reportCenterLabels';
 
 import ReportListPage from './ReportListPage';
@@ -28,13 +28,12 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: () => ({ userProfile: { householdId: 'h1' } }),
 }));
 
-const mockAnalysis = vi.hoisted(() => vi.fn());
-vi.mock('@/application/report/use_cases/getFinancialAnalysisWorkflow', () => ({
-  // The landing page has no scale control, so the monthly no-op is enough.
-  getFinancialAnalysisWorkflow: { execute: mockAnalysis, rollUp: (value: unknown) => value },
+const mockSummary = vi.hoisted(() => vi.fn());
+vi.mock('@/application/report/use_cases/getReportSummaryWorkflow', () => ({
+  getReportSummaryWorkflow: { execute: mockSummary },
 }));
 
-const analysisResult = (overrides: Record<string, unknown> = {}) => ({
+const summaryResult = (overrides: Record<string, unknown> = {}) => ({
   anchor: { yearMonth: '2026-06', closed: true },
   kpis: {
     yearMonth: '2026-06',
@@ -44,16 +43,6 @@ const analysisResult = (overrides: Record<string, unknown> = {}) => ({
     savingsRate: 12.5,
     anchorClosed: true,
   },
-  unclosedMonths: [],
-  range: '3y',
-  availableRanges: ['1y'],
-  netWorthPoints: [],
-  assetCompositionPoints: [],
-  investmentPerformancePoints: [],
-  incomePoints: [],
-  cashFlowPoints: [],
-  debtLeveragePoints: [],
-  cashCoveragePoints: [],
   ...overrides,
 });
 
@@ -114,8 +103,8 @@ describe('ReportListPage', () => {
   beforeEach(() => {
     mocks.listReportsExecute.mockReset();
     mocks.listPeriodsExecute.mockReset();
-    mockAnalysis.mockReset();
-    mockAnalysis.mockResolvedValue(analysisResult());
+    mockSummary.mockReset();
+    mockSummary.mockResolvedValue(summaryResult());
   });
 
   it('summarises the latest report period with all three figures, and lists history newest-first', async () => {
@@ -171,8 +160,8 @@ describe('ReportListPage', () => {
   });
 
   it('deep-links each KPI into the analysis and flags an unclosed anchor', async () => {
-    mockAnalysis.mockResolvedValue(
-      analysisResult({
+    mockSummary.mockResolvedValue(
+      summaryResult({
         anchor: { yearMonth: '2026-06', closed: false },
         kpis: {
           yearMonth: '2026-06',
@@ -231,17 +220,17 @@ describe('ReportListPage', () => {
     await waitFor(() => expect(screen.getAllByText(REPORT_LIST_LABELS.EMPTY_TITLE).length).toBe(1));
   });
 
-  it('shows a retryable error in the summary block when the analysis fails', async () => {
-    mockAnalysis.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(analysisResult());
+  it('shows a retryable error in the summary block when the summary fails', async () => {
+    mockSummary.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(summaryResult());
     mocks.listReportsExecute.mockResolvedValue([]);
     mocks.listPeriodsExecute.mockResolvedValue([]);
 
     renderPage();
 
     await waitFor(() =>
-      expect(screen.getByText(REPORT_ANALYSIS_LABELS.LOAD_ERROR)).toBeInTheDocument(),
+      expect(screen.getByText(REPORT_SUMMARY_LABELS.LOAD_ERROR)).toBeInTheDocument(),
     );
-    fireEvent.click(screen.getByRole('button', { name: REPORT_ANALYSIS_LABELS.RETRY_ACTION }));
+    fireEvent.click(screen.getByRole('button', { name: REPORT_SUMMARY_LABELS.RETRY_ACTION }));
 
     expect(await screen.findByRole('link', { name: '淨資產，前往淨資產趨勢' })).toHaveTextContent(
       'NT$450,000',

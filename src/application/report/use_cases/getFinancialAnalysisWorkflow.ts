@@ -12,6 +12,15 @@ import {
 } from '@/domains/report/analysisScale';
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
+import {
+  EMPTY_KPIS,
+  isBalanceSheet,
+  isIncome,
+  kpisOf,
+  resolveAnchorReport,
+  savingsRateOf,
+  toMonthCode,
+} from './reportAnchor';
 import { rollUpFinancialAnalysisUseCase } from './rollUpFinancialAnalysisUseCase';
 
 export type { AnalysisGranularity, AnalysisRange } from '@/domains/report/analysisScale';
@@ -111,14 +120,6 @@ export interface GetFinancialAnalysisRequest {
   range: AnalysisRange;
 }
 
-const toMonthCode = (yearMonth: string): number => {
-  const [year, month] = yearMonth.split('-').map(Number);
-  return year * 12 + (month - 1);
-};
-
-const savingsRateOf = (income: number, expense: number): number | null =>
-  income > 0 ? ((income - expense) / income) * 100 : null;
-
 /** Drawable points for one block: in range, oldest first, each marked closed or not. */
 const collectPoints = <TReport extends FinancialReport, TPoint extends AnalysisPointBase>(
   reports: TReport[],
@@ -132,15 +133,7 @@ const collectPoints = <TReport extends FinancialReport, TPoint extends AnalysisP
     .sort((a, b) => toMonthCode(a.yearMonth) - toMonthCode(b.yearMonth))
     .map((report) => map(report, closedMonths.has(report.yearMonth)));
 
-type BalanceSheetReport = Extract<FinancialReport, { type: typeof ReportType.BALANCE_SHEET }>;
-type IncomeReport = Extract<FinancialReport, { type: typeof ReportType.INCOME_STATEMENT }>;
 type CashFlowReport = Extract<FinancialReport, { type: typeof ReportType.CASH_FLOW }>;
-
-const isBalanceSheet = (report: FinancialReport): report is BalanceSheetReport =>
-  report.type === ReportType.BALANCE_SHEET;
-
-const isIncome = (report: FinancialReport): report is IncomeReport =>
-  report.type === ReportType.INCOME_STATEMENT;
 
 const isCashFlow = (report: FinancialReport): report is CashFlowReport =>
   report.type === ReportType.CASH_FLOW;
@@ -189,15 +182,6 @@ const completeMonthsOf = (snapshotsPerPortfolio: PortfolioSnapshot[][]): Set<str
     (shared, months) => new Set([...shared].filter((month) => months.has(month))),
     first,
   );
-};
-
-const EMPTY_KPIS: FinancialAnalysisKpis = {
-  yearMonth: null,
-  assets: null,
-  netWorth: null,
-  liabilities: null,
-  savingsRate: null,
-  anchorClosed: null,
 };
 
 /** One range per distinct set of months, preferring the requested range for its set. */
@@ -261,13 +245,7 @@ export class GetFinancialAnalysisWorkflow {
       cashFlow: reports.filter(isCashFlow),
     };
 
-    const anchorReport = byType.balanceSheet.reduce<BalanceSheetReport | null>(
-      (latest, report) =>
-        latest === null || toMonthCode(report.yearMonth) > toMonthCode(latest.yearMonth)
-          ? report
-          : latest,
-      null,
-    );
+    const anchorReport = resolveAnchorReport(byType.balanceSheet);
 
     if (anchorReport === null) {
       return {
@@ -433,16 +411,7 @@ export class GetFinancialAnalysisWorkflow {
 
     return {
       anchor: { yearMonth: anchor, closed: anchorClosed },
-      kpis: {
-        yearMonth: anchor,
-        assets: anchorReport.data.assets.total,
-        netWorth: anchorReport.data.assets.total - anchorReport.data.liabilities.total,
-        liabilities: anchorReport.data.liabilities.total,
-        savingsRate: anchorIncome
-          ? savingsRateOf(anchorIncome.data.incomeTotal, anchorIncome.data.expenseTotal)
-          : null,
-        anchorClosed,
-      },
+      kpis: kpisOf(anchorReport, anchorIncome, closedMonths),
       unclosedMonths,
       range,
       availableRanges: buildAvailableRanges(drawableMonths, anchor, range),

@@ -55,6 +55,8 @@ export const REPORT_SUMMARY_LABELS = {
   VIEW_ANALYSIS: '查看完整分析',
   UNCLOSED: '未關帳',
   MISSING: '—',
+  LOAD_ERROR: '無法載入財務摘要。',
+  RETRY_ACTION: '重試',
   ARIA_TOTAL_ASSETS: '總資產，前往淨資產趨勢',
   ARIA_NET_WORTH: '淨資產，前往淨資產趨勢',
   ARIA_TOTAL_LIABILITIES: '總負債，前往淨資產趨勢',

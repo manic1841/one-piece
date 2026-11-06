@@ -5,7 +5,7 @@ import { eyebrowClass } from '@/ui/components/eyebrow';
 import { MONEY_TONE_CLASS } from '@/ui/components/moneyTone';
 import { cn } from '@/ui/utils/cn';
 
-import { type ReportSummaryVM, type SummaryKpiVM } from '../viewmodels/reportAnalysis.vm';
+import { type ReportSummaryVM, type SummaryKpiVM } from '../viewmodels/reportSummary.vm';
 
 /**
  * Only the label and the number are the link, so the hit area stays exactly the

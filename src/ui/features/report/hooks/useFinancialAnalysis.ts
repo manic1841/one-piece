@@ -9,11 +9,7 @@ import { REPORT_ANALYSIS_LABELS } from '@/ui/constants/report/reportCenterLabels
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
-import {
-  type AnalysisGranularity,
-  buildReportAnalysisVM,
-  buildReportSummaryVM,
-} from '../viewmodels/reportAnalysis.vm';
+import { type AnalysisGranularity, buildReportAnalysisVM } from '../viewmodels/reportAnalysis.vm';
 
 export function useFinancialAnalysis(
   householdId: string,
@@ -44,7 +40,6 @@ export function useFinancialAnalysis(
 
   return {
     analysis,
-    summaryVM: analysis ? buildReportSummaryVM(analysis) : null,
     analysisVM:
       scaledAnalysis === null
         ? null

@@ -1,7 +1,4 @@
-import {
-  type FinancialAnalysis,
-  type FinancialAnalysisKpis,
-} from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
+import { type FinancialAnalysis } from '@/application/report/use_cases/getFinancialAnalysisWorkflow';
 import {
   ANALYSIS_GRANULARITIES,
   ANALYSIS_RANGES,
@@ -9,10 +6,7 @@ import {
   type AnalysisRange,
   yearOf,
 } from '@/domains/report/analysisScale';
-import { type MoneyTone } from '@/ui/components/moneyTone';
 import {
-  ANALYSIS_ANCHORS,
-  ANALYSIS_PATH,
   ANALYSIS_RANGE_LABELS,
   REPORT_ANALYSIS_LABELS,
   REPORT_SUMMARY_LABELS,
@@ -22,7 +16,6 @@ import { formatMonthLabel } from '@/ui/utils/date';
 
 import { withChange, withRatioChange, withSavingsChange } from './reportAnalysisChange';
 import { type TakeawayVM, takeawayOf } from './reportAnalysisTakeaway';
-import { formatReportPeriodDisplay, parseReportPeriod } from './reportHistory.vm';
 
 export { ANALYSIS_GRANULARITIES, ANALYSIS_RANGES };
 export type { AnalysisGranularity, AnalysisRange };
@@ -36,24 +29,8 @@ export type AssetCompositionSeriesKey = 'cash' | 'investment' | 'property';
 export type InvestmentPerformanceSeriesKey = 'gain' | 'returnRate';
 export type IncomeSeriesKey = 'income' | 'expense' | 'savingsRate';
 export type DebtLeverageSeriesKey = 'liabilities' | 'debtRatio' | 'leverage';
-export type SummaryKpiKey = 'totalAssets' | 'netWorth' | 'totalLiabilities' | 'savingsRate';
 /** `?series=` values: the two context lines the KPI links preselect. */
 export type SeriesParam = 'assets' | 'debt';
-
-export interface SummaryKpiVM {
-  key: SummaryKpiKey;
-  label: string;
-  valueText: string;
-  tone: MoneyTone;
-  href: string;
-  ariaLabel: string;
-}
-
-export interface ReportSummaryVM {
-  kpis: SummaryKpiVM[];
-  periodText: string;
-  unclosed: boolean;
-}
 
 export interface AnalysisPointTextVM {
   label: string;
@@ -173,69 +150,7 @@ export interface ReportAnalysisVM {
 }
 
 const DASH = REPORT_SUMMARY_LABELS.MISSING;
-
-const periodTextOf = (yearMonth: string | null): string => {
-  if (yearMonth === null) return DASH;
-  const period = parseReportPeriod(yearMonth);
-  return period === null ? yearMonth : formatReportPeriodDisplay(period);
-};
-
-const percentText = (value: number | null): string =>
-  value === null ? DASH : formatPercentage(value, 1);
-
-const kpiValue = (value: number | null): string => (value === null ? DASH : formatCurrency(value));
-
-const analysisHref = (anchor: string, series?: SeriesParam): string =>
-  `${ANALYSIS_PATH}${series === undefined ? '' : `?series=${series}`}#${anchor}`;
-
-const summaryKpi = (
-  key: SummaryKpiKey,
-  label: string,
-  valueText: string,
-  href: string,
-  ariaLabel: string,
-  tone: MoneyTone = 'default',
-): SummaryKpiVM => ({ key, label, valueText, tone, href, ariaLabel });
-
-/** Landing KPI: four figures from the anchor, each a deep link into the analysis. */
-export const buildReportSummaryVM = (analysis: FinancialAnalysis): ReportSummaryVM => {
-  const kpis: FinancialAnalysisKpis = analysis.kpis;
-  return {
-    periodText: periodTextOf(kpis.yearMonth),
-    unclosed: kpis.anchorClosed === false,
-    kpis: [
-      summaryKpi(
-        'totalAssets',
-        REPORT_SUMMARY_LABELS.TOTAL_ASSETS,
-        kpiValue(kpis.assets),
-        analysisHref(ANALYSIS_ANCHORS.NET_WORTH, 'assets'),
-        REPORT_SUMMARY_LABELS.ARIA_TOTAL_ASSETS,
-      ),
-      summaryKpi(
-        'netWorth',
-        REPORT_SUMMARY_LABELS.NET_WORTH,
-        kpiValue(kpis.netWorth),
-        analysisHref(ANALYSIS_ANCHORS.NET_WORTH),
-        REPORT_SUMMARY_LABELS.ARIA_NET_WORTH,
-      ),
-      summaryKpi(
-        'totalLiabilities',
-        REPORT_SUMMARY_LABELS.TOTAL_LIABILITIES,
-        kpiValue(kpis.liabilities),
-        analysisHref(ANALYSIS_ANCHORS.NET_WORTH, 'debt'),
-        REPORT_SUMMARY_LABELS.ARIA_TOTAL_LIABILITIES,
-      ),
-      summaryKpi(
-        'savingsRate',
-        REPORT_SUMMARY_LABELS.SAVINGS_RATE,
-        percentText(kpis.savingsRate),
-        analysisHref(ANALYSIS_ANCHORS.INCOME),
-        REPORT_SUMMARY_LABELS.ARIA_SAVINGS_RATE,
-        kpis.savingsRate !== null && kpis.savingsRate < 0 ? 'negative' : 'default',
-      ),
-    ],
-  };
-};
+const pct = (value: number | null): string => (value === null ? DASH : formatPercentage(value, 1));
 
 const pointLabel = (yearMonth: string, granularity: AnalysisGranularity): string => {
   if (granularity === 'annual') return yearMonth;
@@ -274,7 +189,7 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
     changeText: null,
     incomeText: formatCurrency(point.income),
     expenseText: formatCurrency(point.expense),
-    savingsRateText: percentText(point.savingsRate),
+    savingsRateText: pct(point.savingsRate),
   })),
   assetComposition: analysis.assetCompositionPoints.map<AssetCompositionChartVM>((point) => {
     const share = (value: number) => (value / point.assetsTotal) * 100;
@@ -307,7 +222,7 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
       returnRate: point.returnRate,
       gainText: formatCurrency(point.gain),
       openingValueText: formatCurrency(point.openingValue),
-      returnRateText: percentText(point.returnRate),
+      returnRateText: pct(point.returnRate),
     }),
   ),
   debtLeverage: analysis.debtLeveragePoints.map<DebtLeverageChartVM>((point) => ({
@@ -320,7 +235,7 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
     leverage: point.leverage,
     changeText: null,
     liabilitiesText: formatCurrency(point.liabilities),
-    debtRatioText: percentText(point.debtRatio),
+    debtRatioText: pct(point.debtRatio),
     leverageText: point.leverage === null ? DASH : `${Number(point.leverage.toFixed(4))}x`,
   })),
   cashFlow: analysis.cashFlowPoints.map<CashFlowChartVM>((point) => ({

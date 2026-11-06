@@ -12,15 +12,14 @@ import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import {
-  REPORT_ANALYSIS_LABELS,
   REPORT_LIST_LABELS,
   REPORT_SUMMARY_LABELS,
 } from '@/ui/constants/report/reportCenterLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { FinancialSummaryKpis } from '@/ui/features/report/components/FinancialSummaryKpis';
 import { ReportHistoryTable } from '@/ui/features/report/components/ReportHistoryTable';
-import { useFinancialAnalysis } from '@/ui/features/report/hooks/useFinancialAnalysis';
 import { useReportHistory } from '@/ui/features/report/hooks/useReportHistory';
+import { useReportSummary } from '@/ui/features/report/hooks/useReportSummary';
 import { type ReportGranularity } from '@/ui/features/report/viewmodels/reportHistory.vm';
 import { cn } from '@/ui/utils/cn';
 
@@ -42,7 +41,7 @@ const ReportListPage: React.FC = () => {
     loading: summaryLoading,
     errorMessage: summaryError,
     reload: reloadSummary,
-  } = useFinancialAnalysis(householdId, '3y', 'monthly', null);
+  } = useReportSummary(householdId);
   const navigate = useNavigate();
 
   return (
@@ -75,8 +74,8 @@ const ReportListPage: React.FC = () => {
         ) : summaryError !== null ? (
           <LoadErrorAlert
             errorMessage={summaryError}
-            message={REPORT_ANALYSIS_LABELS.LOAD_ERROR}
-            retryLabel={REPORT_ANALYSIS_LABELS.RETRY_ACTION}
+            message={REPORT_SUMMARY_LABELS.LOAD_ERROR}
+            retryLabel={REPORT_SUMMARY_LABELS.RETRY_ACTION}
             onRetry={() => void reloadSummary()}
           />
         ) : summaryVM === null ? (
