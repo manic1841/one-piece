@@ -243,7 +243,7 @@
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（RECENT TRANSACTIONS）。
 
 - **`AnimatedNumber`** — 在兩個已確認數值之間補間（motion-system M07）：首渲染直接顯示終值，後續變更才動；`prefers-reduced-motion` 下直接跳終值。`FinancialNumber` / `Metric` 提供 `animatedValue` 時由它接手，一般不需要單獨使用。
-  - Props：`value`（已確認數值，`null` 顯示 `missing`）、`format`、`missing?`、`className?`。
+  - Props：`value`（已確認數值，`null` 顯示 `missing`）、`format`、`missing?`、`durationMs?`（覆寫補間長度；預設 `data` 的 400ms，目前僅 Motion Lab 用來對照 300／400／500）、`className?`。
   - **不要用於**：表格儲存格（多列同時跳動妨礙掃視）；載入中尚未確認的值。
   - 範例：`src/ui/components/FinancialNumber.tsx`、`src/ui/components/MetricGroup.tsx`。
 

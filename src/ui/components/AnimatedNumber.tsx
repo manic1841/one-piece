@@ -18,6 +18,8 @@ type AnimatedNumberProps = {
   format: (value: number) => string;
   /** Shown when `value` is nullish. */
   missing?: string;
+  /** Override the interpolation length. The data token stays the default. */
+  durationMs?: number;
   className?: string;
 };
 
@@ -31,6 +33,7 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
   format,
   missing = '—',
+  durationMs = DATA_DURATION_MS,
   className,
 }) => {
   const target = value ?? null;
@@ -48,7 +51,7 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
     const started = performance.now();
     let frame: number | null = null;
     const step = (now: number) => {
-      const progress = Math.min(1, (now - started) / DATA_DURATION_MS);
+      const progress = Math.min(1, (now - started) / durationMs);
       setFrameValue(progress < 1 ? from + (target - from) * easeOutQuint(progress) : null);
       frame = progress < 1 ? requestAnimationFrame(step) : null;
     };
@@ -57,7 +60,7 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
     return () => {
       if (frame !== null) cancelAnimationFrame(frame);
     };
-  }, [target]);
+  }, [target, durationMs]);
 
   // The frame value only matters mid-transition: a nullish target and reduced
   // motion both read straight through to the authoritative value.
