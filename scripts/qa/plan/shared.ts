@@ -280,6 +280,19 @@ export const usdTwdAmount = () => USD_REMITTANCE_AMOUNT * USD_EXCHANGE_RATE;
 // March 20,000 entry (issue #198 Q4).
 export const PORTFOLIO_BASE_VALUE = 17_500;
 
-export const REPORT_MONTHS = ['2026-07', '2026-08', '2026-09'];
+// Report/snapshot months. The whole 2026 H1 is included so trailing-window
+// analysis blocks (cash coverage) have complete three-month windows instead of
+// a series that starts at its own first report.
+export const REPORT_MONTHS = [
+  '2026-01',
+  '2026-02',
+  '2026-03',
+  '2026-04',
+  '2026-05',
+  '2026-06',
+  '2026-07',
+  '2026-08',
+  '2026-09',
+];
 
 export { SALARY_AMOUNT, SAMPLE_YEAR };
