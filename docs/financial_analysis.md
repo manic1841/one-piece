@@ -15,9 +15,8 @@
 
 沒有同月損益表時，儲蓄率顯示「—」，不往前找。完全沒有任何資產負債表時，整頁顯示空狀態。
 
-報表中心 landing 的四格財務摘要走 `GetReportSummaryWorkflow`：同一條錨點規則，但只讀報表與
-財務期間，不讀 portfolio／snapshot，也不組其餘六條序列。錨點解析與 KPI 口徑在
-`src/application/report/use_cases/reportAnchor.ts`，由兩個 workflow 共用。
+報表中心 landing 的四格財務摘要共用同一條錨點規則，但只讀報表與財務期間，不讀
+portfolio／snapshot，也不組其餘六條序列；錨點解析與 KPI 口徑由兩個 workflow 共用。
 
 頁面第一行是摘要句，先把結論講完再看圖：選取期淨資產、較上期變化率、儲蓄率、負債比；
 缺項略過，上一期淨資產為 0 時不算變化率。

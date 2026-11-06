@@ -1,8 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { type FinancialPeriod } from '@/domains/financial_period/schemas';
 import { type FinancialReport } from '@/domains/report/schemas';
-import { ReportType } from '@/domains/report/schemas';
+import {
+  buildBalanceSheetReport,
+  buildCashFlowReport,
+  buildFinancialPeriod,
+  buildIncomeReport,
+} from '@/test/factories';
 
 import { getFinancialAnalysisWorkflow } from './getFinancialAnalysisWorkflow';
 
@@ -35,79 +39,6 @@ vi.mock('@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase', () =>
 }));
 
 const auth = { uid: 'user-1', isGlobalAdmin: false };
-
-const base = (yearMonth: string, type: ReportType) => ({
-  id: `${yearMonth}-${type}`,
-  householdId: 'h1',
-  yearMonth,
-  createdBy: 'user-1',
-  updatedBy: 'user-1',
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
-
-const group = (label: string, total: number) => ({ label, total, items: [] });
-
-const balanceSheet = (
-  yearMonth: string,
-  assets: number,
-  liabilities: number,
-  assetGroups: Record<string, number> = {},
-): FinancialReport => ({
-  ...base(yearMonth, ReportType.BALANCE_SHEET),
-  type: ReportType.BALANCE_SHEET,
-  data: {
-    yearMonth,
-    assets: {
-      total: assets,
-      groups: Object.fromEntries(
-        Object.entries(assetGroups).map(([key, total]) => [key, group(key, total)]),
-      ),
-    },
-    liabilities: { total: liabilities, groups: {} },
-    equity: { total: assets - liabilities, groups: {} },
-  },
-});
-
-const income = (yearMonth: string, incomeTotal: number, expenseTotal: number): FinancialReport => ({
-  ...base(yearMonth, ReportType.INCOME_STATEMENT),
-  type: ReportType.INCOME_STATEMENT,
-  data: {
-    yearMonth,
-    incomeTotal,
-    expenseTotal,
-    netIncome: incomeTotal - expenseTotal,
-    incomeItems: [],
-    expenseItems: [],
-  },
-});
-
-const cashFlow = (yearMonth: string, netCashChange: number): FinancialReport => ({
-  ...base(yearMonth, ReportType.CASH_FLOW),
-  type: ReportType.CASH_FLOW,
-  data: {
-    yearMonth,
-    operating: { label: '營業', total: netCashChange, inflowItems: [], outflowItems: [] },
-    investing: { label: '投資', total: 0, inflowItems: [], outflowItems: [] },
-    financing: { label: '融資', total: 0, inflowItems: [], outflowItems: [] },
-    netCashChange,
-    beginningBalance: 0,
-    endingBalance: netCashChange,
-    actualBalance: netCashChange,
-    adjustment: 0,
-  },
-});
-
-const period = (yearMonth: string, status: FinancialPeriod['status']): FinancialPeriod => ({
-  id: yearMonth,
-  yearMonth,
-  status,
-  stages: {},
-  createdBy: 'user-1',
-  updatedBy: 'user-1',
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
 
 const snapshot = (
   year: number,
@@ -171,11 +102,11 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('anchors the latest balance sheet regardless of status, including when later months have other reports', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 900, 100),
-      balanceSheet('2026-03', 1000, 100),
-      income('2026-04', 5000, 4000),
+      buildBalanceSheetReport('2026-01', 900, 100),
+      buildBalanceSheetReport('2026-03', 1000, 100),
+      buildIncomeReport('2026-04', 5000, 4000),
     ]);
-    listPeriodsMock.mockResolvedValue([period('2026-01', 'CLOSED')]);
+    listPeriodsMock.mockResolvedValue([buildFinancialPeriod('2026-01', 'CLOSED')]);
 
     const result = await run();
 
@@ -188,12 +119,12 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('builds each block only from its own report type and omits months without one', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 900, 100),
-      income('2026-01', 5000, 4000),
-      balanceSheet('2026-02', 950, 100),
-      cashFlow('2026-02', -200),
-      balanceSheet('2026-03', 1000, 100),
-      income('2026-03', 6000, 3000),
+      buildBalanceSheetReport('2026-01', 900, 100),
+      buildIncomeReport('2026-01', 5000, 4000),
+      buildBalanceSheetReport('2026-02', 950, 100),
+      buildCashFlowReport('2026-02', -200),
+      buildBalanceSheetReport('2026-03', 1000, 100),
+      buildIncomeReport('2026-03', 6000, 3000),
     ]);
 
     const result = await run();
@@ -208,14 +139,14 @@ describe('getFinancialAnalysisWorkflow', () => {
   });
 
   it('computes the savings rate from the same-month income statement, null when it is missing', async () => {
-    listReportsMock.mockResolvedValue([balanceSheet('2026-03', 1000, 100)]);
+    listReportsMock.mockResolvedValue([buildBalanceSheetReport('2026-03', 1000, 100)]);
 
     const missing = await run();
     expect(missing.kpis.savingsRate).toBeNull();
 
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-03', 1000, 100),
-      income('2026-03', 5000, 4000),
+      buildBalanceSheetReport('2026-03', 1000, 100),
+      buildIncomeReport('2026-03', 5000, 4000),
     ]);
 
     const present = await run();
@@ -224,12 +155,12 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('keeps a negative savings rate and nulls it when income is not positive', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100),
-      income('2026-01', 5000, 6000),
-      balanceSheet('2026-02', 1000, 100),
-      income('2026-02', 0, 200),
-      balanceSheet('2026-03', 1000, 100),
-      income('2026-03', 5000, 6000),
+      buildBalanceSheetReport('2026-01', 1000, 100),
+      buildIncomeReport('2026-01', 5000, 6000),
+      buildBalanceSheetReport('2026-02', 1000, 100),
+      buildIncomeReport('2026-02', 0, 200),
+      buildBalanceSheetReport('2026-03', 1000, 100),
+      buildIncomeReport('2026-03', 5000, 6000),
     ]);
 
     const result = await run();
@@ -243,8 +174,8 @@ describe('getFinancialAnalysisWorkflow', () => {
     const reports: FinancialReport[] = [];
     for (let month = 1; month <= 12; month++) {
       const yearMonth = `2026-${String(month).padStart(2, '0')}`;
-      reports.push(balanceSheet(yearMonth, month * 100, 0));
-      reports.push(income(yearMonth, 1000, 500));
+      reports.push(buildBalanceSheetReport(yearMonth, month * 100, 0));
+      reports.push(buildIncomeReport(yearMonth, 1000, 500));
     }
     listReportsMock.mockResolvedValue(reports);
 
@@ -257,7 +188,7 @@ describe('getFinancialAnalysisWorkflow', () => {
   });
 
   it('drops ranges that select the same months and leaves only one option', async () => {
-    listReportsMock.mockResolvedValue([balanceSheet('2026-03', 1000, 0)]);
+    listReportsMock.mockResolvedValue([buildBalanceSheetReport('2026-03', 1000, 0)]);
 
     const result = await run('3y');
 
@@ -267,8 +198,8 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('lets the requested range represent its months instead of an earlier duplicate', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2022-01', 100, 0),
-      balanceSheet('2026-01', 300, 0),
+      buildBalanceSheetReport('2022-01', 100, 0),
+      buildBalanceSheetReport('2026-01', 300, 0),
     ]);
 
     const result = await run('5y');
@@ -279,10 +210,10 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('keeps distinct shorter ranges when there is enough history', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2019-01', 50, 0),
-      balanceSheet('2022-01', 100, 0),
-      balanceSheet('2024-01', 200, 0),
-      balanceSheet('2026-01', 300, 0),
+      buildBalanceSheetReport('2019-01', 50, 0),
+      buildBalanceSheetReport('2022-01', 100, 0),
+      buildBalanceSheetReport('2024-01', 200, 0),
+      buildBalanceSheetReport('2026-01', 300, 0),
     ]);
 
     const result = await run('all');
@@ -292,14 +223,14 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('lists distinct unclosed months inside the range, oldest first', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 100, 0),
-      balanceSheet('2026-02', 200, 0),
-      balanceSheet('2026-03', 300, 0),
-      cashFlow('2026-02', -10),
+      buildBalanceSheetReport('2026-01', 100, 0),
+      buildBalanceSheetReport('2026-02', 200, 0),
+      buildBalanceSheetReport('2026-03', 300, 0),
+      buildCashFlowReport('2026-02', -10),
     ]);
     listPeriodsMock.mockResolvedValue([
-      period('2026-01', 'CLOSED'),
-      period('2026-02', 'IN_PROGRESS'),
+      buildFinancialPeriod('2026-01', 'CLOSED'),
+      buildFinancialPeriod('2026-02', 'IN_PROGRESS'),
     ]);
 
     const result = await run();
@@ -310,9 +241,9 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('maps the three asset groups and omits months with no assets', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100, { cash: 200, investment: 300, property: 500 }),
-      balanceSheet('2026-02', 0, 0, { cash: 0, investment: 0, property: 0 }),
-      balanceSheet('2026-03', 1000, 100, { cash: -50, investment: 400, property: 650 }),
+      buildBalanceSheetReport('2026-01', 1000, 100, { cash: 200, investment: 300, property: 500 }),
+      buildBalanceSheetReport('2026-02', 0, 0, { cash: 0, investment: 0, property: 0 }),
+      buildBalanceSheetReport('2026-03', 1000, 100, { cash: -50, investment: 400, property: 650 }),
     ]);
 
     const result = await run();
@@ -345,9 +276,9 @@ describe('getFinancialAnalysisWorkflow', () => {
         : [snapshot(2026, 1, 50, 500), snapshot(2026, 3, 10, 0)],
     );
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100),
-      balanceSheet('2026-02', 1000, 100),
-      balanceSheet('2026-03', 1000, 100),
+      buildBalanceSheetReport('2026-01', 1000, 100),
+      buildBalanceSheetReport('2026-02', 1000, 100),
+      buildBalanceSheetReport('2026-03', 1000, 100),
     ]);
 
     const result = await run();
@@ -370,8 +301,8 @@ describe('getFinancialAnalysisWorkflow', () => {
         : [snapshot(2026, 1, 50, 500)],
     );
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100),
-      balanceSheet('2026-02', 1000, 100),
+      buildBalanceSheetReport('2026-01', 1000, 100),
+      buildBalanceSheetReport('2026-02', 1000, 100),
     ]);
 
     const result = await run();
@@ -385,8 +316,8 @@ describe('getFinancialAnalysisWorkflow', () => {
       portfolioId === 'p1' ? [snapshot(2026, 1, 100, 1000), snapshot(2026, 2, 50, 500)] : [],
     );
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100),
-      balanceSheet('2026-02', 1000, 100),
+      buildBalanceSheetReport('2026-01', 1000, 100),
+      buildBalanceSheetReport('2026-02', 1000, 100),
     ]);
 
     const result = await run();
@@ -408,8 +339,8 @@ describe('getFinancialAnalysisWorkflow', () => {
         : [snapshot(2026, 1, 0, 0, [{ marketValue: 100, leverage: 2 }])],
     );
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100),
-      balanceSheet('2026-02', 1000, 100),
+      buildBalanceSheetReport('2026-01', 1000, 100),
+      buildBalanceSheetReport('2026-02', 1000, 100),
     ]);
 
     const result = await run();
@@ -426,10 +357,10 @@ describe('getFinancialAnalysisWorkflow', () => {
     listPortfoliosMock.mockResolvedValue([{ id: 'p1' }]);
     listSnapshotsMock.mockResolvedValue([snapshot(2026, 1, 0, 100), snapshot(2026, 2, 0, 100)]);
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100),
-      balanceSheet('2026-02', 1000, 100),
+      buildBalanceSheetReport('2026-01', 1000, 100),
+      buildBalanceSheetReport('2026-02', 1000, 100),
     ]);
-    listPeriodsMock.mockResolvedValue([period('2026-01', 'CLOSED')]);
+    listPeriodsMock.mockResolvedValue([buildFinancialPeriod('2026-01', 'CLOSED')]);
 
     const result = await run();
 
@@ -443,9 +374,9 @@ describe('getFinancialAnalysisWorkflow', () => {
       snapshot(2026, 1, 0, 0, [{ marketValue: 100, leverage: 2 }, { marketValue: 100 }]),
     ]);
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 100),
-      balanceSheet('2026-02', 1000, 100),
-      balanceSheet('2026-03', 0, 0),
+      buildBalanceSheetReport('2026-01', 1000, 100),
+      buildBalanceSheetReport('2026-02', 1000, 100),
+      buildBalanceSheetReport('2026-03', 0, 0),
     ]);
 
     const result = await run();
@@ -464,12 +395,12 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('averages the month and the two before it into the cash coverage', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 0, { cash: 900 }),
-      income('2026-01', 5000, 3000),
-      balanceSheet('2026-02', 1000, 0, { cash: 900 }),
-      income('2026-02', 5000, 6000),
-      balanceSheet('2026-03', 1000, 0, { cash: 1200 }),
-      income('2026-03', 5000, 3000),
+      buildBalanceSheetReport('2026-01', 1000, 0, { cash: 900 }),
+      buildIncomeReport('2026-01', 5000, 3000),
+      buildBalanceSheetReport('2026-02', 1000, 0, { cash: 900 }),
+      buildIncomeReport('2026-02', 5000, 6000),
+      buildBalanceSheetReport('2026-03', 1000, 0, { cash: 1200 }),
+      buildIncomeReport('2026-03', 5000, 3000),
     ]);
 
     const result = await run();
@@ -485,10 +416,10 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('nulls the coverage when a window month has no income statement', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 0, { cash: 900 }),
-      income('2026-01', 5000, 3000),
-      income('2026-03', 5000, 3000),
-      balanceSheet('2026-03', 1000, 0, { cash: 1200 }),
+      buildBalanceSheetReport('2026-01', 1000, 0, { cash: 900 }),
+      buildIncomeReport('2026-01', 5000, 3000),
+      buildIncomeReport('2026-03', 5000, 3000),
+      buildBalanceSheetReport('2026-03', 1000, 0, { cash: 1200 }),
     ]);
 
     const result = await run();
@@ -499,10 +430,10 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('nulls the coverage when the average expense is not positive', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2026-01', 1000, 0, { cash: 900 }),
-      income('2026-01', 5000, 0),
-      income('2025-12', 5000, 0),
-      income('2025-11', 5000, 0),
+      buildBalanceSheetReport('2026-01', 1000, 0, { cash: 900 }),
+      buildIncomeReport('2026-01', 5000, 0),
+      buildIncomeReport('2025-12', 5000, 0),
+      buildIncomeReport('2025-11', 5000, 0),
     ]);
 
     const result = await run();
@@ -513,12 +444,12 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('lets the coverage window reach outside the selected range', async () => {
     listReportsMock.mockResolvedValue([
-      income('2025-10', 5000, 3000),
-      income('2025-11', 5000, 3000),
-      income('2025-12', 5000, 3000),
-      balanceSheet('2025-12', 1000, 0, { cash: 900 }),
-      income('2026-01', 5000, 3000),
-      balanceSheet('2026-01', 1000, 0, { cash: 1200 }),
+      buildIncomeReport('2025-10', 5000, 3000),
+      buildIncomeReport('2025-11', 5000, 3000),
+      buildIncomeReport('2025-12', 5000, 3000),
+      buildBalanceSheetReport('2025-12', 1000, 0, { cash: 900 }),
+      buildIncomeReport('2026-01', 5000, 3000),
+      buildBalanceSheetReport('2026-01', 1000, 0, { cash: 1200 }),
     ]);
 
     const result = await run('1y');
@@ -533,13 +464,13 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('marks unclosed months on the cash coverage block', async () => {
     listReportsMock.mockResolvedValue([
-      income('2025-11', 5000, 2000),
-      income('2025-12', 5000, 2000),
-      balanceSheet('2025-12', 1000, 0, { cash: 600 }),
-      income('2026-01', 5000, 2000),
-      balanceSheet('2026-01', 1000, 0, { cash: 600 }),
+      buildIncomeReport('2025-11', 5000, 2000),
+      buildIncomeReport('2025-12', 5000, 2000),
+      buildBalanceSheetReport('2025-12', 1000, 0, { cash: 600 }),
+      buildIncomeReport('2026-01', 5000, 2000),
+      buildBalanceSheetReport('2026-01', 1000, 0, { cash: 600 }),
     ]);
-    listPeriodsMock.mockResolvedValue([period('2025-12', 'CLOSED')]);
+    listPeriodsMock.mockResolvedValue([buildFinancialPeriod('2025-12', 'CLOSED')]);
 
     const result = await run();
 
@@ -554,9 +485,9 @@ describe('getFinancialAnalysisWorkflow', () => {
       snapshot(2026, 12, 0, 100),
     ]);
     listReportsMock.mockResolvedValue([
-      balanceSheet('2024-12', 1000, 100, { cash: 1000 }),
-      balanceSheet('2025-12', 1000, 100, { cash: 1000 }),
-      balanceSheet('2026-12', 1000, 100, { cash: 1000 }),
+      buildBalanceSheetReport('2024-12', 1000, 100, { cash: 1000 }),
+      buildBalanceSheetReport('2025-12', 1000, 100, { cash: 1000 }),
+      buildBalanceSheetReport('2026-12', 1000, 100, { cash: 1000 }),
     ]);
 
     const result = await run('1y');
@@ -569,14 +500,14 @@ describe('getFinancialAnalysisWorkflow', () => {
 
   it('rolls a resolved analysis up to years without another read', async () => {
     listReportsMock.mockResolvedValue([
-      balanceSheet('2025-12', 800, 100),
-      income('2025-12', 5000, 4000),
-      cashFlow('2025-12', -100),
-      balanceSheet('2026-01', 900, 100),
-      income('2026-01', 6000, 5000),
-      cashFlow('2026-01', -200),
-      balanceSheet('2026-02', 1000, 100),
-      income('2026-02', 8000, 4000),
+      buildBalanceSheetReport('2025-12', 800, 100),
+      buildIncomeReport('2025-12', 5000, 4000),
+      buildCashFlowReport('2025-12', -100),
+      buildBalanceSheetReport('2026-01', 900, 100),
+      buildIncomeReport('2026-01', 6000, 5000),
+      buildCashFlowReport('2026-01', -200),
+      buildBalanceSheetReport('2026-02', 1000, 100),
+      buildIncomeReport('2026-02', 8000, 4000),
     ]);
     const monthly = await run();
     const reads = listReportsMock.mock.calls.length;
@@ -602,7 +533,7 @@ describe('getFinancialAnalysisWorkflow', () => {
   });
 
   it('returns an empty page when there is no balance sheet at all', async () => {
-    listReportsMock.mockResolvedValue([income('2026-03', 1000, 500)]);
+    listReportsMock.mockResolvedValue([buildIncomeReport('2026-03', 1000, 500)]);
 
     const result = await run();
 

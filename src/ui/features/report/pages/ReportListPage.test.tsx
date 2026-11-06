@@ -34,7 +34,6 @@ vi.mock('@/application/report/use_cases/getReportSummaryWorkflow', () => ({
 }));
 
 const summaryResult = (overrides: Record<string, unknown> = {}) => ({
-  anchor: { yearMonth: '2026-06', closed: true },
   kpis: {
     yearMonth: '2026-06',
     assets: 600000,
@@ -162,7 +161,6 @@ describe('ReportListPage', () => {
   it('deep-links each KPI into the analysis and flags an unclosed anchor', async () => {
     mockSummary.mockResolvedValue(
       summaryResult({
-        anchor: { yearMonth: '2026-06', closed: false },
         kpis: {
           yearMonth: '2026-06',
           assets: 600000,

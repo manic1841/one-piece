@@ -11,7 +11,7 @@ import {
   REPORT_ANALYSIS_LABELS,
   REPORT_SUMMARY_LABELS,
 } from '@/ui/constants/report/reportCenterLabels';
-import { formatCurrency, formatPercentage } from '@/ui/utils';
+import { formatCurrency, formatPercentage, formatPercentageOrDash } from '@/ui/utils';
 import { formatMonthLabel } from '@/ui/utils/date';
 
 import { withChange, withRatioChange, withSavingsChange } from './reportAnalysisChange';
@@ -150,7 +150,6 @@ export interface ReportAnalysisVM {
 }
 
 const DASH = REPORT_SUMMARY_LABELS.MISSING;
-const pct = (value: number | null): string => (value === null ? DASH : formatPercentage(value, 1));
 
 const pointLabel = (yearMonth: string, granularity: AnalysisGranularity): string => {
   if (granularity === 'annual') return yearMonth;
@@ -189,7 +188,7 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
     changeText: null,
     incomeText: formatCurrency(point.income),
     expenseText: formatCurrency(point.expense),
-    savingsRateText: pct(point.savingsRate),
+    savingsRateText: formatPercentageOrDash(point.savingsRate),
   })),
   assetComposition: analysis.assetCompositionPoints.map<AssetCompositionChartVM>((point) => {
     const share = (value: number) => (value / point.assetsTotal) * 100;
@@ -222,7 +221,7 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
       returnRate: point.returnRate,
       gainText: formatCurrency(point.gain),
       openingValueText: formatCurrency(point.openingValue),
-      returnRateText: pct(point.returnRate),
+      returnRateText: formatPercentageOrDash(point.returnRate),
     }),
   ),
   debtLeverage: analysis.debtLeveragePoints.map<DebtLeverageChartVM>((point) => ({
@@ -235,7 +234,7 @@ const pointsOf = (analysis: FinancialAnalysis, granularity: AnalysisGranularity)
     leverage: point.leverage,
     changeText: null,
     liabilitiesText: formatCurrency(point.liabilities),
-    debtRatioText: pct(point.debtRatio),
+    debtRatioText: formatPercentageOrDash(point.debtRatio),
     leverageText: point.leverage === null ? DASH : `${Number(point.leverage.toFixed(4))}x`,
   })),
   cashFlow: analysis.cashFlowPoints.map<CashFlowChartVM>((point) => ({

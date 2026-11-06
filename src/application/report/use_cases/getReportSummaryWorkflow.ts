@@ -3,12 +3,11 @@ import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cas
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
 
-import { type FinancialAnalysisKpis } from './getFinancialAnalysisWorkflow';
-import { EMPTY_KPIS, isBalanceSheet, isIncome, kpisOf, resolveAnchorReport } from './reportAnchor';
+import { type FinancialAnalysisKpis, EMPTY_KPIS } from './reportAnchor';
+import { resolveReportAnchorUseCase } from './resolveReportAnchorUseCase';
 
 /** The landing page's four headline figures, at the analysis anchor. */
 export interface ReportSummary {
-  anchor: { yearMonth: string; closed: boolean } | null;
   kpis: FinancialAnalysisKpis;
 }
 
@@ -17,12 +16,10 @@ export interface GetReportSummaryRequest {
   auth: AuthContext;
 }
 
-/**
- * 報表中心的摘要 KPI：只讀報表與財務期間，不讀 portfolio 或 snapshot，因此不付分析頁
- * 其餘六條序列的成本。錨點規則與分析頁相同（ADR-0090）。
- */
+/** 報表中心 landing 的四格摘要（契約見 docs/financial_analysis.md §1）。 */
 export class GetReportSummaryWorkflow {
   private readonly listPeriods = new ListFinancialPeriodsUseCase();
+  private readonly resolveAnchor = resolveReportAnchorUseCase;
 
   async execute({ householdId, auth }: GetReportSummaryRequest): Promise<ReportSummary> {
     await householdPermissionService.assertReadPermission(
@@ -36,25 +33,12 @@ export class GetReportSummaryWorkflow {
       this.listPeriods.execute({ householdId }),
     ]);
 
-    const anchorReport = resolveAnchorReport(reports.filter(isBalanceSheet));
-    if (anchorReport === null) {
-      return { anchor: null, kpis: EMPTY_KPIS };
-    }
-
     const closedMonths = new Set(
       periods.filter((period) => period.status === 'CLOSED').map((period) => period.yearMonth),
     );
-    const anchorIncome = reports
-      .filter(isIncome)
-      .find((report) => report.yearMonth === anchorReport.yearMonth);
+    const resolved = this.resolveAnchor.execute({ reports, closedMonths });
 
-    return {
-      anchor: {
-        yearMonth: anchorReport.yearMonth,
-        closed: closedMonths.has(anchorReport.yearMonth),
-      },
-      kpis: kpisOf(anchorReport, anchorIncome, closedMonths),
-    };
+    return { kpis: resolved === null ? EMPTY_KPIS : resolved.kpis };
   }
 }
 

@@ -5,7 +5,6 @@ import { type ReportSummary } from '@/application/report/use_cases/getReportSumm
 import { buildReportSummaryVM } from './reportSummary.vm';
 
 const summary = (overrides: Partial<ReportSummary['kpis']> = {}): ReportSummary => ({
-  anchor: { yearMonth: '2026-06', closed: true },
   kpis: {
     yearMonth: '2026-06',
     assets: 600000,
@@ -50,7 +49,6 @@ describe('buildReportSummaryVM', () => {
     expect(buildReportSummaryVM(summary({ anchorClosed: false })).unclosed).toBe(true);
 
     const empty = buildReportSummaryVM({
-      anchor: null,
       kpis: {
         yearMonth: null,
         assets: null,

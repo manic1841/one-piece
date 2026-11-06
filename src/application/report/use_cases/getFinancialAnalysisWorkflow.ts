@@ -13,14 +13,14 @@ import {
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
 import {
+  type FinancialAnalysisKpis,
   EMPTY_KPIS,
   isBalanceSheet,
   isIncome,
-  kpisOf,
-  resolveAnchorReport,
   savingsRateOf,
   toMonthCode,
 } from './reportAnchor';
+import { resolveReportAnchorUseCase } from './resolveReportAnchorUseCase';
 import { rollUpFinancialAnalysisUseCase } from './rollUpFinancialAnalysisUseCase';
 
 export type { AnalysisGranularity, AnalysisRange } from '@/domains/report/analysisScale';
@@ -87,15 +87,7 @@ export interface CashCoveragePoint extends AnalysisPointBase {
   coverageMonths: number | null;
 }
 
-export interface FinancialAnalysisKpis {
-  yearMonth: string | null;
-  assets: number | null;
-  netWorth: number | null;
-  liabilities: number | null;
-  /** Null without a same-month income statement, or when income is not positive. */
-  savingsRate: number | null;
-  anchorClosed: boolean | null;
-}
+export type { FinancialAnalysisKpis } from './reportAnchor';
 
 export interface FinancialAnalysis {
   anchor: { yearMonth: string; closed: boolean } | null;
@@ -245,9 +237,9 @@ export class GetFinancialAnalysisWorkflow {
       cashFlow: reports.filter(isCashFlow),
     };
 
-    const anchorReport = resolveAnchorReport(byType.balanceSheet);
+    const resolved = resolveReportAnchorUseCase.execute({ reports, closedMonths });
 
-    if (anchorReport === null) {
+    if (resolved === null) {
       return {
         anchor: null,
         kpis: EMPTY_KPIS,
@@ -275,8 +267,9 @@ export class GetFinancialAnalysisWorkflow {
     // history also has that month's snapshot.
     const completeMonths = completeMonthsOf(snapshotsPerPortfolio);
 
+    const { anchorReport, kpis } = resolved;
     const anchor = anchorReport.yearMonth;
-    const anchorClosed = closedMonths.has(anchor);
+    const anchorClosed = kpis.anchorClosed ?? false;
     const drawableMonths = [...new Set(reports.map((report) => report.yearMonth))].sort(
       (a, b) => toMonthCode(a) - toMonthCode(b),
     );
@@ -392,7 +385,6 @@ export class GetFinancialAnalysisWorkflow {
       },
     );
 
-    const anchorIncome = byType.income.find((report) => report.yearMonth === anchor);
     const unclosedMonths = [
       ...new Set(
         [
@@ -411,7 +403,7 @@ export class GetFinancialAnalysisWorkflow {
 
     return {
       anchor: { yearMonth: anchor, closed: anchorClosed },
-      kpis: kpisOf(anchorReport, anchorIncome, closedMonths),
+      kpis,
       unclosedMonths,
       range,
       availableRanges: buildAvailableRanges(drawableMonths, anchor, range),

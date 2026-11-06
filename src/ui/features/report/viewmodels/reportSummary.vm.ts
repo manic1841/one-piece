@@ -5,8 +5,9 @@ import {
   ANALYSIS_PATH,
   REPORT_SUMMARY_LABELS,
 } from '@/ui/constants/report/reportCenterLabels';
-import { formatCurrency, formatPercentage } from '@/ui/utils';
+import { formatCurrency, formatPercentageOrDash } from '@/ui/utils';
 
+import { type SeriesParam } from './reportAnalysis.vm';
 import { formatReportPeriodDisplay, parseReportPeriod } from './reportHistory.vm';
 
 export type SummaryKpiKey = 'totalAssets' | 'netWorth' | 'totalLiabilities' | 'savingsRate';
@@ -34,12 +35,9 @@ const periodTextOf = (yearMonth: string | null): string => {
   return period === null ? yearMonth : formatReportPeriodDisplay(period);
 };
 
-const percentText = (value: number | null): string =>
-  value === null ? DASH : formatPercentage(value, 1);
-
 const kpiValue = (value: number | null): string => (value === null ? DASH : formatCurrency(value));
 
-const analysisHref = (anchor: string, series?: 'assets' | 'debt'): string =>
+const analysisHref = (anchor: string, series?: SeriesParam): string =>
   `${ANALYSIS_PATH}${series === undefined ? '' : `?series=${series}`}#${anchor}`;
 
 const summaryKpi = (
@@ -82,7 +80,7 @@ export const buildReportSummaryVM = (summary: ReportSummary): ReportSummaryVM =>
       summaryKpi(
         'savingsRate',
         REPORT_SUMMARY_LABELS.SAVINGS_RATE,
-        percentText(kpis.savingsRate),
+        formatPercentageOrDash(kpis.savingsRate),
         analysisHref(ANALYSIS_ANCHORS.INCOME),
         REPORT_SUMMARY_LABELS.ARIA_SAVINGS_RATE,
         kpis.savingsRate !== null && kpis.savingsRate < 0 ? 'negative' : 'default',

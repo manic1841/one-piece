@@ -1,6 +1,14 @@
 import { type FinancialReport, ReportType } from '@/domains/report/schemas';
 
-import { type FinancialAnalysisKpis } from './getFinancialAnalysisWorkflow';
+export interface FinancialAnalysisKpis {
+  yearMonth: string | null;
+  assets: number | null;
+  netWorth: number | null;
+  liabilities: number | null;
+  /** Null without a same-month income statement, or when income is not positive. */
+  savingsRate: number | null;
+  anchorClosed: boolean | null;
+}
 
 export type BalanceSheetReport = Extract<
   FinancialReport,
