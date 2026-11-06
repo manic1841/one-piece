@@ -56,6 +56,8 @@ interface AnalysisSectionProps {
   /** One-line methodology note, pinned to the section's bottom so paired bands align. */
   footnote?: string;
   insufficient: boolean;
+  /** Extra classes on the section band, e.g. to tighten its top padding. */
+  sectionClassName?: string;
   children: ReactNode;
 }
 
@@ -65,6 +67,7 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({
   latestText,
   footnote,
   insufficient,
+  sectionClassName,
   children,
 }) => (
   <div id={id} tabIndex={-1} className="h-full scroll-mt-32 outline-none">
@@ -72,7 +75,7 @@ const AnalysisSection: React.FC<AnalysisSectionProps> = ({
       title={title}
       spacing="compact"
       hint={latestText ?? undefined}
-      className="flex h-full flex-col"
+      className={cn('flex h-full flex-col', sectionClassName)}
     >
       {insufficient ? (
         <p className="py-6 text-sm text-muted-foreground">{REPORT_ANALYSIS_LABELS.INSUFFICIENT}</p>
@@ -413,10 +416,10 @@ const ReportAnalysisPage: React.FC = () => {
                 latestText={analysisVM.cashCoverage.latestText}
                 footnote={REPORT_ANALYSIS_LABELS.CASH_COVERAGE_HINT}
                 insufficient={analysisVM.cashCoverage.insufficient}
+                sectionClassName="pt-4"
               >
                 <CashCoverageChart
                   points={analysisVM.cashCoverage.points}
-                  markerLabels={false}
                   selectedPeriod={analysisVM.selection.periodKey}
                   onPointSelect={selectPeriod}
                 />

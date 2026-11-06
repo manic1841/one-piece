@@ -15,7 +15,7 @@ const PADDING_TOP = 16;
 const PADDING_BOTTOM = 16;
 const PADDING_SIDE = 10;
 const GRID_LINE_COUNT = 4;
-const MAX_X_LABELS = 6;
+export const MAX_X_LABELS = 6;
 /** Fraction of a column slot the whole bar group occupies. */
 const COLUMN_FILL = 0.7;
 /** Fraction of each bar slot left as a gap between neighbouring bars. */
@@ -403,9 +403,9 @@ export function buildComposedGeometry(
 }
 
 /** Column indices to render as x-axis labels (subset, always including the last). */
-export function pickComposedXLabels(count: number): number[] {
+export function pickComposedXLabels(count: number, maxLabels: number = MAX_X_LABELS): number[] {
   if (count === 0) return [];
-  const step = Math.max(1, Math.ceil(count / MAX_X_LABELS));
+  const step = Math.max(1, Math.ceil(count / Math.max(2, maxLabels)));
   const indices: number[] = [];
   for (let index = 0; index < count; index += step) indices.push(index);
   if (indices[indices.length - 1] !== count - 1) indices.push(count - 1);

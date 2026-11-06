@@ -38,7 +38,6 @@ export type AssetCompositionSeriesKey = 'cash' | 'investment' | 'property';
 export type InvestmentPerformanceSeriesKey = 'gain' | 'returnRate';
 export type IncomeSeriesKey = 'income' | 'expense' | 'savingsRate';
 export type DebtLeverageSeriesKey = 'liabilities' | 'debtRatio' | 'leverage';
-export type CashCoverageSeriesKey = 'coverageMonths';
 export type SummaryKpiKey = 'totalAssets' | 'netWorth' | 'totalLiabilities' | 'savingsRate';
 /** `?series=` values: the two context lines the KPI links preselect. */
 export type SeriesParam = 'assets' | 'debt';

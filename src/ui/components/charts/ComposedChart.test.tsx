@@ -151,7 +151,9 @@ describe('ComposedChart', () => {
       </ComposedChart>,
     );
 
-    expect(seen).toEqual([3]);
+    // The width measurement re-renders once; every pass must expose the same layout.
+    expect(seen[0]).toBe(3);
+    expect(seen.every((count) => count === 3)).toBe(true);
   });
 
   it('drops the img role once an overlay owns the semantics', () => {

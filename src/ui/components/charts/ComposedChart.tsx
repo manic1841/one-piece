@@ -9,6 +9,7 @@ import {
   type ComposedChartLayout,
   type ComposedReferenceLine,
   type ComposedSeries,
+  MAX_X_LABELS,
   buildComposedGeometry,
   pickComposedXLabels,
 } from './composedChartGeometry';
@@ -22,6 +23,26 @@ const BAR_FILL_OPACITY = 0.6;
 const AREA_GRADIENT_OPACITY = 0.38;
 const LINE_STROKE_WIDTH = 1.8;
 const DASHED_LINE_STROKE_WIDTH = 1.2;
+/** Narrowest slot an x label may occupy before the next one is dropped. */
+const MIN_X_LABEL_SLOT = 64;
+
+const MONTH_LABEL = /^([A-Z]{3}) (\d{4})$/;
+
+/** Drop the repeated year so neighbouring labels fit; the first label keeps it. */
+const shortenXLabels = (
+  labels: string[],
+  indices: number[],
+): { index: number; position: number; text: string }[] => {
+  let previousYear: string | null = null;
+  return indices.map((index, position) => {
+    const raw = labels[index];
+    const match = MONTH_LABEL.exec(raw);
+    if (match === null) return { index, position, text: raw };
+    const text = match[2] === previousYear ? match[1] : raw;
+    previousYear = match[2];
+    return { index, position, text };
+  });
+};
 
 type ComposedChartProps = {
   labels: string[];
@@ -93,7 +114,29 @@ export function ComposedChart({
           { y: zeroLabelY, text: '0' },
         ]
       : layout.leftLabels;
-  const xLabelIndices = pickComposedXLabels(labels.length);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [width, setWidth] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    const element = containerRef.current;
+    if (element === null) return;
+    const measure = () => setWidth(element.getBoundingClientRect().width);
+    measure();
+    window.addEventListener('resize', measure);
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => measure());
+    observer?.observe(element);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+    };
+  }, []);
+  const xLabels = shortenXLabels(
+    labels,
+    pickComposedXLabels(
+      labels.length,
+      width === null ? MAX_X_LABELS : Math.min(MAX_X_LABELS, Math.floor(width / MIN_X_LABEL_SLOT)),
+    ),
+  );
   // Gradient ids must be unique per chart instance, or a second chart on the page reuses the first.
   const gradientIdPrefix = React.useId().replace(/:/g, '');
   const a11yProps =
@@ -102,7 +145,7 @@ export function ComposedChart({
       : { role: 'img' as const, 'aria-label': ariaLabel };
 
   return (
-    <div className={cn('relative', className)}>
+    <div ref={containerRef} className={cn('relative', className)}>
       <div className="relative" style={{ height }} {...a11yProps}>
         <svg
           className="block h-full w-full"
@@ -272,7 +315,7 @@ export function ComposedChart({
       {/* With every series hidden the geometry returns an empty layout, so there are no columns to anchor labels to. */}
       {showLabels && layout.columns.length > 0 && (
         <div className="relative mt-2 h-4">
-          {xLabelIndices.map((index, position) => (
+          {xLabels.map(({ index, position, text }) => (
             <span
               key={`${labels[index]}-${index}`}
               className="absolute whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground"
@@ -281,12 +324,12 @@ export function ComposedChart({
                 transform:
                   position === 0
                     ? 'none'
-                    : position === xLabelIndices.length - 1
+                    : position === xLabels.length - 1
                       ? 'translateX(-100%)'
                       : 'translateX(-50%)',
               }}
             >
-              {labels[index]}
+              {text}
             </span>
           ))}
         </div>

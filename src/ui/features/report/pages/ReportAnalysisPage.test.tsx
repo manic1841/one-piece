@@ -650,8 +650,9 @@ describe('ReportAnalysisPage', () => {
     renderPage();
 
     await screen.findAllByText('淨資產趨勢');
-    // One label on the first chart; the page-level status is labelled separately.
-    expect(screen.getAllByText('未關帳').length).toBe(1);
+    // One label on the first chart and one on the cash-coverage block; the page-level
+    // status is labelled separately.
+    expect(screen.getAllByText('未關帳').length).toBe(2);
     expect(screen.getByText('未關帳月份')).toBeInTheDocument();
     expect(screen.getAllByText('2026-03').length).toBeGreaterThan(0);
   });
