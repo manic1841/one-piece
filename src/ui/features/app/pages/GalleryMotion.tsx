@@ -15,6 +15,7 @@ import { shouldDismiss } from '@/ui/components/ui/sheetDrag';
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
+import { GalleryParticleField } from './GalleryParticleField';
 import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
 const READOUT_CLASS =
@@ -204,6 +205,15 @@ export const GalleryMotionBody: React.FC = () => (
         <PressSection />
         <NumberSection />
         <SheetSection />
+      </div>
+      <div className="mt-6">
+        <GalleryModule label="M12 · PARTICLE FIELD">
+          <GalleryParticleField />
+          <p className={cn(READOUT_CLASS, 'mt-2')}>
+            Gallery only. Density and DPR are capped, the loop stops off-screen or on a hidden tab,
+            and reduced motion holds one still frame.
+          </p>
+        </GalleryModule>
       </div>
       <GalleryCaption>
         Parameters still worth tuning live here; every other animation is specified in
