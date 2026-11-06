@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { AnimatedNumber } from './AnimatedNumber';
 import { eyebrowClass } from './eyebrow';
 import {
   MONEY_CHANGE_TONE_CLASS,
@@ -52,6 +53,10 @@ type MetricProps = {
   label: string;
   /** Preformatted value, e.g. "$5,420,000" or "+$36,000". */
   value: string;
+  /** Confirmed raw value; when given, the figure interpolates between updates (motion-system §5.2). */
+  animatedValue?: number | null;
+  /** Formatter for the animated figure. */
+  animateFormat?: (value: number) => string;
   tone?: MoneyTone;
   /** Preformatted change line, e.g. "+6.8% YTD". */
   change?: string;
@@ -67,6 +72,8 @@ type MetricProps = {
 export function Metric({
   label,
   value,
+  animatedValue,
+  animateFormat = (raw) => String(Math.round(raw)),
   tone = 'default',
   change,
   changeTone = 'muted',
@@ -78,7 +85,11 @@ export function Metric({
     <div data-testid={testId} className={cn('min-w-0 px-3 py-1 md:px-5 md:py-1.5', className)}>
       <span className={cn('block', eyebrowClass)}>{label}</span>
       <span className={cn('mt-1.5 block font-mono text-xl tabular-nums', MONEY_TONE_CLASS[tone])}>
-        {value}
+        {animatedValue === undefined ? (
+          value
+        ) : (
+          <AnimatedNumber value={animatedValue} format={animateFormat} missing={value} />
+        )}
       </span>
       {change !== undefined && (
         <span

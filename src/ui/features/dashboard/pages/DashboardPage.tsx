@@ -23,6 +23,7 @@ import { useDashboardStatRow } from '@/ui/features/dashboard/hooks/useDashboardS
 import type { DashboardHeroVM } from '@/ui/features/dashboard/viewmodels/dashboardHero.vm';
 import type { DashboardRecentVM } from '@/ui/features/dashboard/viewmodels/dashboardRecent.vm';
 import { mapDashboardOverviewToStatRowVM } from '@/ui/features/dashboard/viewmodels/dashboardStatRow.vm';
+import { formatCurrency, formatPercentage } from '@/ui/utils';
 
 const TAGLINE_CLASS = 'hidden font-mono text-sm leading-relaxed text-muted-foreground md:block';
 
@@ -60,6 +61,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ loading, error, heroVM }) => 
             <FinancialNumber
               className="mt-3"
               value={heroVM.netWorthText}
+              animatedValue={heroVM.netWorth}
+              animateFormat={formatCurrency}
               size="hero"
               change={change}
               changeTone={heroVM.ytd?.direction === 'negative' ? 'negative' : 'positive'}
@@ -202,6 +205,14 @@ const Dashboard: React.FC = () => {
                 testId={`stat-${metric.key}`}
                 label={metric.label}
                 value={metric.valueText}
+                animatedValue={metric.value}
+                animateFormat={
+                  metric.key === 'portfolioReturn'
+                    ? (raw) => formatPercentage(raw, 2)
+                    : metric.key === 'investmentLeverage'
+                      ? (raw) => `${raw.toFixed(2)}x`
+                      : formatCurrency
+                }
                 tone={metric.tone}
                 change={metric.detailText ?? undefined}
               />

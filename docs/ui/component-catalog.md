@@ -18,6 +18,7 @@
 | `src/ui/components/AccessDenied.tsx`                    | AccessDenied                                                   |
 | `src/ui/components/AppFallback.tsx`                     | AppFallback                                                    |
 | `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow                                     |
+| `src/ui/components/AnimatedNumber.tsx`                  | AnimatedNumber                                                 |
 | `src/ui/components/Avatar.tsx`                          | Avatar                                                         |
 | `src/ui/components/charts/BarChart.tsx`                 | charts / BarChart                                              |
 | `src/ui/components/charts/ChartLegend.tsx`              | charts / ChartLegend                                           |
@@ -203,7 +204,7 @@
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
-  - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
+  - Props：`value?: string | null`、`animatedValue?`（已確認的原始數值，提供時改由 `AnimatedNumber` 補間）、`animateFormat?`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
   - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `NumberInput`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/project/pages/ProjectDetailPage.tsx`（hero 專案餘額）。
 
@@ -213,7 +214,7 @@
   - 範例：`src/ui/features/retirement/components/ProjectionSnapshotTab.tsx`、`src/ui/features/retirement/components/AnnualYearPanel.tsx`、`src/ui/features/retirement/components/LifeEventTimeline.tsx`、`src/ui/features/retirement/components/RetirementPlanDetail.tsx`；gallery section 04。
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
-  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`action?`（尾端動作，例如跳至該年）、`testId?`、`className?`。
+  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`animatedValue?`、`animateFormat?`、`tone?`、`change?`、`changeTone?`、`action?`（尾端動作，例如跳至該年）、`testId?`、`className?`。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，3 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
 
@@ -233,10 +234,15 @@
   - **不要用於**：表格列的展開明細（那是 `data-table` 的列展開，見 [`design-system.md`](design-system.md) `data-table`）；需要 tab 語意的區塊切換（用 `ui/tabs`）；**section 標題本身**——非摺疊的 section 用 `PageSection` 的 `title`，不要拿 accordion trigger 當標題樣式。
   - 範例：`src/ui/features/monthly_close/stages/portfolio_cash_flow/components/PortfolioCashFlowSection.tsx`（每個 portfolio 一個可摺疊 section）；`src/ui/features/setting/components/LedgerCodeSettings.tsx`（把科目清單依類型分成可收合的群組、預設全開，群組標題帶筆數）。
 
-- **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
+- **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的粗線。
   - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`onActivate?`（提供時該列變成可點擊的 button，供導覽／選取）、`className?`。
   - **不要用於**：完整交易資料表（用 `data-table` 套件）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（RECENT TRANSACTIONS）。
+
+- **`AnimatedNumber`** — 在兩個已確認數值之間補間（motion-system M07）：首渲染直接顯示終值，後續變更才動；`prefers-reduced-motion` 下直接跳終值。`FinancialNumber` / `Metric` 提供 `animatedValue` 時由它接手，一般不需要單獨使用。
+  - Props：`value`（已確認數值，`null` 顯示 `missing`）、`format`、`missing?`、`className?`。
+  - **不要用於**：表格儲存格（多列同時跳動妨礙掃視）；載入中尚未確認的值。
+  - 範例：`src/ui/components/FinancialNumber.tsx`、`src/ui/components/MetricGroup.tsx`。
 
 - **`ListSectionHeader`** — 清單區塊的標題列：標題（可選 `(n)` 計數）＋ 尾端動作。section 標題 class 在此決定，垂直間距由呼叫端給（`className`）。
   - Props：`title`（必填）、`count?`、`actions?`、`className?`。

@@ -28,6 +28,8 @@ const DebtDetail: React.FC<DebtDetailProps> = ({ account, trend, historyMonths, 
       <div className="flex items-baseline justify-between">
         <FinancialNumber
           value={formatCurrency(account.currentBalance)}
+          animatedValue={account.currentBalance}
+          animateFormat={formatCurrency}
           size="hero"
           tone="negative"
         />
