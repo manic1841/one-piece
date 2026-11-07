@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { DonutChart } from './DonutChart';
-import { CHART_DONUT_COLORS } from './chartTheme';
+import { CHART_CATEGORICAL_COLORS, chartCategoricalColor } from './chartTheme';
 import { buildDonutSlices } from './donutSlices';
 
 const SEGMENTS = [
@@ -66,7 +66,15 @@ describe('DonutChart', () => {
 
   it('has a categorical palette wide enough to avoid repeating colours', () => {
     // Top 7 + 其他 = 8 slices (issue #174), so the palette must hold 8 distinct colours.
-    expect(CHART_DONUT_COLORS.length).toBeGreaterThanOrEqual(8);
-    expect(new Set(CHART_DONUT_COLORS).size).toBe(CHART_DONUT_COLORS.length);
+    expect(CHART_CATEGORICAL_COLORS.length).toBeGreaterThanOrEqual(8);
+    expect(new Set(CHART_CATEGORICAL_COLORS).size).toBe(CHART_CATEGORICAL_COLORS.length);
+  });
+
+  it('maps the nth category to the nth colour and wraps past the palette', () => {
+    expect(chartCategoricalColor(0)).toBe(CHART_CATEGORICAL_COLORS[0]);
+    expect(chartCategoricalColor(2)).toBe(CHART_CATEGORICAL_COLORS[2]);
+    expect(chartCategoricalColor(CHART_CATEGORICAL_COLORS.length)).toBe(
+      CHART_CATEGORICAL_COLORS[0],
+    );
   });
 });

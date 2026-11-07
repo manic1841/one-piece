@@ -56,22 +56,26 @@ test('income with allocation raises the project income', async ({ page }) => {
   await pickFirstDetailCategory(dialog);
 
   // Allocation turns itself on: selecting the salary intent loads the saved
-  // template, which enables the toggle once the project list it filters
-  // against has loaded (useTransactionFormState). Wait for that settled state
-  // instead of clicking the toggle — a blind click races the template write and
-  // can land while it is already enabled, switching it back off.
-  const allocationToggle = dialog.getByRole('checkbox', { name: '收入分配' });
-  await expect(allocationToggle).toBeChecked();
-  await expect(dialog.getByTestId('allocation-project-select')).toBeVisible();
+  // template, whose rows show up in the project read view once the project list
+  // it filters against has loaded (useTransactionFormState). Wait for that
+  // settled state instead of clicking anything — a blind interaction races the
+  // template.
+  const projectRows = dialog.getByRole('list', { name: '專案分配' }).getByRole('listitem');
+  await expect(projectRows.first()).toBeVisible();
 
-  // Clear the template rows and allocate 100% to the target project.
-  await dialog.getByTestId('allocation-clear-button').click();
-  await dialog.getByTestId('allocation-project-select').selectOption(TARGET_PROJECT_ID);
-  await dialog.getByTestId('allocation-add-button').click();
-  const row = dialog.getByTestId(`allocation-row-${TARGET_PROJECT_ID}`);
-  await expect(row).toBeVisible();
-  await expect(row).toContainText(TARGET_PROJECT_NAME);
-  await row.locator('input').fill('100');
+  // Drop whatever the template selected, then allocate the target project alone.
+  // The sweep is scoped to the project group: the category chips are
+  // `aria-pressed` too, and re-clicking the selected category would clear the
+  // detail code.
+  await dialog.getByTestId('project-mode-toggle').click();
+  const projectChips = dialog.getByRole('group', { name: '專案' });
+  // Re-query each round: every click re-renders the group, so a snapshot of the
+  // locators goes stale after the first one.
+  while ((await projectChips.getByRole('button', { pressed: true }).count()) > 0) {
+    await projectChips.getByRole('button', { pressed: true }).first().click();
+  }
+  await projectChips.getByRole('button', { name: TARGET_PROJECT_NAME }).click();
+  await expect(projectRows).toHaveText([`${TARGET_PROJECT_NAME}100%`]);
 
   await dialog.getByRole('button', { name: '送出' }).click();
   await expect(dialog).toBeHidden();

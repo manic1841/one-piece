@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AdvancedDisclosure } from './AdvancedDisclosure';
 
 describe('AdvancedDisclosure', () => {
-  it('hides children while closed and reports toggle intent', () => {
+  it('keeps children mounted but inert while closed, and reports toggle intent', () => {
     const onOpenChange = vi.fn();
     render(
       <AdvancedDisclosure label="Advanced" open={false} onOpenChange={onOpenChange}>
@@ -12,7 +12,11 @@ describe('AdvancedDisclosure', () => {
       </AdvancedDisclosure>,
     );
 
-    expect(screen.queryByText('Growth Rate')).not.toBeInTheDocument();
+    // Mounted so it can animate out; inert keeps it out of the tab order.
+    const body = screen.getByText('Growth Rate').closest('[data-state]');
+    expect(body).toHaveAttribute('data-state', 'closed');
+    expect(body).toHaveAttribute('inert');
+
     fireEvent.click(screen.getByRole('button', { name: 'Advanced' }));
     expect(onOpenChange).toHaveBeenCalledWith(true);
   });
@@ -25,6 +29,10 @@ describe('AdvancedDisclosure', () => {
     );
 
     expect(screen.getByText('Growth Rate')).toBeInTheDocument();
+    expect(screen.getByText('Growth Rate').closest('[data-state]')).toHaveAttribute(
+      'data-state',
+      'open',
+    );
     expect(screen.getByRole('button', { name: 'Advanced' })).toHaveAttribute(
       'aria-expanded',
       'true',

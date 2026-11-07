@@ -1,5 +1,3 @@
-import { useFormContext, useWatch } from 'react-hook-form';
-
 import {
   FormControl,
   FormField,
@@ -9,16 +7,16 @@ import {
   TextArea,
 } from '@/ui/components/form';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { useIntentSelection } from '@/ui/features/transaction/hooks/useIntentSelection';
 import {
   type TransactionFormCategoryOption,
   type TransactionFormProjectOption,
 } from '@/ui/features/transaction/types/transaction';
 
 import { AllocationSection } from './AllocationSection';
-import { AmountDateFields } from './AmountDateFields';
-import { FormChipGroup } from './ChipGroup';
+import { AmountField, DateField } from './AmountFields';
 import { DynamicCategorySelector } from './DynamicCategorySelector';
-import { TransactionAllocationToggle } from './TransactionAllocationToggle';
+import { ExpenseCategoryPicker } from './ExpenseCategoryPicker';
 
 type ExpensePanelProps = {
   projects: TransactionFormProjectOption[];
@@ -26,35 +24,31 @@ type ExpensePanelProps = {
   allLedgerCodes: LedgerCodeItem[];
 };
 
-const toProjectOptions = (projects: TransactionFormProjectOption[]) =>
-  projects.map((project) => ({
-    value: project.id,
-    label: `${project.name}`,
-  }));
-
+/**
+ * Expense panel: amount → category (one required decision) → project attribution
+ * → note. The detail code follows its category and the date follows the pair, so
+ * the quick path is a single downward glance. Quick path = amount + category.
+ */
 export function ExpensePanel({ projects, categories, allLedgerCodes }: ExpensePanelProps) {
-  const { control } = useFormContext();
-  const triggerAllocation = useWatch({ control, name: 'triggerAllocation' });
+  const selectIntent = useIntentSelection();
 
   return (
     <div className="space-y-5">
-      <AmountDateFields />
-      <FormField name="projectId">
-        <FormItem>
-          <FormLabel>專案</FormLabel>
-          <FormChipGroup options={toProjectOptions(projects)} />
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <AmountField />
+
       <FormField name="intent">
         <FormItem>
-          <FormLabel>費用類別</FormLabel>
-          <FormChipGroup options={categories} />
+          <FormLabel required>類別</FormLabel>
+          <ExpenseCategoryPicker categories={categories} onChange={selectIntent} />
           <FormMessage />
         </FormItem>
       </FormField>
 
       <DynamicCategorySelector allLedgerCodes={allLedgerCodes} />
+
+      <DateField />
+
+      <AllocationSection projects={projects} />
 
       <FormField name="description">
         <FormItem>
@@ -65,12 +59,6 @@ export function ExpensePanel({ projects, categories, allLedgerCodes }: ExpensePa
           <FormMessage />
         </FormItem>
       </FormField>
-
-      <FormField name="triggerAllocation">
-        <TransactionAllocationToggle label="支出分配" />
-      </FormField>
-
-      {triggerAllocation ? <AllocationSection projects={projects} title="支出分攤" /> : null}
     </div>
   );
 }

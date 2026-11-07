@@ -69,6 +69,8 @@ export interface ProjectSummary {
   income: number;
   expense: number;
   net: number;
+  /** 無快照時為 null；有值時給 M07 補間用。 */
+  balance: number | null;
   balanceText: string;
 }
 

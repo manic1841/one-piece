@@ -97,15 +97,17 @@ describe('ReportDetailPage', () => {
     expect(screen.getByRole('tab', { name: '資產負債表' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '現金流量表' })).toBeInTheDocument();
     expect(screen.getByText('收入合計')).toBeInTheDocument();
-    // 三張表各帶三個摘要指標，值為已產生報表的當期值。
-    expect(screen.getByTestId('statement-metric-income')).toHaveTextContent('NT$50,000');
-    expect(screen.getByTestId('statement-metric-expense')).toHaveTextContent('NT$20,000');
-    expect(screen.getByTestId('statement-metric-net-income')).toHaveTextContent('NT$30,000');
-    expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$200,000');
+    // 三張表各帶三個摘要指標，值為已產生報表的當期值；值從 0 起算（M07），等終值落定再斷言。
+    await waitFor(() => {
+      expect(screen.getByTestId('statement-metric-income')).toHaveTextContent('NT$50,000');
+      expect(screen.getByTestId('statement-metric-expense')).toHaveTextContent('NT$20,000');
+      expect(screen.getByTestId('statement-metric-net-income')).toHaveTextContent('NT$30,000');
+      expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$200,000');
+      expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('NT$200,000');
+      expect(screen.getByTestId('statement-metric-ending-balance')).toHaveTextContent('NT$80,000');
+    });
     expect(screen.getByTestId('statement-metric-liabilities')).toHaveTextContent('NT$0');
-    expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('NT$200,000');
     expect(screen.getByTestId('statement-metric-beginning-balance')).toHaveTextContent('NT$0');
-    expect(screen.getByTestId('statement-metric-ending-balance')).toHaveTextContent('NT$80,000');
     expect(screen.getByTestId('statement-metric-net-cash-change')).toHaveTextContent('NT$0');
     // The final summary row is emphasised in the primary colour.
     const terminus = screen

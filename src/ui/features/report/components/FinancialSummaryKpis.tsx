@@ -1,6 +1,7 @@
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { AnimatedNumber } from '@/ui/components/AnimatedNumber';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import { MONEY_TONE_CLASS } from '@/ui/components/moneyTone';
 import { cn } from '@/ui/utils/cn';
@@ -24,7 +25,7 @@ const KpiLink: React.FC<{ kpi: SummaryKpiVM }> = ({ kpi }) => (
         MONEY_TONE_CLASS[kpi.tone],
       )}
     >
-      {kpi.valueText}
+      <AnimatedNumber value={kpi.value} format={kpi.format} animateOnMount />
       <ArrowRight
         aria-hidden="true"
         className="h-4 w-4 text-muted-foreground transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"

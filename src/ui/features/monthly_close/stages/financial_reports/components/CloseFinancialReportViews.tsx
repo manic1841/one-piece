@@ -42,6 +42,8 @@ const driftCell = (drift: DriftAmount): StatementAmountCell => ({
 /** 漂移金額 → 摘要指標值：當期值為本體，變化行為漂移 delta（未漂移則不顯示變化行）。 */
 const driftMetricValue = (drift: DriftAmount, tone?: MoneyTone): StatementMetricValue => ({
   value: formatCurrency(drift.amount),
+  animatedValue: drift.amount,
+  animateFormat: formatCurrency,
   tone,
   change: formatDriftDelta(drift) ?? undefined,
   changeTone: 'muted',

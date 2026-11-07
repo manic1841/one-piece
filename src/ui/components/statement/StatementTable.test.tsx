@@ -107,9 +107,10 @@ describe('StatementTable', () => {
     // A subtotal closes its block with a stronger top rule.
     expect(screen.getByText('收入合計').closest('tr')?.className).toContain('border-border-strong');
 
-    // The terminus (final result) row is the tall emphasized row, in primary.
+    // The terminus (final result) row is the tall emphasized row, in primary;
+    // the row height is content-driven now, so the height lives on its cells.
     const terminusRow = screen.getByText('本期淨利').closest('tr');
-    expect(terminusRow?.className).toContain('h-16');
+    expect(terminusRow?.querySelector('td > div > div')?.className).toContain('min-h-16');
     expect(terminusRow?.className).toContain('border-primary');
     expect(screen.getByText('本期淨利').className).toContain('text-primary');
   });
@@ -125,10 +126,20 @@ describe('StatementTable', () => {
     expect(screen.getByText('薪資 › Charles').closest('div')?.className).toContain('pl-8');
   });
 
-  it('hides children of a collapsed row and shows them when expanded', () => {
+  it('collapses children of a collapsed row without unmounting them', () => {
     const { rerender } = renderTable({ collapsed: new Set(['section:income']) });
 
-    expect(screen.queryByText('薪資')).not.toBeInTheDocument();
+    // The subtree stays mounted so the collapse can animate out (M05).
+    const collapsedRow = screen.getByText('薪資').closest('tr');
+    expect(collapsedRow).toHaveAttribute('data-state', 'closed');
+    expect(collapsedRow?.className).not.toContain('h-[54px]');
+    // Grandchildren inherit the hidden state, not just direct children.
+    const hiddenCell = screen.getByText('薪資').closest('td')?.firstElementChild;
+    expect(hiddenCell).toHaveAttribute('inert');
+    expect(screen.getByText('薪資 › Charles').closest('tr')).toHaveAttribute(
+      'data-state',
+      'closed',
+    );
 
     rerender(
       <StatementTable
@@ -139,7 +150,21 @@ describe('StatementTable', () => {
       />,
     );
 
-    expect(screen.getByText('薪資')).toBeInTheDocument();
+    const expandedRow = screen.getByText('薪資').closest('tr');
+    expect(expandedRow).toHaveAttribute('data-state', 'open');
+    expect(expandedRow).not.toHaveAttribute('inert');
+  });
+
+  it('pairs the expand and collapse animations on each cell (M05)', () => {
+    renderTable();
+
+    const cell = screen.getByText('收入').closest('td')?.firstElementChild;
+    expect(cell?.className).toContain('data-[state=closed]:animate-disclosure-up');
+    expect(cell?.className).toContain('data-[state=open]:animate-disclosure-down');
+    // Height must be the interpolable keyword pair, not the row's fixed 54px.
+    expect(cell?.className).toContain('data-[state=closed]:h-0');
+    expect(cell?.className).toContain('data-[state=open]:h-auto');
+    expect(cell?.className).toContain('interpolate-size:allow-keywords');
   });
 
   it('reports the toggled row key and its expanded state', () => {

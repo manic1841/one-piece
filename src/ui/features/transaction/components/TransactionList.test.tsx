@@ -1,10 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import {
-  ACCOUNTING_DETAILS_ENTRY_LABEL,
-  ACCOUNTING_DETAILS_SECTION_LABEL,
-} from '@/ui/constants/transaction/displayLabels';
+import { ACCOUNTING_DETAILS_ENTRY_LABEL } from '@/ui/constants/transaction/displayLabels';
 
 import { type TransactionListItemVM } from '../viewmodels/transaction-list.vm';
 import { TransactionList } from './TransactionList';
@@ -120,20 +117,27 @@ describe('TransactionList loading and empty states', () => {
 });
 
 describe('TransactionItem accounting details', () => {
+  /** The detail row stays mounted so it can animate out; state, not presence, says open/closed. */
+  const detailsState = (id: string) =>
+    screen
+      .getByTestId(`transaction-details-${id}`)
+      .querySelector('[data-state]')
+      ?.getAttribute('data-state');
+
   it('keeps accounting details collapsed until the row is clicked, then toggles', () => {
     render(<TransactionList items={[baseItem({ entries: [entry()] })]} loading={false} />);
 
     const transactionRow = screen.getByTestId('transaction-row-tx-1');
-    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+    expect(detailsState('tx-1')).toBe('closed');
     expect(transactionRow).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(transactionRow);
 
-    expect(screen.getByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeVisible();
+    expect(detailsState('tx-1')).toBe('open');
     expect(transactionRow).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.click(transactionRow);
-    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+    expect(detailsState('tx-1')).toBe('closed');
   });
 
   it('renders the expanded details table with the constants-layer entry label, never the Ledger Code term', () => {
@@ -141,10 +145,13 @@ describe('TransactionItem accounting details', () => {
 
     fireEvent.click(screen.getByTestId('transaction-row-tx-1'));
 
-    const header = screen.getByRole('columnheader', { name: ACCOUNTING_DETAILS_ENTRY_LABEL });
+    const detailsRow = screen.getByTestId('transaction-details-tx-1');
+    const header = within(detailsRow).getByRole('columnheader', {
+      name: ACCOUNTING_DETAILS_ENTRY_LABEL,
+    });
     expect(header).toBeVisible();
     expect(within(header.closest('tr')!).queryByText(/Ledger Code/i)).toBeNull();
-    expect(screen.getByText('餐飲')).toBeVisible();
+    expect(within(detailsRow).getByText('餐飲')).toBeVisible();
   });
 
   it('collapses rows independently: expanding one row does not expand another', () => {
@@ -176,10 +183,10 @@ describe('TransactionItem accounting details', () => {
     expect(transactionRow).toHaveAttribute('tabindex', '0');
 
     fireEvent.keyDown(transactionRow, { key: 'Enter' });
-    expect(screen.getByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeVisible();
+    expect(detailsState('tx-1')).toBe('open');
 
     fireEvent.keyDown(transactionRow, { key: ' ' });
-    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+    expect(detailsState('tx-1')).toBe('closed');
   });
 });
 
@@ -301,13 +308,16 @@ describe('TransactionList mobile compact rows', () => {
 
     const compactRow = screen.getByTestId('transaction-row-mobile-tx-1');
     expect(compactRow).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+    expect(
+      within(compactRow).getByTestId('transaction-details-mobile-tx-1').closest('[data-state]'),
+    ).toHaveAttribute('data-state', 'closed');
 
     fireEvent.click(compactRow);
 
     expect(compactRow).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeVisible();
-    expect(screen.getByText('餐飲')).toBeVisible();
+    const mobileDetails = within(compactRow).getByTestId('transaction-details-mobile-tx-1');
+    expect(mobileDetails.closest('[data-state]')).toHaveAttribute('data-state', 'open');
+    expect(within(mobileDetails).getByText('餐飲')).toBeInTheDocument();
   });
 
   it('keeps action clicks from toggling the mobile row expansion', () => {
@@ -324,6 +334,8 @@ describe('TransactionList mobile compact rows', () => {
     fireEvent.click(within(compactRow).getByRole('button', { name: '編輯交易' }));
 
     expect(compactRow).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText(ACCOUNTING_DETAILS_SECTION_LABEL)).toBeNull();
+    expect(
+      within(compactRow).getByTestId('transaction-details-mobile-tx-1').closest('[data-state]'),
+    ).toHaveAttribute('data-state', 'closed');
   });
 });

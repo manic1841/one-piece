@@ -38,7 +38,7 @@ import {
 import { AccountCategoryLabels } from '@/ui/constants/account/label';
 import { type AccountWithSnapshot } from '@/ui/features/account/viewmodels/account.vm';
 import { type AccountHistoryRowVM } from '@/ui/features/account/viewmodels/accountDetail.vm';
-import { formatDate } from '@/ui/utils';
+import { formatCurrency, formatDate } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 const HoldingsTable: React.FC<{ row: AccountHistoryRowVM }> = ({ row }) => {
@@ -154,6 +154,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({
           <div className="flex items-baseline justify-between gap-4">
             <FinancialNumber
               value={latestRow.balanceText}
+              animatedValue={latestRow.balance}
+              animateFormat={formatCurrency}
+              animateOnMount
               size="hero"
               change={latestRow.changeText}
               changeTone={latestRow.changeTone}

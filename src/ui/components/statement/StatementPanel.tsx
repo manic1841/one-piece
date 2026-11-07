@@ -35,6 +35,9 @@ export const StatementPanel: React.FC<StatementPanelProps> = ({
             testId={item.testId}
             label={item.label}
             value={item.value}
+            animatedValue={item.animatedValue}
+            animateFormat={item.animateFormat}
+            animateOnMount
             tone={item.tone}
             change={item.change}
             changeTone={item.changeTone}

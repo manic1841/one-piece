@@ -64,12 +64,25 @@ describe('AccountDetailPage', () => {
   });
 
   it('shows the loading skeleton before the account resolves', () => {
-    mockUseAccountDetailPage.mockReturnValue({ ...baseController, loading: true } as never);
+    mockUseAccountDetailPage.mockReturnValue({
+      ...baseController,
+      activeAccount: undefined,
+      loading: true,
+    } as never);
 
     renderPage();
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText(ACCOUNT_DETAIL_LABELS.LOADING_LABEL)).toBeInTheDocument();
+  });
+
+  it('blanks the page on every load so the figures count up again', () => {
+    mockUseAccountDetailPage.mockReturnValue({ ...baseController, loading: true } as never);
+
+    renderPage();
+
+    // Every load remounts the figures, so M07 counts them up from zero each time.
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('shows the not-found empty state when the account is missing', () => {

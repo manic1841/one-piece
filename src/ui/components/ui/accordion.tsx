@@ -26,13 +26,13 @@ const AccordionTrigger = ({
   <AccordionPrimitive.Header className="flex">
     <AccordionPrimitive.Trigger
       className={cn(
-        'flex h-12 flex-1 items-center justify-between gap-2 border-b border-border text-left font-mono text-[11px] tracking-widest text-muted-foreground uppercase transition-colors group-last/item:data-[state=closed]:border-b-0 hover:text-foreground [&[data-state=open]>svg]:rotate-90',
+        'flex h-12 flex-1 items-center justify-between gap-2 border-b border-border text-left font-mono text-[11px] tracking-widest text-muted-foreground uppercase transition-colors group-last/item:data-[state=closed]:border-b-0 hover:text-foreground [&[data-state=open]>svg]:rotate-180',
         className,
       )}
       {...props}
     >
       {children}
-      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-fast" />
+      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-fast ease-out-quint" />
     </AccordionPrimitive.Trigger>
   </AccordionPrimitive.Header>
 );
@@ -43,7 +43,10 @@ const AccordionContent = ({
   children,
   ...props
 }: React.ComponentProps<typeof AccordionPrimitive.Content>) => (
-  <AccordionPrimitive.Content className="overflow-hidden" {...props}>
+  <AccordionPrimitive.Content
+    className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up"
+    {...props}
+  >
     <div className={cn('px-4 pb-2', className)}>{children}</div>
   </AccordionPrimitive.Content>
 );

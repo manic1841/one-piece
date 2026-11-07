@@ -19,18 +19,23 @@ const summary = (overrides: Partial<ReportSummary['kpis']> = {}): ReportSummary 
 const kpi = (vm: ReturnType<typeof buildReportSummaryVM>, key: string) =>
   vm.kpis.find((item) => item.key === key);
 
+const kpiText = (vm: ReturnType<typeof buildReportSummaryVM>, key: string): string | null => {
+  const item = kpi(vm, key);
+  return item?.value == null ? null : item.format(item.value);
+};
+
 describe('buildReportSummaryVM', () => {
   it('formats the four figures and deep-links each into the analysis', () => {
     const vm = buildReportSummaryVM(summary());
 
     expect(vm.periodText).toBe('2026 年 6 月');
     expect(vm.unclosed).toBe(false);
-    expect(kpi(vm, 'totalAssets')?.valueText).toBe('NT$600,000');
+    expect(kpiText(vm, 'totalAssets')).toBe('NT$600,000');
     expect(kpi(vm, 'totalAssets')?.href).toBe('/reports/analysis?series=assets#net-worth');
     expect(kpi(vm, 'netWorth')?.href).toBe('/reports/analysis#net-worth');
     expect(kpi(vm, 'totalLiabilities')?.href).toBe('/reports/analysis?series=debt#net-worth');
     expect(kpi(vm, 'savingsRate')?.href).toBe('/reports/analysis#income');
-    expect(kpi(vm, 'savingsRate')?.valueText).toBe('12.5%');
+    expect(kpiText(vm, 'savingsRate')).toBe('12.5%');
   });
 
   it('dashes missing figures and tones a negative savings rate', () => {
@@ -38,10 +43,10 @@ describe('buildReportSummaryVM', () => {
       summary({ assets: null, netWorth: null, liabilities: null, savingsRate: -8 }),
     );
 
-    expect(kpi(vm, 'totalAssets')?.valueText).toBe('—');
-    expect(kpi(vm, 'netWorth')?.valueText).toBe('—');
-    expect(kpi(vm, 'totalLiabilities')?.valueText).toBe('—');
-    expect(kpi(vm, 'savingsRate')?.valueText).toBe('-8.0%');
+    expect(kpiText(vm, 'totalAssets')).toBeNull();
+    expect(kpiText(vm, 'netWorth')).toBeNull();
+    expect(kpiText(vm, 'totalLiabilities')).toBeNull();
+    expect(kpiText(vm, 'savingsRate')).toBe('-8.0%');
     expect(kpi(vm, 'savingsRate')?.tone).toBe('negative');
   });
 

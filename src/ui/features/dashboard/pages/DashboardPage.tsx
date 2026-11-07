@@ -11,6 +11,7 @@ import { Skeleton } from '@/ui/components/Skeleton';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
+import { DASHBOARD_HERO_LABELS } from '@/ui/constants/dashboard/heroLabels';
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { AssetCompositionBlock } from '@/ui/features/dashboard/components/AssetCompositionBlock';
@@ -23,10 +24,12 @@ import { useDashboardStatRow } from '@/ui/features/dashboard/hooks/useDashboardS
 import type { DashboardHeroVM } from '@/ui/features/dashboard/viewmodels/dashboardHero.vm';
 import type { DashboardRecentVM } from '@/ui/features/dashboard/viewmodels/dashboardRecent.vm';
 import { mapDashboardOverviewToStatRowVM } from '@/ui/features/dashboard/viewmodels/dashboardStatRow.vm';
+import { formatCurrency, formatPercentage } from '@/ui/utils';
 
 const TAGLINE_CLASS = 'hidden font-mono text-sm leading-relaxed text-muted-foreground md:block';
 
 interface HeroSectionProps {
+  /** Every load blanks the hero and remounts it, so the figure counts from zero (§5.2). */
   loading: boolean;
   error: string | null;
   heroVM: DashboardHeroVM;
@@ -49,7 +52,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ loading, error, heroVM }) => 
           way to a richer life.
         </p>
         <div className="text-center">
-          <p className="text-sm font-medium tracking-widest text-muted-foreground">NET WORTH</p>
+          <p className="text-sm font-medium tracking-widest text-muted-foreground">
+            {DASHBOARD_HERO_LABELS.NET_WORTH}
+          </p>
           {loading ? (
             <Skeleton className="mx-auto mt-4 h-12 w-64" />
           ) : error ? (
@@ -60,6 +65,9 @@ const HeroSection: React.FC<HeroSectionProps> = ({ loading, error, heroVM }) => 
             <FinancialNumber
               className="mt-3"
               value={heroVM.netWorthText}
+              animatedValue={heroVM.netWorth}
+              animateFormat={formatCurrency}
+              animateOnMount
               size="hero"
               change={change}
               changeTone={heroVM.ytd?.direction === 'negative' ? 'negative' : 'positive'}
@@ -173,7 +181,7 @@ const Dashboard: React.FC = () => {
 
       <HeroSection loading={loading} error={error} heroVM={heroVM} />
 
-      <PageSection title="NET WORTH TREND" spacing="compact">
+      <PageSection title={DASHBOARD_HERO_LABELS.NET_WORTH_TREND} spacing="compact">
         {loading ? (
           <Skeleton className="h-52 w-full" />
         ) : heroVM.trend.hasData ? (
@@ -202,6 +210,15 @@ const Dashboard: React.FC = () => {
                 testId={`stat-${metric.key}`}
                 label={metric.label}
                 value={metric.valueText}
+                animatedValue={metric.value}
+                animateOnMount
+                animateFormat={
+                  metric.key === 'portfolioReturn'
+                    ? (raw) => formatPercentage(raw, 2)
+                    : metric.key === 'investmentLeverage'
+                      ? (raw) => `${raw.toFixed(2)}x`
+                      : formatCurrency
+                }
                 tone={metric.tone}
                 change={metric.detailText ?? undefined}
               />

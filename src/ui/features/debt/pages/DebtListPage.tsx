@@ -140,12 +140,18 @@ export default function DebtListPage() {
                 testId="debt-total-outstanding"
                 label={DEBT_SUMMARY_LABELS.TOTAL_OUTSTANDING}
                 value={formatCurrency(totalDebt)}
+                animatedValue={totalDebt}
+                animateFormat={formatCurrency}
+                animateOnMount
                 tone="negative"
               />
               <Metric
                 testId="debt-active-count"
                 label={DEBT_SUMMARY_LABELS.ACTIVE_ACCOUNTS}
                 value={String(activeCount)}
+                animatedValue={activeCount}
+                animateFormat={(raw) => String(Math.round(raw))}
+                animateOnMount
               />
             </MetricGroup>
           </PageSection>
