@@ -29,13 +29,13 @@ import { formatCurrency, formatPercentage } from '@/ui/utils';
 const TAGLINE_CLASS = 'hidden font-mono text-sm leading-relaxed text-muted-foreground md:block';
 
 interface HeroSectionProps {
-  /** Only the very first load blanks the hero; a reload keeps the numbers in place. */
-  firstLoad: boolean;
+  /** Every load blanks the hero and remounts it, so the figure counts from zero (§5.2). */
+  loading: boolean;
   error: string | null;
   heroVM: DashboardHeroVM;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ firstLoad, error, heroVM }) => {
+const HeroSection: React.FC<HeroSectionProps> = ({ loading, error, heroVM }) => {
   const change =
     heroVM.ytd === null
       ? undefined
@@ -55,7 +55,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ firstLoad, error, heroVM }) =
           <p className="text-sm font-medium tracking-widest text-muted-foreground">
             {DASHBOARD_HERO_LABELS.NET_WORTH}
           </p>
-          {firstLoad ? (
+          {loading ? (
             <Skeleton className="mx-auto mt-4 h-12 w-64" />
           ) : error ? (
             <Alert variant="warning" className="mt-4 text-left">
@@ -73,12 +73,12 @@ const HeroSection: React.FC<HeroSectionProps> = ({ firstLoad, error, heroVM }) =
               changeTone={heroVM.ytd?.direction === 'negative' ? 'negative' : 'positive'}
             />
           )}
-          {!firstLoad && !error && heroVM.hasAnchor && heroVM.anchorPeriodText != null && (
+          {!loading && !error && heroVM.hasAnchor && heroVM.anchorPeriodText != null && (
             <p className="mt-3 font-mono text-xs tabular-nums text-muted-foreground">
               {heroVM.anchorPeriodText}
             </p>
           )}
-          {!firstLoad && !error && !heroVM.hasAnchor && (
+          {!loading && !error && !heroVM.hasAnchor && (
             <p className="mt-4 text-sm text-muted-foreground">完成本月關帳後顯示淨資產</p>
           )}
         </div>
@@ -163,8 +163,6 @@ const Dashboard: React.FC = () => {
   } = useDashboardRecentTransactions(householdId);
 
   const anchor = overview?.anchor ?? null;
-  // A refresh re-renders the settled numbers in place; only the first load blanks them.
-  const firstLoad = loading && overview === null;
 
   return (
     <div>
@@ -181,10 +179,10 @@ const Dashboard: React.FC = () => {
         }}
       />
 
-      <HeroSection firstLoad={firstLoad} error={error} heroVM={heroVM} />
+      <HeroSection loading={loading} error={error} heroVM={heroVM} />
 
-      <PageSection title="NET WORTH TREND" spacing="compact">
-        {firstLoad ? (
+      <PageSection title={DASHBOARD_HERO_LABELS.NET_WORTH_TREND} spacing="compact">
+        {loading ? (
           <Skeleton className="h-52 w-full" />
         ) : heroVM.trend.hasData ? (
           <InteractiveLineChart
@@ -202,7 +200,7 @@ const Dashboard: React.FC = () => {
       </PageSection>
 
       <PageSection title={statRowVM.sectionTitle} spacing="compact">
-        {firstLoad ? (
+        {loading ? (
           <Skeleton className="h-16 w-full" />
         ) : (
           <MetricGroup columns={5} lastSpansFull>
@@ -230,9 +228,9 @@ const Dashboard: React.FC = () => {
       </PageSection>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <AssetCompositionBlock composition={anchor?.composition ?? null} loading={firstLoad} />
+        <AssetCompositionBlock composition={anchor?.composition ?? null} loading={loading} />
 
-        <CashFlowChartBlock series={overview?.cashFlowSeries ?? []} loading={firstLoad} />
+        <CashFlowChartBlock series={overview?.cashFlowSeries ?? []} loading={loading} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

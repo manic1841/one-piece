@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { disclosureBodyClass } from '../ui/disclosure-styles';
 import {
   dataTableLabelClass,
   mobileDataListClass,
@@ -144,11 +145,7 @@ export const MobileExpandableRow: React.FC<MobileExpandableRowProps> = ({
         <div
           data-state={isExpanded ? 'open' : 'closed'}
           inert={!isExpanded}
-          className={cn(
-            'overflow-hidden [interpolate-size:allow-keywords]',
-            'data-[state=closed]:h-0 data-[state=closed]:opacity-0 data-[state=closed]:animate-disclosure-up',
-            'data-[state=open]:h-auto data-[state=open]:animate-disclosure-down',
-          )}
+          className={disclosureBodyClass}
         >
           <div className="mt-3 border-t border-border pt-2">{details}</div>
         </div>

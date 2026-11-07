@@ -133,6 +133,7 @@
 | `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）                        |
 | `src/ui/components/ui/close-button.ts`                | 表面常數（sheet 與 drawer 共用的關閉鈕）             |
 | `src/ui/components/ui/input-styles.ts`                | 表面常數                                             |
+| `src/ui/components/ui/disclosure-styles.ts`           | 揭露內文的共用表面（M05 的成對 class）               |
 | `src/ui/components/ui/sheetDrag.ts`                   | 手勢判定純函式（bottom sheet 關閉門檻）              |
 | `src/ui/components/ui/tabs-styles.ts`                 | 表面常數                                             |
 | `src/ui/components/ui/useSheetDrag.ts`                | 內部接線（pointer 手勢與回彈，`sheet` 使用）         |
@@ -244,10 +245,10 @@
   - **不要用於**：完整交易資料表（用 `data-table` 套件）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（RECENT TRANSACTIONS）。
 
-- **`AnimatedNumber`** — 在兩個已確認數值之間補間（motion-system M07）：首渲染直接顯示終值，後續變更才動；`animateOnMount` 可讓主題數字在載入時從 0 起算；`prefers-reduced-motion` 下直接跳終值。`FinancialNumber` / `Metric` 提供 `animatedValue` 時由它接手，一般不需要單獨使用。
-  - Props：`value`（已確認數值，`null` 顯示 `missing`）、`format`、`missing?`、`durationMs?`（覆寫補間長度；預設 `data` 的 400ms，目前僅 Motion Lab 用來對照 300／400／500）、`animateOnMount?`（M07 的每一處都開啟）、`className?`。
-  - **不要用於**：表格儲存格（多列同時跳動妨礙掃視）；載入中尚未確認的值。
-  - 套用範圍與「骨架只綁第一次載入」的前置條件見 motion-system §5.2。
+- **`AnimatedNumber`** — 在兩個已確認數值之間補間；符合 §5.2 判準的數字一律在載入時從 0 起算（motion-system M07）；`prefers-reduced-motion` 下直接跳終值。`FinancialNumber` / `Metric` 提供 `animatedValue` 時由它接手，一般不需要單獨使用。
+  - Props：`value`（已確認數值，`null` 顯示 `missing`）、`format`、`missing?`、`durationMs?`（覆寫補間長度；預設 `data` 的 400ms，目前僅 Motion Lab 用來對照 300／400／500）、`animateOnMount?`（判準內的每一處都開）、`className?`。
+  - **不要用於**：表格儲存格（多列同時跳動妨礙掃視）；`change` 之類的衍生文字與日期；載入中尚未確認的值。
+  - 骨架綁在 `loading` 上，讓數字每次載入重新從 0 起算；判準與理由見 motion-system §5.2。
   - 範例：`src/ui/components/FinancialNumber.tsx`、`src/ui/components/MetricGroup.tsx`。
 
 - **`ListSectionHeader`** — 清單區塊的標題列：標題（可選 `(n)` 計數）＋ 尾端動作。section 標題 class 在此決定，垂直間距由呼叫端給（`className`）。
@@ -336,21 +337,21 @@
 
 資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts`：語意圖表用 tone→token 對應（`primary` / `positive` / `negative` / `neutral` / `investment` / `asset`），以顏色編碼分類的拆解圖用 `CHART_CATEGORICAL_COLORS` 的 `chart-*` 類別色板，取色一律經 `chartCategoricalColor(index)` 而不自行 modulo（[`design-system.md`](design-system.md) §1、[ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
 
-四個圖表都預設在首次拿到資料時由基線揭露（M08，[`motion-system.md`](motion-system.md) §5.7）；資料已隨掛載進來時就是掛載即揭露，之後的期間切換不重播，`reveal={false}` 可關閉。
+折線、長條、複合與圓環都在首次拿到資料時由基線揭露（M08，[`motion-system.md`](motion-system.md) §5.7）；一律開啟，掛載即揭露，之後的期間切換不重播。互動版同樣保留揭露。
 
 - **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸預設以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀；`includeZero` 可改為 0 基底。
-  - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`includeZero?`（y 值域含 0）、`zeroLine?`（在 0 畫虛線，需 0 落在值域內）、`yAxis?`（`none`/`left`，左側值標籤）、`height?`、`reveal?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
+  - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`includeZero?`（y 值域含 0）、`zeroLine?`（在 0 畫虛線，需 0 落在值域內）、`yAxis?`（`none`/`left`，左側值標籤）、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
   - **不要用於**：需要 hover 明細——用 `InteractiveLineChart`。
   - 範例：`src/ui/components/charts/InteractiveLineChart.tsx`（作為互動版的基礎）；`src/ui/features/app/pages/GalleryCharts.tsx`（`includeZero` ＋ `zeroLine` 場景）。
 
 - **`charts / BarChart`** — 分組長條圖。值以**大小**呈現（高度 ∝ 數值），收入／支出用 series 的 tone 表達，不是負高度；`highlightIndex` 指定的欄位改用 primary tone（呼叫端不需要 highlight 時可省略）。
-  - Props：`labels`、`series`（`{ tone, values }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`reveal?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供每個欄位的 index／label／values／ratio）。
+  - Props：`labels`、`series`（`{ tone, values }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供每個欄位的 index／label／values／ratio）。
   - `children` 疊加層會被放在長條區內、與欄位同樣的 flex 版面下；一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
   - **不要用於**：長條圖的明細 tooltip——用 `InteractiveBarChart`。
   - 範例：`src/ui/components/charts/InteractiveBarChart.tsx`（作為互動版的基礎）。
 
 - **`charts / ComposedChart`** — 複合圖：分組長條與折線共用同一塊繪圖區。長條可為負值（由 0 基準線向下長），折線可選擇填滿；具 `axis: 'right'` 的序列使用獨立的右側 y 軸。可標記 `referenceLines`（依欄位 index 畫垂直虛線，例如退休年）。左／右軸刻度與 x 軸標籤由元件推導。
-  - Props：`labels`、`series`（`{ kind: 'bar' | 'line', tone, values, axis?, area?, baselineValues? }[]`）、`referenceLines?`（`{ index, tone?, label? }[]`）、`height?`、`showLabels?`、`reveal?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供欄位、長條矩形、折線路徑、軸標籤與實際使用的標記）。
+  - Props：`labels`、`series`（`{ kind: 'bar' | 'line', tone, values, axis?, area?, baselineValues? }[]`）、`referenceLines?`（`{ index, tone?, label? }[]`）、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供欄位、長條矩形、折線路徑、軸標籤與實際使用的標記）。
   - 值以**大小**呈現；長條一律從 0 基準線長出，負值向下。折線與同軸的長條共用一個 y 值域。
   - `area` 的面積預設填到 0 基準線；`baselineValues` 逐點指定另一條線為下緣（堆疊帶，例如把投資報酬疊在收入之上）；基線逐點變動時，面積路徑的下緣會逐一描過基線取樣點，不會只收兩個角點而切過那條線。面積一律是該序列顏色的**單色資料歸屬漸層**：濃度端在該帶自己的線上，往它的基線淡出；基線在線的上方時（零基準以下的支出帶、或被堆疊在別人之下）方向整個反轉（[ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)）。
   - 一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
@@ -358,7 +359,7 @@
   - 範例：`src/ui/features/retirement/components/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨資產變動線＋淨資產右軸線）。
 
 - **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_CATEGORICAL_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
-  - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`reveal?`、`ariaLabel?`、`className?`。
+  - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
   - **不要用於**：需要精確讀值——圓環只適合看比例；精確值用數字或表格。
   - 範例：`src/ui/features/dashboard/components/AssetCompositionBlock.tsx`（資產組成）。
 

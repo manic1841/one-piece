@@ -55,8 +55,9 @@ const PortfolioList: React.FC = () => {
   } = usePortfolioListController();
 
   const renderContent = () => {
-    // Only the first load blanks the list; a reload keeps the total value mounted (M07).
-    if (loading && rows.length === 0) {
+    // Every load blanks the list so the total value remounts and counts from zero
+    // (motion-system §5.2).
+    if (loading) {
       return (
         <div role="status" className="space-y-2 py-2">
           <span className="sr-only">{PORTFOLIO_PAGE_LABELS.LOADING_LABEL}</span>

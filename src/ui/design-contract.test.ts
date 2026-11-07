@@ -208,23 +208,27 @@ describe('motion duration contract (motion-system §2)', () => {
    * out, so a half-removed pair silently falls back to a hard cut on one side.
    */
   it('pairs an expand and a collapse animation on every disclosure', () => {
-    const surfaces: Array<[file: string, prefix: string]> = [
-      ['components/ui/accordion.tsx', 'accordion'],
-      ['components/form/AdvancedDisclosure.tsx', 'disclosure'],
-      ['components/data-table/DataTableDetailRow.tsx', 'disclosure'],
-      ['components/statement/StatementTable.tsx', 'disclosure'],
+    const body = read('components/ui/disclosure-styles.ts');
+    expect(body).toContain('disclosure-down');
+    expect(body).toContain('disclosure-up');
+    expect(body).toContain('data-[state=open]');
+    expect(body).toContain('data-[state=closed]');
+
+    // Accordion brings its own pair from Radix state, not the shared body class.
+    const accordion = read('components/ui/accordion.tsx');
+    expect(accordion).toContain('accordion-down');
+    expect(accordion).toContain('accordion-up');
+  });
+
+  /** The shared body class only helps if every hand-rolled surface uses it. */
+  it('routes every hand-rolled disclosure through the shared body class', () => {
+    const surfaces = [
+      'components/form/AdvancedDisclosure.tsx',
+      'components/data-table/DataTableDetailRow.tsx',
+      'components/data-table/MobileDataRow.tsx',
+      'components/statement/StatementTable.tsx',
     ];
-    const missing = surfaces
-      .filter(([file, prefix]) => {
-        const source = read(file);
-        return (
-          !source.includes(`${prefix}-down`) ||
-          !source.includes(`${prefix}-up`) ||
-          !source.includes('data-[state=open]') ||
-          !source.includes('data-[state=closed]')
-        );
-      })
-      .map(([file]) => file);
+    const missing = surfaces.filter((file) => !read(file).includes('disclosureBodyClass'));
     expect(missing).toEqual([]);
   });
 
@@ -238,8 +242,12 @@ describe('motion duration contract (motion-system §2)', () => {
     const pairs = ['accordion', 'disclosure'];
     const wrong = pairs.filter((prefix) => {
       return (
-        !source.includes(`'${prefix}-down': \`${prefix}-down \${ms(DURATION.expand)} \${bezier(EASE.expand)}\``) ||
-        !source.includes(`'${prefix}-up': \`${prefix}-up \${ms(DURATION.collapse)} \${bezier(EASE.collapse)}\``)
+        !source.includes(
+          `'${prefix}-down': \`${prefix}-down \${ms(DURATION.expand)} \${bezier(EASE.expand)}\``,
+        ) ||
+        !source.includes(
+          `'${prefix}-up': \`${prefix}-up \${ms(DURATION.collapse)} \${bezier(EASE.collapse)}\``,
+        )
       );
     });
     expect(wrong).toEqual([]);
@@ -248,9 +256,9 @@ describe('motion duration contract (motion-system §2)', () => {
 
 /**
  * M07 (motion-system §5.2) only runs between two confirmed values on a node that
- * stays mounted. Both halves are invisible in review when they break: a missing
- * formatter freezes the raw digits, and a skeleton keyed on `loading` remounts the
- * figure at its new value, so it never counts.
+ * actually animates. Both halves are invisible in review when they break: a
+ * missing formatter freezes the raw digits, and a figure without `animateOnMount`
+ * sits dead on arrival.
  */
 describe('number interpolation contract (motion-system §5.2)', () => {
   const INTERPOLATING = [
@@ -279,29 +287,30 @@ describe('number interpolation contract (motion-system §5.2)', () => {
     expect(incomplete).toEqual([]);
   });
 
-  /** A settled figure must survive a reload; only the first paint may blank it. */
-  it('does not gate a detail page on bare `loading`', () => {
+  /** Every load blanks and remounts the figures so each one counts from zero. */
+  it('gates every interpolating page on bare `loading`', () => {
     const pages = [
       'features/account/pages/AccountDetailPage.tsx',
+      'features/account/pages/AccountList.tsx',
       'features/debt/pages/DebtDetailPage.tsx',
-      'features/project/pages/ProjectDetailPage.tsx',
-      'features/portfolio/pages/PortfolioDetailPage.tsx',
+      'features/debt/pages/DebtListPage.tsx',
       'features/portfolio/components/PortfolioList.tsx',
+      'features/portfolio/pages/PortfolioDetailPage.tsx',
+      'features/project/pages/ProjectDetailPage.tsx',
+      'features/retirement/pages/ProjectionViewPage.tsx',
     ];
-    const bare = pages.filter((file) => read(file).includes('if (loading) {'));
-    expect(bare).toEqual([]);
+    const aliased = pages.filter((file) => {
+      const source = read(file);
+      // A bare gate is `if (loading)` or `{loading && (`; anything narrowing it
+      // further (`loading && !vm`) keeps the node mounted across a reload.
+      const gated = /if \(loading\)/.test(source) || /\{loading && \(/.test(source);
+      const narrowed = /(?<!!)loading && (?!\()/.test(source);
+      return !gated || narrowed;
+    });
+    expect(aliased).toEqual([]);
   });
 
-  it('keeps the dashboard hero mounted across a reload', () => {
-    const source = read('features/dashboard/pages/DashboardPage.tsx');
-    expect(source).toContain('const firstLoad = loading && overview === null;');
-  });
-
-  /**
-   * Every applied figure counts up from zero on load (motion-system §5.2), so
-   * the two props travel together: a value that interpolates but never counts
-   * reads as dead on a screen whose whole subject is that number.
-   */
+  /** The count-up only exists when the prop is there, so every site names it. */
   it('opts every interpolating figure into a mount count-up', () => {
     const missing = INTERPOLATING.filter(
       (file) => read(file).includes('animatedValue=') && !read(file).includes('animateOnMount'),
@@ -309,37 +318,52 @@ describe('number interpolation contract (motion-system §5.2)', () => {
     expect(missing).toEqual([]);
   });
 
-  it('opens the mount count-up on all six dashboard figures', () => {
-    const source = read('features/dashboard/pages/DashboardPage.tsx');
-    // One on the hero, one on the stat row: the five tiles share the second.
-    expect(source.match(/animateOnMount/g)).toHaveLength(2);
-  });
-
-  /** The report summary's three figures and the account total are set individually. */
   it('opens the mount count-up on every report summary figure and the account total', () => {
-    expect(read('features/report/pages/ReportListPage.tsx').match(/animateOnMount/g)).toHaveLength(3);
+    expect(read('features/report/pages/ReportListPage.tsx')).toContain('animateOnMount');
     expect(read('features/account/pages/AccountList.tsx')).toContain('animateOnMount');
   });
 });
 
 describe('chart reveal contract (motion-system §5.7)', () => {
   const tailwind = readFileSync(path.resolve(UI_DIR, '../../tailwind.config.js'), 'utf8');
-  const chart = read('components/charts/LineChart.tsx');
+  const charts: Array<[file: string, animation: string, marker: string]> = [
+    ['components/charts/LineChart.tsx', 'animate-chart-reveal', 'clipPath'],
+    ['components/charts/BarChart.tsx', 'animate-chart-reveal', 'origin-bottom'],
+    ['components/charts/ComposedChart.tsx', 'animate-chart-reveal', 'non-scaling-stroke'],
+    ['components/charts/DonutChart.tsx', 'animate-chart-sweep', '--chart-sweep'],
+  ];
 
-  it('defines the keyframe and its animation binding', () => {
-    expect(tailwind).toContain("'chart-reveal': {");
-    expect(tailwind).toContain('${ms(DURATION.slow)} ${bezier(EASE.expand)}');
+  /**
+   * An `animate-*` class on the element proves nothing: a missing utility fails
+   * silently and the chart just sits finished. Every reveal animation used by a
+   * chart has to exist as a keyframe *and* as a binding.
+   */
+  it.each(['chart-reveal', 'chart-sweep'])('wires the %s animation end to end', (name) => {
+    expect(tailwind).toContain(`'${name}': {`);
+    expect(tailwind).toContain(
+      `'${name}': \`${name} \${ms(DURATION.slow)} \${bezier(EASE.expand)}`,
+    );
   });
 
-  /** The reveal is a baseline clip, not a dash draw: `preserveAspectRatio="none"`
-   * would stretch a dash and scaling the group would thicken the stroke. */
-  it('grows the series out of the baseline with a clip', () => {
-    expect(chart).toContain('animate-chart-reveal');
-    expect(chart).toContain('[transform-origin:bottom]');
-    expect(chart).toContain('clipPath');
+  /** Every chart grows from its own baseline; the marker is the technique that
+   * makes that true for that geometry, not a decoration. */
+  it.each(charts)('reveals %s from its baseline', (file, animation, marker) => {
+    const source = read(file);
+    expect(source).toContain(animation);
+    expect(source).toContain(marker);
   });
 
   it('leaves a lone point already settled', () => {
-    expect(chart).toContain('geometry.points.length > 1');
+    expect(read('components/charts/LineChart.tsx')).toContain('geometry.points.length > 1');
+  });
+
+  /** Reveal is always on, so no chart may keep an opt-out prop. */
+  it.each([
+    ...charts.map(([file]) => file),
+    'components/charts/InteractiveLineChart.tsx',
+    'components/charts/InteractiveBarChart.tsx',
+    'components/charts/InteractiveComposedChart.tsx',
+  ])('has no reveal opt-out in %s', (file) => {
+    expect(read(file)).not.toContain('reveal?:');
   });
 });

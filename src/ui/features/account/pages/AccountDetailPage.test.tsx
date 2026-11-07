@@ -76,16 +76,13 @@ describe('AccountDetailPage', () => {
     expect(screen.getByText(ACCOUNT_DETAIL_LABELS.LOADING_LABEL)).toBeInTheDocument();
   });
 
-  it('keeps the settled sections mounted while a reload is in flight', () => {
+  it('blanks the page on every load so the figures count up again', () => {
     mockUseAccountDetailPage.mockReturnValue({ ...baseController, loading: true } as never);
 
     renderPage();
 
-    // No skeleton: the figures have to stay mounted for M07 to interpolate them.
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(
-      screen.getByText(ACCOUNT_DETAIL_LABELS.ENDING_BALANCE_SECTION_TITLE),
-    ).toBeInTheDocument();
+    // Every load remounts the figures, so M07 counts them up from zero each time.
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('shows the not-found empty state when the account is missing', () => {

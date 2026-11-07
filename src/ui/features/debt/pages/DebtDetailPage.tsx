@@ -41,8 +41,9 @@ export default function DebtDetailPage({ account }: DebtDetailPageProps) {
 
   const backToList = () => navigate('/debt');
 
-  // Only the first load blanks the page; a reload keeps the figure mounted (M07).
-  if (loading && !activeAccount) {
+  // Every load blanks and remounts the figures, so they count up from zero each
+  // time (motion-system §5.2).
+  if (loading) {
     return (
       <div role="status" className="space-y-6 pb-20">
         <span className="sr-only">{DEBT_DETAIL_LABELS.LOADING_LABEL}</span>

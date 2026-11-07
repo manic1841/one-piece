@@ -13,8 +13,6 @@ type DonutChartProps = {
   size?: number;
   /** Render the slice legend beside the ring. */
   showLegend?: boolean;
-  /** Sweep the ring open when the chart first renders (motion-system §5.7). */
-  reveal?: boolean;
   ariaLabel?: string;
   className?: string;
 };
@@ -28,7 +26,6 @@ export function DonutChart({
   centerLabel,
   size = 170,
   showLegend = true,
-  reveal = true,
   ariaLabel,
   className,
 }: DonutChartProps) {
@@ -44,7 +41,7 @@ export function DonutChart({
             clockwise (motion-system §5.7). The hole and the caption are siblings
             rather than children: a mask would otherwise eat into them too. */}
         <div
-          className={cn('absolute inset-0 rounded-full', reveal && 'animate-chart-sweep')}
+          className="absolute inset-0 rounded-full animate-chart-sweep"
           style={{
             background: `conic-gradient(${slices.map((slice) => slice.stop).join(', ')})`,
             maskImage: 'conic-gradient(#000 var(--chart-sweep), transparent 0)',

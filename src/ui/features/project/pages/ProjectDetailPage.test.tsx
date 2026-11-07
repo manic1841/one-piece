@@ -169,7 +169,7 @@ describe('ProjectDetailPage states', () => {
     expect(screen.getByText(PROJECT_DETAIL_LABELS.LOADING_LABEL)).toBeInTheDocument();
   });
 
-  it('keeps the settled balance mounted while a reload is in flight', () => {
+  it('blanks the page on every load so the balance counts up again', () => {
     mockUseProjectDetailView.mockReturnValue({
       ...learnViewResult,
       loading: true,
@@ -177,9 +177,8 @@ describe('ProjectDetailPage states', () => {
 
     renderDetail(buildProject());
 
-    // No skeleton: the hero has to stay mounted for M07 to interpolate it.
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.getByText(PROJECT_DETAIL_LABELS.BALANCE_SECTION_TITLE)).toBeInTheDocument();
+    // Every load remounts the figure, so M07 counts it up from zero each time.
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders the error alert with a retry action when the view fails', () => {

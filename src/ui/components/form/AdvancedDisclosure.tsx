@@ -4,6 +4,8 @@ import { ChevronDown } from 'lucide-react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { disclosureBodyClass } from '../ui/disclosure-styles';
+
 export type AdvancedDisclosureProps = {
   /** Trigger text, e.g. "Advanced". */
   label: string;
@@ -51,15 +53,7 @@ export function AdvancedDisclosure({
           )}
         />
       </button>
-      <div
-        data-state={open ? 'open' : 'closed'}
-        inert={!open}
-        className={cn(
-          'overflow-hidden [interpolate-size:allow-keywords]',
-          'data-[state=closed]:h-0 data-[state=closed]:-translate-y-0.5 data-[state=closed]:opacity-0 data-[state=closed]:animate-disclosure-up',
-          'data-[state=open]:h-auto data-[state=open]:translate-y-0 data-[state=open]:animate-disclosure-down',
-        )}
-      >
+      <div data-state={open ? 'open' : 'closed'} inert={!open} className={disclosureBodyClass}>
         <div className="rounded-b-md bg-muted/50 px-3 py-3">
           <div className="grid gap-4">{children}</div>
         </div>

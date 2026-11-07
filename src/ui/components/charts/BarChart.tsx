@@ -35,8 +35,6 @@ type BarChartProps = {
   /** Rendered bar area height in px. */
   height?: number;
   showLabels?: boolean;
-  /** Grow the bars out of the baseline when the chart first renders (motion-system §5.7). */
-  reveal?: boolean;
   ariaLabel?: string;
   className?: string;
   /**
@@ -57,7 +55,6 @@ export function BarChart({
   highlightIndex,
   height = 165,
   showLabels = true,
-  reveal = true,
   ariaLabel,
   className,
   children,
@@ -95,9 +92,8 @@ export function BarChart({
                   // §5.7). Values are magnitudes here, so there is one
                   // direction to grow in.
                   className={cn(
-                    'min-h-[3px] w-[38%]',
+                    'min-h-[3px] w-[38%] origin-bottom animate-chart-reveal',
                     CHART_TONE_FILL[tone],
-                    reveal && 'origin-bottom animate-chart-reveal',
                   )}
                   style={{ height: `${Math.max(2, (value / scale) * 100)}%` }}
                 />

@@ -11,6 +11,8 @@ import {
 } from '@/ui/components/data-table';
 import { cn } from '@/ui/utils/cn';
 
+import { disclosureBodyClass } from '../ui/disclosure-styles';
+
 /**
  * 報表語意階層的共用排版（見 `docs/ui/visual-standards.md` 的「財務報表語意階層」）。
  * 角色的樣式在此唯一實作，月度關帳與報表檢視共用同一份；本元件只 render，
@@ -125,11 +127,7 @@ const CollapseCell: React.FC<{
     <div
       data-state={hidden ? 'closed' : 'open'}
       inert={hidden || undefined}
-      className={cn(
-        'overflow-hidden [interpolate-size:allow-keywords]',
-        'data-[state=closed]:h-0 data-[state=closed]:opacity-0 data-[state=closed]:animate-disclosure-up',
-        'data-[state=open]:h-auto data-[state=open]:animate-disclosure-down',
-      )}
+      className={disclosureBodyClass}
     >
       <div className={cn('flex flex-col justify-center py-[9px] pr-3', minHeightClass)}>
         {children}

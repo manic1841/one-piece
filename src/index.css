@@ -143,18 +143,19 @@
   }
 }
 
-/* Retirement event axis: spans grow out of their start year and single-year
-   nodes pop in on mount. The global reduced-motion rule settles both instantly. */
 /* Donut reveal: the ring is uncovered by a masked conic stop angle, so the arc
    draws itself clockwise from 12 o'clock. The angle has to be a registered
    property to interpolate at all; on engines without `@property` it flips at the
-   halfway point and still lands on the full ring. */
+   halfway point and still lands on the full ring. The 360deg resting value also
+   keeps the ring whole when the animation never runs. */
 @property --chart-sweep {
   syntax: '<angle>';
   inherits: false;
   initial-value: 360deg;
 }
 
+/* Retirement event axis: spans grow out of their start year and single-year
+   nodes pop in on mount. The global reduced-motion rule settles both instantly. */
 @keyframes event-bar-grow {
   from {
     transform: scaleX(0);

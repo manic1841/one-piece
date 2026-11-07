@@ -31,8 +31,6 @@ type ComposedChartProps = {
   /** Rendered plot height in px. */
   height?: number;
   showLabels?: boolean;
-  /** Grow the series out of the zero baseline when the chart first renders (motion-system §5.7). */
-  reveal?: boolean;
   ariaLabel?: string;
   className?: string;
   /** Overlay renderer (hover guide, tooltip) drawn inside the plot area. */
@@ -51,7 +49,6 @@ export function ComposedChart({
   referenceLines = [],
   height = COMPOSED_CHART_HEIGHT,
   showLabels = true,
-  reveal = true,
   ariaLabel,
   className,
   children,
@@ -130,10 +127,7 @@ export function ComposedChart({
               already in place, so the marker stays put while the series rises
               to meet it. `non-scaling-stroke` on the lines is what makes the
               scale safe — the stroke width never stretches with the group. */}
-          <g
-            className={reveal ? 'animate-chart-reveal' : undefined}
-            style={reveal ? revealOrigin : undefined}
-          >
+          <g className="animate-chart-reveal" style={revealOrigin}>
             {layout.lines.map((line, index) =>
               line.areaPath ? (
                 <path

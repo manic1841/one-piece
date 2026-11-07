@@ -19,9 +19,9 @@ type AnimatedNumberProps = {
   /** Override the interpolation length. The data token stays the default. */
   durationMs?: number;
   /**
-   * Count up from zero on the first render instead of showing the target. Opt-in:
-   * a page entrance must not count up by default (motion-system §5.2), so only a
-   * figure that *is* the screen's subject — the dashboard hero — asks for it.
+   * Count up from zero on appearance instead of showing the target. Every figure
+   * whose block is *about* that number opts in (motion-system §5.2); a table cell
+   * or a derived label stays out.
    */
   animateOnMount?: boolean;
   className?: string;
@@ -60,6 +60,15 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   // Held until the count-up settles, so a StrictMode remount replays it from zero
   // instead of collapsing into an instant jump.
   const mountFrom = useRef<number | null>(countsOnMount ? 0 : null);
+
+  // A value that arrives after the mount has no seeded frame, so the animation
+  // effect's first rAF would land a frame late and flash the target for a paint.
+  // Adjusting state during render settles this before the commit instead.
+  const [seenValue, setSeenValue] = useState(countsOnMount);
+  if (animateOnMount && !reduced && target != null && !seenValue) {
+    setSeenValue(true);
+    if (target !== 0) setFrame({ value: 0, target });
+  }
 
   useEffect(() => {
     const from = mountFrom.current ?? previous.current;

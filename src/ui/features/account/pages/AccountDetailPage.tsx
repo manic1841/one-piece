@@ -42,9 +42,9 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
 
   const backToList = () => navigate('/accounts');
 
-  // Only the first load blanks the page. A reload keeps the settled figures mounted,
-  // which is what lets them interpolate instead of remounting at the new value.
-  if (loading && !activeAccount) {
+  // Every load blanks and remounts the figures, so they count up from zero each
+  // time instead of only interpolating the first difference (motion-system §5.2).
+  if (loading) {
     return (
       <div role="status" className="space-y-6 pb-20">
         <span className="sr-only">{ACCOUNT_DETAIL_LABELS.LOADING_LABEL}</span>

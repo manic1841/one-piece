@@ -126,6 +126,12 @@ export default {
         'chart-reveal': {
           from: { transform: 'scaleY(0)' },
         },
+        // M08 for the donut: the ring is a background, so it is uncovered by a
+        // masked conic stop angle instead of being scaled.
+        'chart-sweep': {
+          from: { '--chart-sweep': '0deg' },
+          to: { '--chart-sweep': '360deg' },
+        },
       },
       animation: {
         // `backwards`, not `both`: a finished `both` animation keeps a
@@ -139,6 +145,9 @@ export default {
         // A reveal, not an arrival: `expand` is symmetric, so the growth stays
         // visible for the whole length and never overshoots the data.
         'chart-reveal': `chart-reveal ${ms(DURATION.slow)} ${bezier(EASE.expand)}`,
+        // `backwards` so the first frame is the empty ring, not the property's
+        // 360deg resting value.
+        'chart-sweep': `chart-sweep ${ms(DURATION.slow)} ${bezier(EASE.expand)} backwards`,
       },
       letterSpacing: {
         display: '-0.02em',

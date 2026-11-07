@@ -28,8 +28,6 @@ type LineChartProps = {
   yAxis?: 'none' | 'left';
   /** Rendered plot height in px. */
   height?: number;
-  /** Grow the series out of the baseline when the chart first renders (motion-system §5.7). */
-  reveal?: boolean;
   ariaLabel?: string;
   className?: string;
   /** Overlay renderer (hover guide, tooltip) drawn inside the plot area. */
@@ -47,7 +45,6 @@ export function LineChart({
   zeroLine = false,
   yAxis = 'none',
   height = 150,
-  reveal = true,
   ariaLabel,
   className,
   children,
@@ -56,7 +53,7 @@ export function LineChart({
   const color = CHART_TONE_COLOR[tone];
   const last = geometry.points[geometry.points.length - 1];
   // A single point has no line to grow; leave it already settled.
-  const revealing = reveal && geometry.points.length > 1;
+  const revealing = geometry.points.length > 1;
   const clipId = `line-reveal-${React.useId().replace(/:/g, '')}`;
   const a11yProps =
     ariaLabel === undefined ? {} : { role: 'img' as const, 'aria-label': ariaLabel };
