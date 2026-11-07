@@ -319,7 +319,7 @@ describe('number interpolation contract (motion-system §5.2)', () => {
   });
 
   it('opens the mount count-up on every report summary figure and the account total', () => {
-    expect(read('features/report/pages/ReportListPage.tsx')).toContain('animateOnMount');
+    expect(read('features/report/components/FinancialSummaryKpis.tsx')).toContain('animateOnMount');
     expect(read('features/account/pages/AccountList.tsx')).toContain('animateOnMount');
   });
 });

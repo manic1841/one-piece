@@ -1,5 +1,6 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useEffect } from 'react';
+
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

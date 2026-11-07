@@ -69,22 +69,8 @@ export interface ReportHistoryRowVM {
   status: ReportStatusBadgeVM | null;
 }
 
-export interface ReportLatestVM {
-  period: string;
-  display: string;
-  /** 原始數值，供 M07 補間；該期沒有事實資料時為 undefined。 */
-  netIncome?: number;
-  equity?: number;
-  endingCash?: number;
-  netIncomeText: string;
-  netIncomeTone: MoneyTone;
-  equityText: string;
-  endingCashText: string;
-}
-
 export interface ReportHistoryVM {
   rows: ReportHistoryRowVM[];
-  latest: ReportLatestVM | null;
 }
 
 interface MonthFacts {
@@ -197,31 +183,5 @@ export const buildReportHistoryVM = (
           .reverse()
           .map((year) => yearRow(year, monthKeysNewestFirst, factsByMonth));
 
-  return { rows, latest: buildLatest(reports, factsByMonth, periodMonths) };
-};
-
-/** hero：最近一份「有報表期間」的淨利；沒有報表則為 null（不顯示空值）。 */
-const buildLatest = (
-  reports: FinancialReport[],
-  factsByMonth: Map<string, MonthFacts>,
-  periodMonths: string[],
-): ReportLatestVM | null => {
-  const latestMonth = [...new Set([...reports.map((report) => report.yearMonth), ...periodMonths])]
-    .filter((month) => factsByMonth.get(month)?.netIncome !== undefined)
-    .sort()
-    .at(-1);
-  if (latestMonth === undefined) return null;
-  const facts = factsByMonth.get(latestMonth);
-  const period = parseReportPeriod(latestMonth);
-  return {
-    period: latestMonth,
-    display: period ? formatReportPeriodDisplay(period) : latestMonth,
-    netIncome: facts?.netIncome,
-    equity: facts?.equity,
-    endingCash: facts?.endingCash,
-    netIncomeText: formatCurrencyOrDash(facts?.netIncome ?? null),
-    netIncomeTone: monthTone(facts?.netIncome),
-    equityText: formatCurrencyOrDash(facts?.equity ?? null),
-    endingCashText: formatCurrencyOrDash(facts?.endingCash ?? null),
-  };
+  return { rows };
 };

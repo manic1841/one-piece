@@ -77,8 +77,7 @@ const ChartHoverLayer: React.FC<{
               <ChartTooltip
                 ref={tooltipRef}
                 title={tip.title}
-                value={tip.value}
-                meta={tip.meta}
+                content={tip.content}
                 className={cn('absolute z-10 -mt-3', flipped ? '-ml-3.5' : 'ml-3.5')}
                 style={{
                   left: `${point.xRatio * 100}%`,

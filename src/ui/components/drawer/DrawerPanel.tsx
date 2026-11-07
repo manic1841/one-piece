@@ -2,8 +2,8 @@ import React from 'react';
 
 import { X } from 'lucide-react';
 
-import { SheetDescription, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
 import { CLOSE_BUTTON_CLASS } from '@/ui/components/ui/close-button';
+import { SheetDescription, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
 import { cn } from '@/ui/utils/cn';
 
 /** Keep in sync with the sheet parts in `ui/sheet.tsx` (parity is asserted in `DrawerPanel.test.tsx`). */

@@ -42,10 +42,10 @@ Decision record: [ADR-0062](../adr/0062-ui-tier-separation-and-surface-import-ba
 | Tier                    | Directories                                                       | May import                                                                                   | Must never import                                             |
 | ----------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | **Surface**             | everything under `src/ui` not listed in another tier              | UI components, Controllers, ViewModels, `constants`, `utils`                                 | `@/domains`, `@/application`, `@/infra` — **including types** |
-| **ViewModel**           | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types**                                    | application behavior (use cases, workflows), `@/infra`        |
+| **ViewModel**           | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types**, `utils`                           | application behavior (use cases, workflows), `@/infra`        |
 | **Controller**          | `features/*/hooks`, `hooks`, `contexts`, `features/*/contexts`    | use cases / workflows, domain, ViewModels, `constants`, `utils`, other Controller mechanisms | repositories, Firestore, API clients, storage, `@/infra`      |
 | **Display Labels**      | `constants`                                                       | same import scope as ViewModel                                                               | `@/application`, `@/infra`, domain behavior                   |
-| **Presentation Helper** | `utils`, `features/*/utils`                                       | pure formatting/styling functions                                                            | anything with business or data semantics                      |
+| **Presentation Helper** | `utils`, `features/*/utils`                                       | pure formatting/styling functions, other `utils`                                             | anything with business or data semantics                      |
 
 **Surface is the fail-closed default.** Membership in a tier is decided by directory, not by file role: any file under
 `src/ui` that is not inside one of the directories listed for a non-Surface tier is Surface. A new directory is therefore
@@ -55,7 +55,12 @@ not a tier, so a file directly inside it stays Surface.
 
 **Display Labels is a ViewModel-tier import scope.** Its _responsibility_ is unique (the only source of data-value
 display text, see rule 7 and [`ui-labeling-guideline.md`](ui-labeling-guideline.md)), but what it may import is deliberately identical to ViewModel: label maps
-consume domain values and types as mapping input. It must not acquire domain behavior.
+consume domain values and types as mapping input, and reuse a shared glyph constant instead of respelling it (e.g. the
+missing-value dash from `utils`). It must not acquire domain behavior.
+
+**`utils` is allowed downward, never upward.** ViewModel and Display Labels may call Presentation Helpers — a ViewModel
+pre-formats every value it emits, so it must be able to reach the formatters. The reverse does not hold: a helper may not
+import a ViewModel, a Controller, domain or application code.
 
 Call direction is one-way: `Surface → Controller → (Query | Command) → Use Case`. ViewModel is the **only bridge**
 between domain/application shapes and components.

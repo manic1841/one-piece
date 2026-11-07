@@ -25,20 +25,33 @@ const baselineYOf = (areaPath: string): number => {
 const lineYOf = (path: string): number => pathYs(path)[0];
 
 describe('buildComposedGeometry', () => {
-  it('does not pad past zero for data on only one side of the baseline', () => {
+  it('scales line-only charts to the data rather than the zero baseline', () => {
     const positive = buildComposedGeometry(
       ['A', 'B'],
-      [{ kind: 'line', tone: 'asset', values: [10, 20], area: true }],
+      [{ kind: 'line', tone: 'asset', values: [810, 880], area: true }],
     );
-    expect(positive.leftLabels.at(-1)?.text).toBe('0');
+    expect(positive.leftLabels.some((label) => label.text === '0')).toBe(false);
+    expect(positive.zeroY).toBeUndefined();
     expect(positive.leftLabels.some((label) => label.text.startsWith('-'))).toBe(false);
+    // The line breathes inside the plot instead of hugging the top edge.
+    expect(positive.lines[0]?.points[0]?.topRatio).toBeLessThan(0.9);
     const negative = buildComposedGeometry(
       ['A', 'B'],
-      [{ kind: 'line', tone: 'negative', values: [-10, -20] }],
+      [{ kind: 'line', tone: 'negative', values: [-810, -880] }],
     );
-    expect(negative.leftLabels[0]?.text).toBe('0');
+    expect(negative.leftLabels.some((label) => label.text === '0')).toBe(false);
+    expect(negative.leftLabels.every((label) => label.text.startsWith('-'))).toBe(true);
     const zero = buildComposedGeometry(['A'], [{ kind: 'line', tone: 'asset', values: [0] }]);
     expect(zero.lines[0]?.points.every((point) => Number.isFinite(point.topRatio))).toBe(true);
+  });
+
+  it('keeps the zero baseline for bar charts', () => {
+    const layout = buildComposedGeometry(
+      ['A'],
+      [{ kind: 'bar', tone: 'positive', values: [810, 880] }],
+    );
+    expect(layout.leftLabels.at(-1)?.text).toBe('0');
+    expect(layout.zeroY).toBeDefined();
   });
   it('grows positive bars up from the zero baseline and negative bars down', () => {
     const layout = buildComposedGeometry(

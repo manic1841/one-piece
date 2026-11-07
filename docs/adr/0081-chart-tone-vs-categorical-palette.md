@@ -20,3 +20,11 @@ One-Piece 的既有契約是「**Color communicates state**」——顏色只在
 - 既有 `--chart-2/3/5` 的語意別名取消；`--chart-1` 同時供 `asset` tone 與 donut 第 2 片使用（兩者皆為資料視覺色，接受此一身二用）。
 - 色板不含紅：紅色保留給 `--negative`／`--destructive`，避免分類片被讀成錯誤或負向。
 - 改動集中在一處色板對應，所有分類拆解圖（Dashboard 資產組成、portfolio 持倉配置、gallery）一起套用，不需逐圖調整。
+
+## 後續：時間軸上的分類拆解
+
+資產類別構成是同一道分層延伸到時間軸：它編碼的是分類而不是狀態。`ComposedChart` 的序列
+因此新增可選 `colorToken`（`chart-1`…`chart-7`），由呼叫端指名類別色；未提供時仍走既有
+`tone`。面積歸屬漸層與圖例色塊都取同一個 token，語意 tone 留給狀態序列。
+
+> > > > > > > origin/develop
