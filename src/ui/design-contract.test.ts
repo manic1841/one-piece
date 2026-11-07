@@ -187,4 +187,19 @@ describe('motion duration contract (motion-system §2)', () => {
       .filter((file) => read(file).match(/\bduration-(?![a-z[])\d/));
     expect(violations).toEqual([]);
   });
+
+  it('keeps the close control in one place', () => {
+    const closeSurfaces = [
+      'components/ui/sheet.tsx',
+      'components/ui/dialog.tsx',
+      'components/drawer/DrawerPanel.tsx',
+    ];
+    const copies = closeSurfaces.filter((file) =>
+      read(file).includes('absolute right-4 top-4 rounded-sm opacity-70'),
+    );
+    expect(copies).toEqual([]);
+    // Every close surface still goes through the shared class.
+    const missing = closeSurfaces.filter((file) => !read(file).includes('CLOSE_BUTTON_CLASS'));
+    expect(missing).toEqual([]);
+  });
 });

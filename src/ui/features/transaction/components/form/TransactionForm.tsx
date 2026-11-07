@@ -74,6 +74,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     previewDetails,
     submit,
   } = useTransactionFormState({
+    isOpen,
     initialOutput,
     onSubmit,
     projects,

@@ -48,4 +48,10 @@ describe('SheetContent drag handle', () => {
     renderSheet('bottom', false);
     expect(document.querySelector('[data-sheet-handle]')).toBeNull();
   });
+
+  it('leaves the exit transform to the gesture', () => {
+    renderSheet('bottom');
+    const content = document.querySelector('[data-sheet-content]');
+    expect(content?.className).toContain('data-[state=closed]:animate-none');
+  });
 });

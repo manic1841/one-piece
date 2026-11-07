@@ -33,7 +33,11 @@ Token 全部定義於 `tailwind.config.js`，值不複述。只有一條事實�
 | `ease-in-quint`      | 退場                              | 進場                |
 
 - 可逆轉換（開 ↔ 關、進 ↔ 退）必須鏡像 easing；單向回饋（hover、focus）用單一 `ease-out`。
+- 鏡像不等於把曲線左右翻。退場起手慢是為了「不是被抽走」，但字面的 `ease-in-quint` 會讓前 3/4 的時間幾乎不動、最後 100ms 才衝完，體感比進場久兩、三倍。所以退場曲線取同家族但更溫和的形狀（控制點見 `motion.constants.ts`），仍屬「慢起、快收」。
+- 同一個浮出層的遮罩與內容必須用同一組曲線，否則兩條節奏打架，內容的曲線再怎麼調都看不出來。
 - `duration-data` 固定搭配 `ease-out-quint`，不另設 `ease-data`：終值停留時間最長，讀者最先讀到的是「已經快到了」。
+
+`requestAnimationFrame` 讀不到 CSS 曲線與 `ms` 字串，兩者另在 `src/ui/motion.constants.ts` 以數值保存；`tailwind.config.js` 由同一張表產生 token，值不會兩地各寫一份。
 
 ## 3. 全域規則
 
@@ -90,8 +94,10 @@ Pixel Pet 的反應動畫另案討論，不在本清單：它的反應由具名�
 
 - **只有 drag handle 是拖曳區**，sheet 內容照常捲動。handle 是純視覺提示、`aria-hidden`；鍵盤仍靠 Escape 與 Close 按鈕。
 - handle 帶固定在捲動區之外，捲動時不隨內容移動，因此內容捲到任何位置都能拖。
-- 拖曳中直接映射 `translateY`，不加 easing——手指就是時鐘。
+- 拖曳中直接映射 `translateY`，不加 easing——手指就是時鐘。上拖夾制在高度 20%，避免把 sheet 拉離版位。
 - 放開時，位移達 sheet 高度 25% **或**向下速度達 0.5 px/ms 即關閉；否則以 `duration-slow` + `ease-out-quint` 歸位。
+- **退場的 transform 由手勢獨佔**：可拖的 sheet 在關閉狀態停用自身的進場／退場 keyframe，改由手勢把 sheet 帶離畫面，移動結束才宣告關閉。若先清掉 transform 再交給浮出層自己的退場動畫，sheet 會從原點重播一次、變成離開兩次。
+- reduced motion 下，歸位與離場以單一影格完成，不等 `duration-slow`。
 - **手勢只決定「怎麼關」，不決定「關不關得成」**：一律走呼叫端既有的關閉函式，元件不感知 dirty，也不新增確認。需要 dirty 保護時由呼叫端在自己的關閉函式裡加。
 - 遮罩與 sheet 必須有清楚的開啟／關閉狀態；sheet 開啟時背景不捲動。
 
@@ -113,6 +119,17 @@ Pixel Pet 的反應動畫另案討論，不在本清單：它的反應由具名�
 - 不做逐粒子 blur 或 layout 效果。
 - `prefers-reduced-motion` 下凍結或移除連續運動。
 - 這是實驗，不是新增品牌入口頁的理由。
+
+### 5.6 頁面進場
+
+路由切換時，新頁內容淡入並上移 6px，`duration-base` + `ease-out-quint`，套在 `Layout` 的內容區。
+
+- **只有進場，沒有出場。** React Router 沒有出場階段，舊頁在新頁 render 的同一影格就卸載；做出場等於要保留舊樹或改用 View Transitions API，是比 M04 更大的決策。
+- **觸發鍵是路由樣式，不是 `pathname`。** `/reports/:period`、`/accounts/:id` 這類只換參數的導覽屬 §5.2 的「更新既有內容」，不重播進場。搜尋字串同樣不觸發。
+- 浮出層（modal、sheet）與頁內篩選不重播；兩者的動態各自歸屬 M03、M06。
+- 進場只動 `opacity` 與 `transform`，不影響捲動位置與版面高度。
+- 動畫結束後不留下 `transform`：完成的 transform 仍算一個值，會讓容器變成 `fixed` 子元素的定位基準（Dashboard 的背景格線就是）。因此用 `backwards` 而非 `both`，終點回到元素原本的樣式。
+- reduced motion 由 §7 的全域規則抹成瞬時，不留位移。
 
 ## 6. 頁面層級套用
 

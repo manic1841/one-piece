@@ -1,3 +1,18 @@
+import { DURATION, EASE } from './src/ui/motion.constants.ts';
+
+const ms = (value) => `${value}ms`;
+const bezier = ([x1, y1, x2, y2]) => `cubic-bezier(${x1}, ${y1}, ${x2}, ${y2})`;
+const durations = {
+  fast: ms(DURATION.fast),
+  base: ms(DURATION.base),
+  slow: ms(DURATION.slow),
+  data: ms(DURATION.data),
+};
+const easings = {
+  'out-quint': bezier(EASE.outQuint),
+  'in-quint': bezier(EASE.inQuint),
+};
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],
@@ -58,25 +73,22 @@ export default {
           7: 'hsl(var(--chart-7))',
         },
       },
-      transitionDuration: {
-        fast: '120ms',
-        base: '240ms',
-        slow: '400ms',
-        data: '400ms',
+      transitionDuration: durations,
+      animationDuration: durations,
+      transitionTimingFunction: easings,
+      animationTimingFunction: easings,
+      keyframes: {
+        // M04: entry only. The router has no exit phase, so the outgoing page is
+        // replaced synchronously; see motion-system.md §5.6.
+        'page-enter': {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+        },
       },
-      animationDuration: {
-        fast: '120ms',
-        base: '240ms',
-        slow: '400ms',
-        data: '400ms',
-      },
-      transitionTimingFunction: {
-        'out-quint': 'cubic-bezier(0.22, 1, 0.36, 1)',
-        'in-quint': 'cubic-bezier(0.75, 0, 0.85, 0.4)',
-      },
-      animationTimingFunction: {
-        'out-quint': 'cubic-bezier(0.22, 1, 0.36, 1)',
-        'in-quint': 'cubic-bezier(0.75, 0, 0.85, 0.4)',
+      animation: {
+        // `backwards`, not `both`: a finished `both` animation keeps a
+        // `transform` value, and any transform makes the container a containing
+        // block for `fixed` descendants (the Dashboard grid lives there).
+        'page-enter': `page-enter ${ms(DURATION.base)} ${bezier(EASE.outQuint)} backwards`,
       },
       letterSpacing: {
         display: '-0.02em',

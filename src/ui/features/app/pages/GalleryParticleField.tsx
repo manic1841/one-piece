@@ -46,6 +46,9 @@ export const GalleryParticleField: React.FC = () => {
       canvas.height = Math.round(height * dpr);
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       particles = seed(width, height, particleCount(width, height));
+      // Resizing clears the bitmap. Without the loop there is nothing to redraw
+      // it, so the frozen frame has to be re-rendered here.
+      if (reduced) draw();
     };
 
     const draw = () => {
@@ -74,8 +77,7 @@ export const GalleryParticleField: React.FC = () => {
     };
 
     resize();
-    if (reduced) draw();
-    else start();
+    if (!reduced) start();
 
     const onVisibility = () => {
       if (document.hidden) return;
@@ -87,13 +89,16 @@ export const GalleryParticleField: React.FC = () => {
     });
     observer.observe(canvas);
 
-    window.addEventListener('resize', resize);
+    // The field is the only thing that changes its own size; watching it beats
+    // re-seeding on every window resize.
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(canvas);
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       if (frame !== null) cancelAnimationFrame(frame);
       observer.disconnect();
-      window.removeEventListener('resize', resize);
+      resizeObserver.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, []);

@@ -30,8 +30,18 @@ const PressSection: React.FC = () => (
         <RefreshCw size={16} />
       </Button>
     </div>
+    <div className="mt-3 flex flex-wrap items-center gap-3">
+      {/* Shapes that must *not* scale: a list row and an input keep space still
+          and answer on colour only (motion-system §3). */}
+      <span className="rounded-sm border border-border px-3 py-1.5 text-sm transition-colors duration-fast hover:bg-accent">
+        A list row
+      </span>
+      <span className="rounded-md border border-input px-3 py-1.5 text-sm transition-colors duration-fast focus-within:ring-2 focus-within:ring-ring">
+        An input shape
+      </span>
+    </div>
     <p className={cn(READOUT_CLASS, 'mt-3')}>
-      Press and hold: 0.97 scale over `fast`, released over `base`. Rows, input-shaped fields and
+      Press and hold: 0.97 scale over `fast`, released over `fast`. Rows, input-shaped fields and
       underline tabs take colour only.
     </p>
   </GalleryModule>
@@ -117,8 +127,9 @@ const SheetSection: React.FC = () => {
   React.useEffect(() => {
     if (!open) return;
 
-    let start: { y: number; at: number; lastY: number; lastAt: number } | null = null;
-    const height = () => document.querySelector('[data-sheet-body]')?.clientHeight ?? 0;
+    let start: { y: number; lastY: number; lastAt: number } | null = null;
+    const height = () =>
+      document.querySelector('[data-sheet-content]')?.getBoundingClientRect().height ?? 0;
 
     const down = (event: PointerEvent) => {
       if (
@@ -128,7 +139,6 @@ const SheetSection: React.FC = () => {
         return;
       start = {
         y: event.clientY,
-        at: event.timeStamp,
         lastY: event.clientY,
         lastAt: event.timeStamp,
       };
@@ -149,7 +159,10 @@ const SheetSection: React.FC = () => {
     const up = (event: PointerEvent) => {
       if (start === null) return;
       const displacement = event.clientY - start.y;
-      const velocity = (event.clientY - start.y) / Math.max(1, event.timeStamp - start.at);
+      // Same sample as the hook: the last segment, so a pause before release
+      // reads as slow instead of inheriting the whole drag's average.
+      const elapsed = event.timeStamp - start.lastAt;
+      const velocity = elapsed > 0 ? (event.clientY - start.lastY) / elapsed : 0;
       start = null;
       setGesture({
         displacement,

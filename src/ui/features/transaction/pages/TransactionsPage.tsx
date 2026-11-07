@@ -276,7 +276,9 @@ const Transactions: React.FC = () => {
         onDelete={handleDelete}
       />
 
-      {userProfile?.householdId && isFormOpen && (
+      {/* Always mounted while a household exists: Radix needs the dialog to
+          survive `open=false` to play its exit animation. */}
+      {userProfile?.householdId && (
         <TransactionForm
           isOpen={isFormOpen}
           mode={editingTransactionId ? 'edit' : 'create'}

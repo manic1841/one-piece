@@ -310,3 +310,43 @@ describe('TransactionForm', () => {
     });
   });
 });
+
+describe('TransactionForm reopening', () => {
+  // The dialog stays mounted while closed so Radix can animate the exit, which
+  // means the draft has to be rebuilt by the open edge rather than by a remount.
+  it('rebuilds the draft from the new opening instead of keeping the last one', () => {
+    const props = {
+      onClose: vi.fn(),
+      onSubmit: vi.fn(),
+      projects,
+      expenseCategoryOptions,
+      incomeCategories,
+      allActiveLedgerCodes,
+    };
+
+    const { rerender } = render(<TransactionForm isOpen {...props} />);
+    fireEvent.change(amountInput(), { target: { value: '1200' } });
+
+    rerender(<TransactionForm isOpen={false} {...props} />);
+    rerender(
+      <TransactionForm
+        isOpen
+        {...props}
+        mode="edit"
+        initialOutput={{
+          intentType: 'INCOME',
+          intent: 'OTHER_INCOME',
+          date: '2026-02-01',
+          amount: 500,
+          ledgerCode: 'income:other',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: getIntentTypeLabel('INCOME') })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(amountInput()).toHaveValue(500);
+  });
+});

@@ -97,4 +97,33 @@ describe('AnimatedNumber', () => {
     render(<AnimatedNumber value={null} format={format} missing="—" />);
     expect(screen.getByText('—')).toBeInTheDocument();
   });
+
+  it('reaches the settled value after a null hop mid-flight', () => {
+    const frames = stubFrames();
+    const { rerender } = render(<AnimatedNumber value={1000} format={format} />);
+
+    rerender(<AnimatedNumber value={2000} format={format} />);
+    act(() => frames.advance(200));
+    expect(Number(screen.getByText(/^\d+$/).textContent)).toBeLessThan(2000);
+
+    rerender(<AnimatedNumber value={null} format={format} />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+
+    rerender(<AnimatedNumber value={3000} format={format} />);
+    expect(screen.getByText('3000')).toBeInTheDocument();
+  });
+
+  it('announces only once the interpolation has settled', () => {
+    const frames = stubFrames();
+    const { rerender, container } = render(<AnimatedNumber value={0} format={format} />);
+    const node = container.firstElementChild;
+    expect(node?.getAttribute('aria-live')).toBe('polite');
+
+    rerender(<AnimatedNumber value={100} format={format} />);
+    act(() => frames.advance(0));
+    expect(node?.getAttribute('aria-live')).toBe('off');
+
+    act(() => frames.advance(400));
+    expect(node?.getAttribute('aria-live')).toBe('polite');
+  });
 });

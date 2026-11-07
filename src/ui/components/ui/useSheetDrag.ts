@@ -1,12 +1,14 @@
 import * as React from 'react';
 
+import { DURATION } from '@/ui/motion';
+
 import { shouldDismiss } from './sheetDrag';
 
 /** Upward drags are clamped here so the sheet cannot be pulled above its slot. */
 const OVERDRAG_LIMIT = 0.2;
 
-/** The sheet returns within `duration-slow`; the timer is the floor if `transitionend` never comes. */
-const SETTLE_MS = 400;
+/** Safety net if `transitionend` never arrives (interrupted, zero-distance). */
+const SETTLE_FALLBACK_MS = DURATION.slow + 100;
 
 type DragState = {
   startY: number;
@@ -20,6 +22,8 @@ export type SheetDrag = {
   /** Inline transform for the sheet while a gesture or its settling motion runs. */
   offset: number | null;
   dragging: boolean;
+  /** Drop the transform; the portal remounts a fresh sheet on every open. */
+  reset: () => void;
   handlers: {
     onPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
     onPointerMove: (event: React.PointerEvent<HTMLElement>) => void;
@@ -28,12 +32,18 @@ export type SheetDrag = {
   };
 };
 
+const prefersReducedMotion = (): boolean =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 /**
  * Pointer gesture for a bottom sheet (motion-system §5.3, ADR-0091). The drag
  * follows the pointer with no easing and clamps upward travel. On release it
- * either asks the caller to close or settles back; closing is announced only
- * after the off-screen motion finishes, so Radix's own exit animation never
- * fights the inline transform.
+ * either asks the caller to close or settles back.
+ *
+ * The inline transform owns the whole exit: the content opts out of Radix's
+ * closed-state animation, so closing is announced only once the sheet has
+ * finished moving. Clearing the transform first would let Radix replay its own
+ * slide from zero — the sheet would jump back and leave twice.
  */
 export const useSheetDrag = (
   surfaceRef: React.RefObject<HTMLElement | null>,
@@ -41,26 +51,50 @@ export const useSheetDrag = (
 ): SheetDrag => {
   const [offset, setOffset] = React.useState<number | null>(null);
   const [dragging, setDragging] = React.useState(false);
+  const [reduced] = React.useState(prefersReducedMotion);
   const drag = React.useRef<DragState | null>(null);
   const timer = React.useRef<number | null>(null);
+  const frame = React.useRef<number | null>(null);
+  const settleListeners = React.useRef<(() => void) | null>(null);
 
-  const clearTimer = () => {
+  const clearSettle = () => {
     if (timer.current !== null) {
       window.clearTimeout(timer.current);
       timer.current = null;
     }
+    if (frame.current !== null) {
+      cancelAnimationFrame(frame.current);
+      frame.current = null;
+    }
+    settleListeners.current?.();
+    settleListeners.current = null;
   };
 
   /** Animate to `target`, then run `after` once the sheet has arrived. */
   const settle = (target: number, after: () => void) => {
     setDragging(false);
     setOffset(target);
-    clearTimer();
-    timer.current = window.setTimeout(() => {
-      timer.current = null;
-      setOffset(null);
+    clearSettle();
+
+    const surface = surfaceRef.current;
+    const finish = () => {
+      clearSettle();
+      // The transform deliberately stays: the node unmounts on close, and the
+      // returned offset is already its resting value.
       after();
-    }, SETTLE_MS);
+    };
+
+    if (reduced || surface === null) {
+      frame.current = requestAnimationFrame(finish);
+      return;
+    }
+
+    const onEnd = (event: TransitionEvent) => {
+      if (event.target === surface && event.propertyName === 'transform') finish();
+    };
+    surface.addEventListener('transitionend', onEnd);
+    settleListeners.current = () => surface.removeEventListener('transitionend', onEnd);
+    timer.current = window.setTimeout(finish, SETTLE_FALLBACK_MS);
   };
 
   const height = () => surfaceRef.current?.getBoundingClientRect().height ?? 0;
@@ -75,7 +109,7 @@ export const useSheetDrag = (
       velocity: 0,
       pointerId: event.pointerId,
     };
-    clearTimer();
+    clearSettle();
     setDragging(true);
     setOffset(0);
   };
@@ -113,11 +147,19 @@ export const useSheetDrag = (
     settle(0, () => {});
   };
 
-  React.useEffect(() => clearTimer, []);
+  React.useEffect(() => clearSettle, []);
+
+  const reset = React.useCallback(() => {
+    clearSettle();
+    drag.current = null;
+    setDragging(false);
+    setOffset(null);
+  }, []);
 
   return {
     offset,
     dragging,
+    reset,
     handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
   };
 };

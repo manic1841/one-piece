@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { CLOSE_BUTTON_CLASS } from './close-button';
 import { useSheetDrag } from './useSheetDrag';
 
 const Sheet = SheetPrimitive.Root;
@@ -60,8 +61,6 @@ interface SheetContentProps
 const HANDLE_BAND_CLASS =
   'flex h-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing';
 const HANDLE_CLASS = 'h-1 w-9 rounded-full bg-border-strong';
-const CLOSE_CLASS =
-  'absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-[opacity,transform] duration-fast ease-out-quint hover:opacity-100 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary';
 
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
@@ -73,23 +72,40 @@ const SheetContent = React.forwardRef<
   // Dismiss goes through the close control's click so it takes the same path as
   // the visible one: the root's `onOpenChange`, and its focus return.
   const drag = useSheetDrag(contentRef, () => closeRef.current?.click());
+  const { reset } = drag;
+
+  // The portal mounts a fresh node on every open; the leftover offset from the
+  // last dismissal would otherwise shove the new sheet back down. The ref prop
+  // is rebuilt each render, so compare node identity rather than resetting on
+  // every attach.
+  const mounted = React.useRef<HTMLElement | null>(null);
+  const attachContent = (node: HTMLDivElement | null) => {
+    contentRef.current = node;
+    if (node !== null && node !== mounted.current) {
+      mounted.current = node;
+      reset();
+    }
+  };
 
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         ref={(node) => {
-          contentRef.current = node;
+          attachContent(node);
           if (typeof ref === 'function') ref(node);
           else if (ref !== null) ref.current = node;
         }}
         className={cn(
           sheetVariants({ side }),
-          isDraggable && 'flex max-h-[92vh] flex-col gap-0 p-0',
+          // The drag gesture owns the exit transform, so the closed state must
+          // not replay Radix's slide-out from zero (motion-system §5.3).
+          isDraggable && 'flex max-h-[92vh] flex-col gap-0 p-0 data-[state=closed]:animate-none',
           isDraggable && !drag.dragging && 'transition-transform duration-slow ease-out-quint',
           drag.dragging && 'transition-none',
           className,
         )}
+        data-sheet-content={isDraggable ? '' : undefined}
         style={
           isDraggable && drag.offset !== null
             ? { transform: `translateY(${drag.offset}px)`, ...style }
@@ -108,7 +124,7 @@ const SheetContent = React.forwardRef<
         >
           {children}
         </div>
-        <SheetPrimitive.Close ref={closeRef} className={CLOSE_CLASS}>
+        <SheetPrimitive.Close ref={closeRef} className={CLOSE_BUTTON_CLASS}>
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>

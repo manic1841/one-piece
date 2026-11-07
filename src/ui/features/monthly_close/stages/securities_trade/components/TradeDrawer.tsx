@@ -68,7 +68,7 @@ export const TradeDrawer: React.FC<TradeDrawerProps> = ({
       <SheetContent
         side="bottom"
         aria-describedby={undefined}
-        className="rounded-t-lg sm:[&>[data-sheet-handle]]:hidden sm:max-w-md sm:rounded-none sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:rounded-l-lg"
+        className="rounded-t-lg sm:[&>[data-sheet-handle]]:hidden sm:max-h-none sm:max-w-md sm:rounded-none sm:inset-y-0 sm:right-0 sm:left-auto sm:h-full sm:rounded-l-lg"
       >
         <DrawerPanel
           title={title}

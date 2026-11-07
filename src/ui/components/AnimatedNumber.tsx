@@ -1,15 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import { DURATION, EASE_OUT_QUINT } from '@/ui/motion';
 import { cn } from '@/ui/utils/cn';
-
-/** Matches `duration-data` (motion-system §2). Values live in the token file; rAF needs a number. */
-const DATA_DURATION_MS = 400;
-
-/** `ease-out-quint` in numeric form — rAF cannot read a CSS curve mid-flight. */
-const easeOutQuint = (t: number): number => 1 - (1 - t) ** 5;
 
 const prefersReducedMotion = (): boolean =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** A rendered frame, tagged with the target it belongs to. */
+type Frame = { value: number; target: number };
 
 type AnimatedNumberProps = {
   /** Confirmed value. Nullish renders `missing`. */
@@ -28,17 +26,22 @@ type AnimatedNumberProps = {
  * render shows the target immediately — a page entrance must not count up — and
  * only later value changes animate. Rendering stays a plain text node, so the
  * value is always real content rather than a visual-only effect.
+ *
+ * Frames carry their own target: a frame left over from an earlier value is
+ * simply ignored, so a detour through `null` can never surface a stale middle
+ * number as the settled one.
  */
 export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
   format,
   missing = '—',
-  durationMs = DATA_DURATION_MS,
+  durationMs = DURATION.data,
   className,
 }) => {
   const target = value ?? null;
-  /** Frame value while a transition runs; null means "render the target". */
-  const [frameValue, setFrameValue] = useState<number | null>(null);
+  const [frame, setFrame] = useState<Frame | null>(null);
+  // rAF is not CSS, so the global reduced-motion rule cannot reach it (§7).
+  const [reduced] = useState(prefersReducedMotion);
   const previous = useRef(target);
 
   useEffect(() => {
@@ -46,28 +49,32 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
     previous.current = target;
 
     if (from === target) return;
-    if (target == null || from == null || prefersReducedMotion()) return;
+    if (target == null || from == null || reduced) return;
 
     const started = performance.now();
-    let frame: number | null = null;
+    let handle: number | null = null;
     const step = (now: number) => {
       const progress = Math.min(1, (now - started) / durationMs);
-      setFrameValue(progress < 1 ? from + (target - from) * easeOutQuint(progress) : null);
-      frame = progress < 1 ? requestAnimationFrame(step) : null;
+      setFrame(
+        progress < 1 ? { value: from + (target - from) * EASE_OUT_QUINT(progress), target } : null,
+      );
+      handle = progress < 1 ? requestAnimationFrame(step) : null;
     };
-    frame = requestAnimationFrame(step);
+    handle = requestAnimationFrame(step);
 
     return () => {
-      if (frame !== null) cancelAnimationFrame(frame);
+      if (handle !== null) cancelAnimationFrame(handle);
     };
-  }, [target, durationMs]);
+  }, [target, durationMs, reduced]);
 
-  // The frame value only matters mid-transition: a nullish target and reduced
-  // motion both read straight through to the authoritative value.
-  const shown = target == null || prefersReducedMotion() ? target : (frameValue ?? target);
+  const live = frame !== null && frame.target === target ? frame.value : null;
+  const shown = target == null || reduced ? target : (live ?? target);
 
   return (
-    <span className={cn('tabular-nums', className)} aria-live="off">
+    <span
+      className={cn('font-mono tabular-nums', className)}
+      aria-live={live === null ? 'polite' : 'off'}
+    >
       {shown == null ? missing : format(shown)}
     </span>
   );

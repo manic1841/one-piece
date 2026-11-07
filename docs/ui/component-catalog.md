@@ -130,6 +130,7 @@
 | `src/ui/components/form/index.ts`                     | barrel                                               |
 | `src/ui/components/form/styles.ts`                    | 表面常數                                             |
 | `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）                        |
+| `src/ui/components/ui/close-button.ts`                | 表面常數（sheet 與 drawer 共用的關閉鈕）             |
 | `src/ui/components/ui/input-styles.ts`                | 表面常數                                             |
 | `src/ui/components/ui/sheetDrag.ts`                   | 手勢判定純函式（bottom sheet 關閉門檻）              |
 | `src/ui/components/ui/tabs-styles.ts`                 | 表面常數                                             |

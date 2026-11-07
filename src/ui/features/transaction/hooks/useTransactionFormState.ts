@@ -40,7 +40,20 @@ const parseOutput = (
   return result.success ? result.data : null;
 };
 
+const seedDefaults = (output: TransactionFormOutput | null) => {
+  const tab = mapIntentTypeToTab(output?.intentType);
+
+  return {
+    tab,
+    expense: createTransactionExpenseFormValues(tab === 'EXPENSE' ? output : null),
+    income: createTransactionIncomeFormValues(tab === 'INCOME' ? output : null),
+    advanced: createTransactionAdvancedFormValues(tab === 'ADVANCED' ? output : null),
+  };
+};
+
 interface UseTransactionFormStateParams {
+  /** The dialog stays mounted between openings so it can animate out. */
+  isOpen: boolean;
   initialOutput?: TransactionFormOutput | null;
   onSubmit: (output: TransactionFormOutput) => void | Promise<void>;
   projects: TransactionFormProjectOption[];
@@ -50,26 +63,17 @@ interface UseTransactionFormStateParams {
 
 /** One RHF form per tab panel; the tab is hook state, never a form field. */
 export const useTransactionFormState = ({
+  isOpen,
   initialOutput,
   onSubmit,
   projects,
   ledgerCodes,
   loadIncomeAllocationTemplate,
 }: UseTransactionFormStateParams) => {
-  // The dialog is mounted on open, so defaults are seeded once from the edited
-  // transaction; there is no reset-on-open effect. Only the tab that the edited
-  // transaction belongs to is prefilled — the other panels start blank, since a
-  // transaction only ever edits through one of them.
-  const [defaultValues] = useState(() => {
-    const output = initialOutput ?? null;
-    const tab = mapIntentTypeToTab(output?.intentType);
-
-    return {
-      expense: createTransactionExpenseFormValues(tab === 'EXPENSE' ? output : null),
-      income: createTransactionIncomeFormValues(tab === 'INCOME' ? output : null),
-      advanced: createTransactionAdvancedFormValues(tab === 'ADVANCED' ? output : null),
-    };
-  });
+  // Seed once for the first render; later openings reset from the effect below.
+  // Only the tab the edited transaction belongs to is prefilled — the other
+  // panels start blank, since a transaction only ever edits through one of them.
+  const [defaultValues] = useState(() => seedDefaults(initialOutput ?? null));
 
   const [activeTab, setActiveTab] = useState<TransactionFormTab>(() =>
     mapIntentTypeToTab(initialOutput?.intentType),
@@ -92,6 +96,33 @@ export const useTransactionFormState = ({
     mode: 'onTouched',
     defaultValues: defaultValues.advanced,
   });
+
+  // The last template written, so a re-run caused by something other than the
+  // code (a project list refresh, a tab switch) does not overwrite an allocation
+  // the user has since edited.
+  const appliedTemplateRef = useRef<{ code: string; itemsKey: string } | null>(null);
+
+  // The dialog outlives a single opening so it can animate out, so the draft has
+  // to be rebuilt on every reopen — otherwise the previous session's values and
+  // the previous mode's tab survive.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (!isOpen || wasOpen.current) {
+      wasOpen.current = isOpen;
+      return;
+    }
+    wasOpen.current = true;
+
+    const seeded = seedDefaults(initialOutput ?? null);
+    appliedTemplateRef.current = null;
+    setActiveTab(seeded.tab);
+    expenseForm.reset(seeded.expense);
+    incomeForm.reset(seeded.income);
+    advancedForm.reset(seeded.advanced);
+    // `initialOutput` is a fresh object per opening and is read only on the
+    // open edge; re-running on it while open would discard typing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const expenseValues = useWatch({ control: expenseForm.control });
   const incomeValues = useWatch({ control: incomeForm.control });
@@ -121,11 +152,6 @@ export const useTransactionFormState = ({
   );
 
   const incomeLedgerCode = useWatch({ control: incomeForm.control, name: 'ledgerCode' });
-
-  // The last template this effect wrote, so a re-run caused by something other
-  // than the code (a project list refresh, a tab switch) does not overwrite an
-  // allocation the user has since edited.
-  const appliedTemplateRef = useRef<{ code: string; itemsKey: string } | null>(null);
 
   // Selecting an income ledger code pulls its saved allocation template into the
   // draft. The write-back is async, so it is not a synchronous set-state-in-effect.
