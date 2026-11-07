@@ -1,3 +1,5 @@
+import { StrictMode } from 'react';
+
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -125,5 +127,68 @@ describe('AnimatedNumber', () => {
 
     act(() => frames.advance(400));
     expect(node?.getAttribute('aria-live')).toBe('polite');
+  });
+
+  describe('animateOnMount', () => {
+    it('counts up from zero on the first render', () => {
+      const frames = stubFrames();
+      render(<AnimatedNumber value={1000} format={format} animateOnMount />);
+
+      // The very first paint must be zero, never the target.
+      expect(screen.getByText('0')).toBeInTheDocument();
+
+      act(() => frames.advance(200));
+      const midway = Number(screen.getByText(/^\d+$/).textContent);
+      expect(midway).toBeGreaterThan(0);
+      expect(midway).toBeLessThan(1000);
+
+      act(() => frames.advance(400));
+      expect(screen.getByText('1000')).toBeInTheDocument();
+    });
+
+    it('does not count up when the option is off', () => {
+      stubFrames();
+      render(<AnimatedNumber value={1000} format={format} />);
+      expect(screen.getByText('1000')).toBeInTheDocument();
+    });
+
+    it('shows the target directly under reduced motion', () => {
+      setReducedMotion(true);
+      stubFrames();
+      render(<AnimatedNumber value={1000} format={format} animateOnMount />);
+      expect(screen.getByText('1000')).toBeInTheDocument();
+    });
+
+    it('starts from zero again after a StrictMode double effect run', () => {
+      const frames = stubFrames();
+      render(
+        <StrictMode>
+          <AnimatedNumber value={1000} format={format} animateOnMount />
+        </StrictMode>,
+      );
+
+      // The second effect run must replay the count, not collapse to a jump.
+      expect(screen.getByText('0')).toBeInTheDocument();
+
+      act(() => frames.advance(200));
+      expect(Number(screen.getByText(/^\d+$/).textContent)).toBeLessThan(1000);
+
+      act(() => frames.advance(400));
+      expect(screen.getByText('1000')).toBeInTheDocument();
+    });
+
+    it('renders the missing form for a null value instead of counting', () => {
+      stubFrames();
+      render(<AnimatedNumber value={null} format={format} missing="—" animateOnMount />);
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+
+    it('settles immediately when the mounted value is already zero', () => {
+      stubFrames();
+      const { container } = render(<AnimatedNumber value={0} format={format} animateOnMount />);
+      expect(screen.getByText('0')).toBeInTheDocument();
+      // No dangling frame: the live region must not stay muted.
+      expect(container.firstElementChild?.getAttribute('aria-live')).toBe('polite');
+    });
   });
 });

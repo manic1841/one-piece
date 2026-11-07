@@ -3,6 +3,7 @@ import { eyebrowClass } from '@/ui/components/eyebrow';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { WORKSPACE_RAIL_LABELS } from '@/ui/constants/retirement/workspaceRailLabels';
 import { type RailIndicators } from '@/ui/features/retirement/viewmodels/railIndicators.vm';
+import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 interface WorkspaceRailProps {
@@ -63,6 +64,9 @@ export function WorkspaceRail({
           <Metric
             label={WORKSPACE_RAIL_LABELS.METRIC_RETIREMENT}
             value={indicators.retirementNetWorthText ?? PROJECTION_COMMON_LABELS.DASH}
+            animatedValue={indicators.retirementNetWorth}
+            animateFormat={formatCurrency}
+            animateOnMount
             className={cn(muted && 'opacity-60')}
             action={
               retirementYear === null ? undefined : (
@@ -73,6 +77,9 @@ export function WorkspaceRail({
           <Metric
             label={WORKSPACE_RAIL_LABELS.METRIC_MIN}
             value={indicators.minNetWorthText ?? PROJECTION_COMMON_LABELS.DASH}
+            animatedValue={indicators.minNetWorth}
+            animateFormat={formatCurrency}
+            animateOnMount
             className={cn(muted && 'opacity-60')}
             action={
               indicators.minNetWorthYear === null ? undefined : (
@@ -83,6 +90,9 @@ export function WorkspaceRail({
           <Metric
             label={WORKSPACE_RAIL_LABELS.METRIC_FINAL}
             value={indicators.finalNetWorthText ?? PROJECTION_COMMON_LABELS.DASH}
+            animatedValue={indicators.finalNetWorth}
+            animateFormat={formatCurrency}
+            animateOnMount
             className={cn(muted && 'opacity-60')}
             action={
               finalYear === null ? undefined : <JumpYear year={finalYear} onJump={onJumpToYear} />

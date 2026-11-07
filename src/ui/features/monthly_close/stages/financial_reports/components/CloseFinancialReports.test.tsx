@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { diffBalanceSheet, diffCashFlow, diffIncomeStatement } from '@/domains/report/reportDrift';
@@ -99,6 +99,16 @@ describe('CloseFinancialReports', () => {
     vi.clearAllMocks();
   });
 
+  /**
+   * Collapsed rows stay mounted so the collapse can animate out (M05), so the
+   * container's `textContent` still contains them. These assertions care about
+   * what is revealed, not what exists.
+   */
+  const revealedText = (container: HTMLElement): string =>
+    [...container.querySelectorAll('tr:not([data-state="closed"])')]
+      .map((row) => row.textContent ?? '')
+      .join(' ');
+
   it('renders the income statement section header, roll-up row, nested subItems and total rows', async () => {
     renderReports();
 
@@ -121,11 +131,13 @@ describe('CloseFinancialReports', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.click(toggle);
-    expect(screen.getByTestId('close-income-statement')).not.toHaveTextContent('薪資 › Charles');
+    expect(revealedText(screen.getByTestId('close-income-statement'))).not.toContain(
+      '薪資 › Charles',
+    );
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(toggle);
-    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
+    expect(revealedText(screen.getByTestId('close-income-statement'))).toContain('薪資 › Charles');
   });
 
   // Pre-ADR-0074 persisted reports stored a redundant parent row inside the
@@ -172,7 +184,7 @@ describe('CloseFinancialReports', () => {
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
     const sheet = screen.getByTestId('close-balance-sheet');
-    expect((sheet.textContent!.match(/我家/g) ?? []).length).toBe(1);
+    expect((revealedText(sheet).match(/我家/g) ?? []).length).toBe(1);
 
     // The three statements share forceMount, so the chevron name repeats across
     // tables; scope to the balance sheet's own toggle.
@@ -180,21 +192,23 @@ describe('CloseFinancialReports', () => {
       .getAllByRole('button', { name: '不動產' })
       .find((button) => button.closest('[data-testid="close-balance-sheet"]') !== null)!;
     fireEvent.click(toggle);
-    expect(sheet).not.toHaveTextContent('我家');
+    expect(revealedText(sheet)).not.toContain('我家');
     fireEvent.click(toggle);
-    expect((sheet.textContent!.match(/我家/g) ?? []).length).toBe(1);
+    expect((revealedText(sheet).match(/我家/g) ?? []).length).toBe(1);
   });
 
   it('resets collapsed groups when switching statement tabs', () => {
     renderReports();
 
     fireEvent.click(screen.getByRole('button', { name: '薪資' }));
-    expect(screen.getByTestId('close-income-statement')).not.toHaveTextContent('薪資 › Charles');
+    expect(revealedText(screen.getByTestId('close-income-statement'))).not.toContain(
+      '薪資 › Charles',
+    );
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
     fireEvent.mouseDown(screen.getByRole('tab', { name: '損益表' }));
 
-    expect(screen.getByTestId('close-income-statement')).toHaveTextContent('薪資 › Charles');
+    expect(revealedText(screen.getByTestId('close-income-statement'))).toContain('薪資 › Charles');
   });
 
   it('switches statement tabs on desktop', () => {
@@ -421,16 +435,16 @@ describe('CloseFinancialReports', () => {
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: '現金流量表' }));
     const flow = screen.getByTestId('close-cash-flow');
-    expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(2);
+    expect((revealedText(flow).match(/ETF/g) ?? []).length).toBe(2);
 
     const inflowToggle = within(flow).getAllByRole('button', { name: '證券投資' })[0];
     fireEvent.click(inflowToggle);
-    expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(1);
+    expect((revealedText(flow).match(/ETF/g) ?? []).length).toBe(1);
     fireEvent.click(inflowToggle);
-    expect((flow.textContent!.match(/ETF/g) ?? []).length).toBe(2);
+    expect((revealedText(flow).match(/ETF/g) ?? []).length).toBe(2);
   });
 
-  it('shows the three statement metric rows with drift change lines', () => {
+  it('shows the three statement metric rows with drift change lines', async () => {
     const preview = buildPreview();
     // 已產生報表與本次預覽不同：收入由 40,000 漂移到 50,000。
     const reports = {
@@ -443,15 +457,18 @@ describe('CloseFinancialReports', () => {
     renderReports({ reports });
 
     // 三張表各帶三個指標；值為當期值，變化行為漂移 delta。
+    // 值從 0 起算（M07），因此等終值落定再斷言。
     const income = screen.getByTestId('statement-metric-income');
     expect(income).toHaveTextContent('收入');
-    expect(income).toHaveTextContent('NT$50,000');
+    await waitFor(() => expect(income).toHaveTextContent('NT$50,000'));
     expect(income).toHaveTextContent('NT$40,000 -> NT$50,000');
 
     // 未漂移的指標不顯示變化行。
     expect(screen.getByTestId('statement-metric-expense')).not.toHaveTextContent('->');
 
-    expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$100,000');
+    await waitFor(() =>
+      expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$100,000'),
+    );
     expect(screen.getByTestId('statement-metric-liabilities')).toHaveTextContent('負債');
     expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('權益');
     expect(screen.getByTestId('statement-metric-beginning-balance')).toHaveTextContent('期初餘額');

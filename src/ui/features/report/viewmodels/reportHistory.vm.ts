@@ -72,6 +72,10 @@ export interface ReportHistoryRowVM {
 export interface ReportLatestVM {
   period: string;
   display: string;
+  /** 原始數值，供 M07 補間；該期沒有事實資料時為 undefined。 */
+  netIncome?: number;
+  equity?: number;
+  endingCash?: number;
   netIncomeText: string;
   netIncomeTone: MoneyTone;
   equityText: string;
@@ -212,6 +216,9 @@ const buildLatest = (
   return {
     period: latestMonth,
     display: period ? formatReportPeriodDisplay(period) : latestMonth,
+    netIncome: facts?.netIncome,
+    equity: facts?.equity,
+    endingCash: facts?.endingCash,
     netIncomeText: formatCurrencyOrDash(facts?.netIncome ?? null),
     netIncomeTone: monthTone(facts?.netIncome),
     equityText: formatCurrencyOrDash(facts?.equity ?? null),

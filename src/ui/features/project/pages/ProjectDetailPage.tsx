@@ -38,7 +38,8 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
 
   const backToList = () => navigate('/projects');
 
-  if (loading) {
+  // Only the first load blanks the page; a reload keeps the figure mounted (M07).
+  if (loading && !activeProject) {
     return (
       <div role="status" className="space-y-6 pb-20">
         <span className="sr-only">{PROJECT_DETAIL_LABELS.LOADING_LABEL}</span>

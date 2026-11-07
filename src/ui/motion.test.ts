@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { EASE } from './motion.constants';
 import { cubicBezier } from './motion';
+import { EASE } from './motion.constants';
 
 const ease = cubicBezier([0.22, 1, 0.36, 1]);
 
@@ -48,5 +48,29 @@ describe('exit curve', () => {
     for (const at of [0.25, 0.5, 0.75]) {
       expect(exit(at)).toBeLessThan(entry(at));
     }
+  });
+});
+
+/**
+ * M05 is asymmetric: expand is longer because it hands over information. A curve
+ * decides how much of that length the eye waits through, so the pair has to stay
+ * ordered too — otherwise a front-loaded expand cancels (or inverts) the gap.
+ */
+describe('disclosure curve pair', () => {
+  const expand = cubicBezier(EASE.expand);
+  const collapse = cubicBezier(EASE.collapse);
+
+  it('spends the change early on collapse and holds it back on expand', () => {
+    for (const at of [0.1, 0.25, 0.5]) {
+      expect(expand(at)).toBeLessThan(collapse(at));
+    }
+  });
+
+  it('leaves most of the expand duration still visible', () => {
+    expect(expand(0.25)).toBeLessThan(0.25);
+  });
+
+  it('clears most of the collapse change in its first quarter', () => {
+    expect(collapse(0.25)).toBeGreaterThan(0.5);
   });
 });

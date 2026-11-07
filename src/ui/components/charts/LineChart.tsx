@@ -28,6 +28,8 @@ type LineChartProps = {
   yAxis?: 'none' | 'left';
   /** Rendered plot height in px. */
   height?: number;
+  /** Grow the series out of the baseline when the chart first renders (motion-system §5.7). */
+  reveal?: boolean;
   ariaLabel?: string;
   className?: string;
   /** Overlay renderer (hover guide, tooltip) drawn inside the plot area. */
@@ -45,6 +47,7 @@ export function LineChart({
   zeroLine = false,
   yAxis = 'none',
   height = 150,
+  reveal = true,
   ariaLabel,
   className,
   children,
@@ -52,6 +55,9 @@ export function LineChart({
   const geometry = buildLineGeometry(values, labels, undefined, undefined, includeZero);
   const color = CHART_TONE_COLOR[tone];
   const last = geometry.points[geometry.points.length - 1];
+  // A single point has no line to grow; leave it already settled.
+  const revealing = reveal && geometry.points.length > 1;
+  const clipId = `line-reveal-${React.useId().replace(/:/g, '')}`;
   const a11yProps =
     ariaLabel === undefined ? {} : { role: 'img' as const, 'aria-label': ariaLabel };
 
@@ -86,18 +92,35 @@ export function LineChart({
               strokeDasharray="4 4"
             />
           )}
-          {showArea && <path d={geometry.areaPath} fill={color} stroke="none" opacity={0.07} />}
-          <path
-            d={geometry.path}
-            fill="none"
-            stroke={color}
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {markLastPoint && last !== undefined && (
-            <circle cx={last.x} cy={last.y} r={4} fill={color} />
+          {revealing && (
+            <defs>
+              <clipPath id={clipId}>
+                {/* `fill-box` + bottom origin makes the rect grow upward from the
+                    baseline. Scaling a clip leaves the stroke width untouched. */}
+                <rect
+                  className="animate-chart-reveal [transform-box:fill-box] [transform-origin:bottom]"
+                  x={0}
+                  y={0}
+                  width={LINE_CHART_WIDTH}
+                  height={LINE_CHART_HEIGHT}
+                />
+              </clipPath>
+            </defs>
           )}
+          <g clipPath={revealing ? `url(#${clipId})` : undefined}>
+            {showArea && <path d={geometry.areaPath} fill={color} stroke="none" opacity={0.07} />}
+            <path
+              d={geometry.path}
+              fill="none"
+              stroke={color}
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {markLastPoint && last !== undefined && (
+              <circle cx={last.x} cy={last.y} r={4} fill={color} />
+            )}
+          </g>
         </svg>
         {yAxis === 'left' && (
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">

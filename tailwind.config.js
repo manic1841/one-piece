@@ -7,9 +7,14 @@ const durations = {
   base: ms(DURATION.base),
   slow: ms(DURATION.slow),
   data: ms(DURATION.data),
+  expand: ms(DURATION.expand),
+  collapse: ms(DURATION.collapse),
 };
 const easings = {
   'out-quint': bezier(EASE.outQuint),
+  'out-settle': bezier(EASE.outSettle),
+  expand: bezier(EASE.expand),
+  collapse: bezier(EASE.collapse),
   'in-quint': bezier(EASE.inQuint),
 };
 
@@ -83,12 +88,57 @@ export default {
         'page-enter': {
           from: { opacity: '0', transform: 'translateY(6px)' },
         },
+        // M05 on Radix content, which measures itself into a CSS variable. The
+        // outgoing frame never returns to the open state, so the exit is written
+        // out in full; the entry can lean on the resting value.
+        'accordion-down': {
+          from: { height: '0', opacity: '0', transform: 'translateY(-4px)' },
+          to: {
+            height: 'var(--radix-accordion-content-height)',
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+        },
+        'accordion-up': {
+          from: {
+            height: 'var(--radix-accordion-content-height)',
+            opacity: '1',
+            transform: 'translateY(0)',
+          },
+          to: { height: '0', opacity: '0', transform: 'translateY(-2px)' },
+        },
+        // M05 on the hand-rolled disclosure, which stays mounted so it can
+        // animate out. The resting value is `auto` (or `0` when closed) and
+        // `interpolate-size: allow-keywords` makes that keyword interpolable, so
+        // no JS measurement is involved. Both ends have to be written out: once
+        // the state class flips, the resting height is already the target, so an
+        // implicit endpoint would interpolate a value against itself.
+        'disclosure-down': {
+          from: { height: '0', opacity: '0', transform: 'translateY(-4px)' },
+        },
+        'disclosure-up': {
+          from: { height: 'auto', opacity: '1', transform: 'translateY(0)' },
+          to: { height: '0', opacity: '0', transform: 'translateY(-2px)' },
+        },
+        // M08: the series rises out of the baseline. One clip rect grows
+        // vertically over the whole series group, so the line and its area stay
+        // glued and the stroke width is never distorted by the scaling.
+        'chart-reveal': {
+          from: { transform: 'scaleY(0)' },
+        },
       },
       animation: {
         // `backwards`, not `both`: a finished `both` animation keeps a
         // `transform` value, and any transform makes the container a containing
         // block for `fixed` descendants (the Dashboard grid lives there).
-        'page-enter': `page-enter ${ms(DURATION.base)} ${bezier(EASE.outQuint)} backwards`,
+        'page-enter': `page-enter ${ms(DURATION.slow)} ${bezier(EASE.outSettle)} backwards`,
+        'accordion-down': `accordion-down ${ms(DURATION.expand)} ${bezier(EASE.expand)}`,
+        'accordion-up': `accordion-up ${ms(DURATION.collapse)} ${bezier(EASE.collapse)}`,
+        'disclosure-down': `disclosure-down ${ms(DURATION.expand)} ${bezier(EASE.expand)}`,
+        'disclosure-up': `disclosure-up ${ms(DURATION.collapse)} ${bezier(EASE.collapse)}`,
+        // A reveal, not an arrival: `expand` is symmetric, so the growth stays
+        // visible for the whole length and never overshoots the data.
+        'chart-reveal': `chart-reveal ${ms(DURATION.slow)} ${bezier(EASE.expand)}`,
       },
       letterSpacing: {
         display: '-0.02em',

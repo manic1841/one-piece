@@ -145,6 +145,16 @@
 
 /* Retirement event axis: spans grow out of their start year and single-year
    nodes pop in on mount. The global reduced-motion rule settles both instantly. */
+/* Donut reveal: the ring is uncovered by a masked conic stop angle, so the arc
+   draws itself clockwise from 12 o'clock. The angle has to be a registered
+   property to interpolate at all; on engines without `@property` it flips at the
+   halfway point and still lands on the full ring. */
+@property --chart-sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 360deg;
+}
+
 @keyframes event-bar-grow {
   from {
     transform: scaleX(0);
@@ -154,5 +164,41 @@
 @keyframes event-node-pop {
   from {
     transform: scale(0);
+  }
+}
+
+/* Expansion keyframes interpolate `height: auto <-> 0`, which needs
+   `interpolate-size: allow-keywords`. That is Chromium-only (Chrome 129+), so on
+   Firefox and Safari the height part turns discrete: the row holds at 0 for the
+   first half of an expand and then pops. Those engines get the fade/slide only
+   and snap the height immediately instead of halfway. Scoped to the disclosures
+   that opted in; `ui/accordion` animates a measured pixel height and is fine as
+   is. Unlayered, so it outranks the utilities without `!important`. */
+@supports not (interpolate-size: allow-keywords) {
+  [data-state='open'][class*='interpolate-size'] {
+    animation-name: disclosure-fade-in;
+  }
+
+  [data-state='closed'][class*='interpolate-size'] {
+    animation-name: disclosure-fade-out;
+  }
+}
+
+@keyframes disclosure-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes disclosure-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-2px);
   }
 }

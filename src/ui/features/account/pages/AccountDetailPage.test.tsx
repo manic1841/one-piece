@@ -64,12 +64,28 @@ describe('AccountDetailPage', () => {
   });
 
   it('shows the loading skeleton before the account resolves', () => {
-    mockUseAccountDetailPage.mockReturnValue({ ...baseController, loading: true } as never);
+    mockUseAccountDetailPage.mockReturnValue({
+      ...baseController,
+      activeAccount: undefined,
+      loading: true,
+    } as never);
 
     renderPage();
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText(ACCOUNT_DETAIL_LABELS.LOADING_LABEL)).toBeInTheDocument();
+  });
+
+  it('keeps the settled sections mounted while a reload is in flight', () => {
+    mockUseAccountDetailPage.mockReturnValue({ ...baseController, loading: true } as never);
+
+    renderPage();
+
+    // No skeleton: the figures have to stay mounted for M07 to interpolate them.
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(ACCOUNT_DETAIL_LABELS.ENDING_BALANCE_SECTION_TITLE),
+    ).toBeInTheDocument();
   });
 
   it('shows the not-found empty state when the account is missing', () => {

@@ -11,6 +11,7 @@ import { Skeleton } from '@/ui/components/Skeleton';
 import { InteractiveLineChart } from '@/ui/components/charts/InteractiveLineChart';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
+import { DASHBOARD_HERO_LABELS } from '@/ui/constants/dashboard/heroLabels';
 import { DASHBOARD_RECENT_LABELS } from '@/ui/constants/dashboard/recentTransactionsLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { AssetCompositionBlock } from '@/ui/features/dashboard/components/AssetCompositionBlock';
@@ -28,12 +29,13 @@ import { formatCurrency, formatPercentage } from '@/ui/utils';
 const TAGLINE_CLASS = 'hidden font-mono text-sm leading-relaxed text-muted-foreground md:block';
 
 interface HeroSectionProps {
-  loading: boolean;
+  /** Only the very first load blanks the hero; a reload keeps the numbers in place. */
+  firstLoad: boolean;
   error: string | null;
   heroVM: DashboardHeroVM;
 }
 
-const HeroSection: React.FC<HeroSectionProps> = ({ loading, error, heroVM }) => {
+const HeroSection: React.FC<HeroSectionProps> = ({ firstLoad, error, heroVM }) => {
   const change =
     heroVM.ytd === null
       ? undefined
@@ -50,8 +52,10 @@ const HeroSection: React.FC<HeroSectionProps> = ({ loading, error, heroVM }) => 
           way to a richer life.
         </p>
         <div className="text-center">
-          <p className="text-sm font-medium tracking-widest text-muted-foreground">NET WORTH</p>
-          {loading ? (
+          <p className="text-sm font-medium tracking-widest text-muted-foreground">
+            {DASHBOARD_HERO_LABELS.NET_WORTH}
+          </p>
+          {firstLoad ? (
             <Skeleton className="mx-auto mt-4 h-12 w-64" />
           ) : error ? (
             <Alert variant="warning" className="mt-4 text-left">
@@ -63,17 +67,18 @@ const HeroSection: React.FC<HeroSectionProps> = ({ loading, error, heroVM }) => 
               value={heroVM.netWorthText}
               animatedValue={heroVM.netWorth}
               animateFormat={formatCurrency}
+              animateOnMount
               size="hero"
               change={change}
               changeTone={heroVM.ytd?.direction === 'negative' ? 'negative' : 'positive'}
             />
           )}
-          {!loading && !error && heroVM.hasAnchor && heroVM.anchorPeriodText != null && (
+          {!firstLoad && !error && heroVM.hasAnchor && heroVM.anchorPeriodText != null && (
             <p className="mt-3 font-mono text-xs tabular-nums text-muted-foreground">
               {heroVM.anchorPeriodText}
             </p>
           )}
-          {!loading && !error && !heroVM.hasAnchor && (
+          {!firstLoad && !error && !heroVM.hasAnchor && (
             <p className="mt-4 text-sm text-muted-foreground">完成本月關帳後顯示淨資產</p>
           )}
         </div>
@@ -158,6 +163,8 @@ const Dashboard: React.FC = () => {
   } = useDashboardRecentTransactions(householdId);
 
   const anchor = overview?.anchor ?? null;
+  // A refresh re-renders the settled numbers in place; only the first load blanks them.
+  const firstLoad = loading && overview === null;
 
   return (
     <div>
@@ -174,10 +181,10 @@ const Dashboard: React.FC = () => {
         }}
       />
 
-      <HeroSection loading={loading} error={error} heroVM={heroVM} />
+      <HeroSection firstLoad={firstLoad} error={error} heroVM={heroVM} />
 
       <PageSection title="NET WORTH TREND" spacing="compact">
-        {loading ? (
+        {firstLoad ? (
           <Skeleton className="h-52 w-full" />
         ) : heroVM.trend.hasData ? (
           <InteractiveLineChart
@@ -195,7 +202,7 @@ const Dashboard: React.FC = () => {
       </PageSection>
 
       <PageSection title={statRowVM.sectionTitle} spacing="compact">
-        {loading ? (
+        {firstLoad ? (
           <Skeleton className="h-16 w-full" />
         ) : (
           <MetricGroup columns={5} lastSpansFull>
@@ -206,6 +213,7 @@ const Dashboard: React.FC = () => {
                 label={metric.label}
                 value={metric.valueText}
                 animatedValue={metric.value}
+                animateOnMount
                 animateFormat={
                   metric.key === 'portfolioReturn'
                     ? (raw) => formatPercentage(raw, 2)
@@ -222,9 +230,9 @@ const Dashboard: React.FC = () => {
       </PageSection>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <AssetCompositionBlock composition={anchor?.composition ?? null} loading={loading} />
+        <AssetCompositionBlock composition={anchor?.composition ?? null} loading={firstLoad} />
 
-        <CashFlowChartBlock series={overview?.cashFlowSeries ?? []} loading={loading} />
+        <CashFlowChartBlock series={overview?.cashFlowSeries ?? []} loading={firstLoad} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

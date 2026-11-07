@@ -136,8 +136,22 @@ export const MobileExpandableRow: React.FC<MobileExpandableRowProps> = ({
       {meta !== undefined && (
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">{meta}</div>
       )}
-      {isExpandable && isExpanded && (
-        <div className="mt-3 border-t border-border pt-2">{details}</div>
+      {isExpandable && (
+        // Stays mounted so the collapse can animate too. `height: auto <-> 0`
+        // interpolates under `interpolate-size: allow-keywords`, so the height is
+        // never measured (motion-system §5.1 M05). `grid-rows-[0fr]` would rest at
+        // content height here because the container has no definite height.
+        <div
+          data-state={isExpanded ? 'open' : 'closed'}
+          inert={!isExpanded}
+          className={cn(
+            'overflow-hidden [interpolate-size:allow-keywords]',
+            'data-[state=closed]:h-0 data-[state=closed]:opacity-0 data-[state=closed]:animate-disclosure-up',
+            'data-[state=open]:h-auto data-[state=open]:animate-disclosure-down',
+          )}
+        >
+          <div className="mt-3 border-t border-border pt-2">{details}</div>
+        </div>
       )}
     </div>
   );

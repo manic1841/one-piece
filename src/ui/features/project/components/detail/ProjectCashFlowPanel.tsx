@@ -7,6 +7,7 @@ import {
   DataTable,
   DataTableCell,
   DataTableColGroup,
+  DataTableDetailRow,
   DataTableHeadCell,
   DataTableHeadRow,
   DataTableRow,
@@ -125,58 +126,53 @@ export const ProjectCashFlowPanel: React.FC<ProjectCashFlowPanelProps> = ({ grou
                           {group.snapshot?.closingBalanceText ?? '—'}
                         </DataTableCell>
                       </DataTableRow>
-                      {isOpen && (
-                        <DataTableRow
-                          className="hover:bg-transparent"
-                          data-testid={`project-month-details-${group.key}`}
-                        >
-                          <DataTableCell
-                            colSpan={SNAPSHOT_COL_SPAN}
-                            className="bg-muted/30 px-3 py-3"
-                          >
-                            {group.records.length === 0 ? (
-                              <p className="text-sm text-muted-foreground">
-                                {PROJECT_DETAIL_LABELS.RECORD_EMPTY_HINT}
-                              </p>
-                            ) : (
-                              <DataTable>
-                                <DataTableColGroup widths={PROJECT_RECORD_COLUMN_WIDTHS} />
-                                <TableHeader>
-                                  <DataTableHeadRow>
-                                    <DataTableHeadCell>
-                                      {PROJECT_RECORD_COLUMN_LABELS.DATE}
-                                    </DataTableHeadCell>
-                                    <DataTableHeadCell>
-                                      {PROJECT_RECORD_COLUMN_LABELS.CATEGORY}
-                                    </DataTableHeadCell>
-                                    <DataTableHeadCell align="number">
-                                      {PROJECT_RECORD_COLUMN_LABELS.AMOUNT}
-                                    </DataTableHeadCell>
-                                  </DataTableHeadRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {group.records.map((record) => (
-                                    <DataTableRow key={record.id}>
-                                      <DataTableCell className="font-mono text-[12px]">
-                                        {record.dateText}
-                                      </DataTableCell>
-                                      <DataTableCell className="text-muted-foreground">
-                                        {record.categoryLabel}
-                                      </DataTableCell>
-                                      <DataTableCell
-                                        align="number"
-                                        className={amountToneClass(record.isIncome)}
-                                      >
-                                        {record.amountText}
-                                      </DataTableCell>
-                                    </DataTableRow>
-                                  ))}
-                                </TableBody>
-                              </DataTable>
-                            )}
-                          </DataTableCell>
-                        </DataTableRow>
-                      )}
+                      <DataTableDetailRow
+                        open={isOpen}
+                        colSpan={SNAPSHOT_COL_SPAN}
+                        contentClassName="bg-muted/30 px-3 py-3"
+                        data-testid={`project-month-details-${group.key}`}
+                      >
+                        {group.records.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            {PROJECT_DETAIL_LABELS.RECORD_EMPTY_HINT}
+                          </p>
+                        ) : (
+                          <DataTable>
+                            <DataTableColGroup widths={PROJECT_RECORD_COLUMN_WIDTHS} />
+                            <TableHeader>
+                              <DataTableHeadRow>
+                                <DataTableHeadCell>
+                                  {PROJECT_RECORD_COLUMN_LABELS.DATE}
+                                </DataTableHeadCell>
+                                <DataTableHeadCell>
+                                  {PROJECT_RECORD_COLUMN_LABELS.CATEGORY}
+                                </DataTableHeadCell>
+                                <DataTableHeadCell align="number">
+                                  {PROJECT_RECORD_COLUMN_LABELS.AMOUNT}
+                                </DataTableHeadCell>
+                              </DataTableHeadRow>
+                            </TableHeader>
+                            <TableBody>
+                              {group.records.map((record) => (
+                                <DataTableRow key={record.id}>
+                                  <DataTableCell className="font-mono text-[12px]">
+                                    {record.dateText}
+                                  </DataTableCell>
+                                  <DataTableCell className="text-muted-foreground">
+                                    {record.categoryLabel}
+                                  </DataTableCell>
+                                  <DataTableCell
+                                    align="number"
+                                    className={amountToneClass(record.isIncome)}
+                                  >
+                                    {record.amountText}
+                                  </DataTableCell>
+                                </DataTableRow>
+                              ))}
+                            </TableBody>
+                          </DataTable>
+                        )}
+                      </DataTableDetailRow>
                     </React.Fragment>
                   );
                 })}

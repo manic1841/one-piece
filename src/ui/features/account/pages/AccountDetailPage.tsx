@@ -42,7 +42,9 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
 
   const backToList = () => navigate('/accounts');
 
-  if (loading) {
+  // Only the first load blanks the page. A reload keeps the settled figures mounted,
+  // which is what lets them interpolate instead of remounting at the new value.
+  if (loading && !activeAccount) {
     return (
       <div role="status" className="space-y-6 pb-20">
         <span className="sr-only">{ACCOUNT_DETAIL_LABELS.LOADING_LABEL}</span>

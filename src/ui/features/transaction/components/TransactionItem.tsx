@@ -6,6 +6,7 @@ import {
   DataTable,
   DataTableCell,
   DataTableColGroup,
+  DataTableDetailRow,
   DataTableHeadCell,
   DataTableHeadRow,
   DataTableRow,
@@ -171,15 +172,14 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
           </span>
         </DataTableCell>
       </DataTableRow>
-      {hasEntries && isExpanded ? (
-        <DataTableRow
-          className="hover:bg-transparent"
+      {hasEntries ? (
+        <DataTableDetailRow
+          open={isExpanded}
+          colSpan={ACCORDION_ROW_COL_SPAN}
           data-testid={`transaction-details-${transaction.id}`}
         >
-          <DataTableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
-            <AccountingDetailsTable transaction={transaction} />
-          </DataTableCell>
-        </DataTableRow>
+          <AccountingDetailsTable transaction={transaction} />
+        </DataTableDetailRow>
       ) : null}
     </>
   );

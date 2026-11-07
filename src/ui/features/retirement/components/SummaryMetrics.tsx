@@ -2,11 +2,16 @@ import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement/resultLabels';
+import { formatCurrency } from '@/ui/utils';
 
 export interface SummaryMetricValues {
   retirementNetWorthText: string | null;
   finalNetWorthText: string;
   minNetWorthText: string;
+  /** 原始金額，供 M07 補間。 */
+  retirementNetWorth: number | null;
+  finalNetWorth: number;
+  minNetWorth: number;
   minNetWorthYearText: string;
   bankruptcyYearText: string;
   isBankruptText: string;
@@ -24,17 +29,26 @@ export function SummaryMetrics({ summary }: { summary: SummaryMetricValues }) {
           testId="metric-retirement-net-worth"
           label={PROJECTION_RESULT_LABELS.METRIC_RETIREMENT_NET_WORTH}
           value={summary.retirementNetWorthText ?? PROJECTION_COMMON_LABELS.DASH}
+          animatedValue={summary.retirementNetWorth}
+          animateFormat={formatCurrency}
+          animateOnMount
         />
         <Metric
           testId="metric-final-net-worth"
           label={PROJECTION_RESULT_LABELS.METRIC_FINAL_NET_WORTH}
           value={summary.finalNetWorthText}
+          animatedValue={summary.finalNetWorth}
+          animateFormat={formatCurrency}
+          animateOnMount
           tone={summary.finalNetWorthNegative ? 'negative' : 'default'}
         />
         <Metric
           testId="metric-min-net-worth"
           label={PROJECTION_RESULT_LABELS.METRIC_MIN_NET_WORTH}
           value={summary.minNetWorthText}
+          animatedValue={summary.minNetWorth}
+          animateFormat={formatCurrency}
+          animateOnMount
           tone={summary.minNetWorthNegative ? 'negative' : 'default'}
         />
         <Metric

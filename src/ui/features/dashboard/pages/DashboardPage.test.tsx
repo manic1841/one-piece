@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -87,15 +87,21 @@ describe('DashboardPage financial snapshot row', () => {
       </MemoryRouter>,
     );
 
+    // The tiles count up from zero on mount (M07), so the settled figure is awaited.
     const assets = await screen.findByTestId('stat-totalAssets');
-    expect(assets.textContent).toContain('NT$600');
     expect(assets.textContent).toContain('總資產');
     expect(assets.textContent).toContain('ANCHORED 2026-08');
 
-    expect(screen.getByTestId('stat-totalLiabilities').textContent).toContain('NT$150');
-    expect(screen.getByTestId('stat-monthlyCashFlow').textContent).toContain('-NT$12,300');
-    expect(screen.getByTestId('stat-portfolioReturn').textContent).toContain('3.91%');
-    expect(screen.getByTestId('stat-investmentLeverage').textContent).toContain('1.20x');
+    const expected: Array<[testId: string, text: string]> = [
+      ['stat-totalAssets', 'NT$600'],
+      ['stat-totalLiabilities', 'NT$150'],
+      ['stat-monthlyCashFlow', '-NT$12,300'],
+      ['stat-portfolioReturn', '3.91%'],
+      ['stat-investmentLeverage', '1.20x'],
+    ];
+    for (const [testId, text] of expected) {
+      await waitFor(() => expect(screen.getByTestId(testId).textContent).toContain(text));
+    }
   });
 });
 

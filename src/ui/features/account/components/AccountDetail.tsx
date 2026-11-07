@@ -156,6 +156,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({
               value={latestRow.balanceText}
               animatedValue={latestRow.balance}
               animateFormat={formatCurrency}
+              animateOnMount
               size="hero"
               change={latestRow.changeText}
               changeTone={latestRow.changeTone}

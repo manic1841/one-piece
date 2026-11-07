@@ -29,6 +29,10 @@ export interface ProjectionSummaryVM {
   retirementNetWorthText: string | null;
   finalNetWorthText: string;
   minNetWorthText: string;
+  /** 原始金額，供 M07 補間；退休淨值未定時為 null。 */
+  retirementNetWorth: number | null;
+  finalNetWorth: number;
+  minNetWorth: number;
   minNetWorthYearText: string;
   bankruptcyYearText: string;
   isBankruptText: string;
@@ -64,6 +68,9 @@ export const mapProjectionSummaryToVM = (summary: ProjectionSummary): Projection
     summary.retirementNetWorth === null ? null : formatCurrency(summary.retirementNetWorth),
   finalNetWorthText: formatCurrency(summary.finalNetWorth),
   minNetWorthText: formatCurrency(summary.minNetWorth),
+  retirementNetWorth: summary.retirementNetWorth,
+  finalNetWorth: summary.finalNetWorth,
+  minNetWorth: summary.minNetWorth,
   minNetWorthYearText: year(summary.minNetWorthYear),
   bankruptcyYearText: year(summary.bankruptcyYear),
   isBankruptText: summary.isBankrupt ? PROJECTION_COMMON_LABELS.YES : PROJECTION_COMMON_LABELS.NO,

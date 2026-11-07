@@ -17,6 +17,10 @@ export interface RailIndicators {
   minNetWorthText: string | null;
   minNetWorthYear: number | null;
   finalNetWorthText: string | null;
+  /** 原始金額，供 M07 補間；與對應的 text 同步增減。 */
+  retirementNetWorth: number | null;
+  minNetWorth: number | null;
+  finalNetWorth: number | null;
   reason: string | null;
 }
 
@@ -26,6 +30,9 @@ export const EMPTY_INDICATORS: RailIndicators = {
   minNetWorthText: null,
   minNetWorthYear: null,
   finalNetWorthText: null,
+  retirementNetWorth: null,
+  minNetWorth: null,
+  finalNetWorth: null,
   reason: null,
 };
 
@@ -40,6 +47,9 @@ export const mapIndicators = (
   minNetWorthText: formatCurrency(summary.minNetWorth),
   minNetWorthYear: summary.minNetWorthYear,
   finalNetWorthText: formatCurrency(summary.finalNetWorth),
+  retirementNetWorth: summary.retirementNetWorth,
+  minNetWorth: summary.minNetWorth,
+  finalNetWorth: summary.finalNetWorth,
   reason,
 });
 

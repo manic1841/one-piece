@@ -74,63 +74,118 @@ const ROW_TONE_CLASS: Record<StatementRowTone, string> = {
   detail: '',
   deepDetail: '',
   subtotal: 'border-t border-border-strong',
-  terminus: 'h-16 border-t-2 border-primary bg-muted/40',
+  // Row height is content-driven (see StatementRowView); the terminus height
+  // lives in `min-h-16` on its cells.
+  terminus: 'border-t-2 border-primary bg-muted/40',
 };
+
+interface VisibleRow {
+  row: StatementRow;
+  /** 任一祖先收合中：列仍掛載，但高度為 0 且離開 tab 順序。 */
+  hidden: boolean;
+}
 
 const flattenRows = (
   rows: StatementRow[],
   collapsed: ReadonlySet<string>,
-  out: StatementRow[] = [],
-): StatementRow[] => {
+  hidden = false,
+  out: VisibleRow[] = [],
+): VisibleRow[] => {
   for (const row of rows) {
-    out.push(row);
-    if (row.children.length > 0 && !collapsed.has(row.key)) {
-      flattenRows(row.children, collapsed, out);
+    out.push({ row, hidden });
+    if (row.children.length > 0) {
+      flattenRows(row.children, collapsed, hidden || collapsed.has(row.key), out);
     }
   }
   return out;
 };
 
+/**
+ * 單一 cell 的收合容器（motion-system §5.1 M05）。
+ *
+ * `<tr>` 的高度只由內容決定，所以收合改由型高插值：關閉時 `h-0`、開啟時
+ * `h-auto`，`interpolate-size: allow-keywords` 讓 `auto` 成為可插值的關鍵字，列因此
+ * 跟著內容長高／縮回，不需要 JS 量測。`grid-rows-[0fr]` 在容器 `height:auto` 下會
+ * 停在內容高度（`fr` 沒有確定高度可解析），動畫一結束就彈回，不能用。
+ *
+ * 內距不可掛在 cell 上，且必須再往內一層：cell 的 `py` 會在列高歸零後仍撐著。
+ * 收合時 `inert` 把子樹移出 tab 順序與 a11y 樹。
+ *
+ * cell 的 `align-middle` 也不再置中任何東西——列高由內層撐出，內容要自己置中，
+ * 否則標籤會貼在列頂（比原本的垂直置中高 8px）。
+ */
+const CollapseCell: React.FC<{
+  hidden: boolean;
+  align?: 'text' | 'number';
+  /** 內層內容的最小型高，撐住該列的語意高度（一般列 54px、terminus 64px）。 */
+  minHeightClass: string;
+  children: React.ReactNode;
+}> = ({ hidden, align = 'text', minHeightClass, children }) => (
+  <DataTableCell align={align} className="p-0 align-middle">
+    <div
+      data-state={hidden ? 'closed' : 'open'}
+      inert={hidden || undefined}
+      className={cn(
+        'overflow-hidden [interpolate-size:allow-keywords]',
+        'data-[state=closed]:h-0 data-[state=closed]:opacity-0 data-[state=closed]:animate-disclosure-up',
+        'data-[state=open]:h-auto data-[state=open]:animate-disclosure-down',
+      )}
+    >
+      <div className={cn('flex flex-col justify-center py-[9px] pr-3', minHeightClass)}>
+        {children}
+      </div>
+    </div>
+  </DataTableCell>
+);
+
 const StatementRowView: React.FC<{
   row: StatementRow;
   collapsed: ReadonlySet<string>;
   onToggle: (key: string) => void;
-}> = ({ row, collapsed, onToggle }) => {
+  hidden: boolean;
+}> = ({ row, collapsed, onToggle, hidden }) => {
   const hasChildren = row.children.length > 0;
   const isCollapsed = hasChildren && collapsed.has(row.key);
+  // Height always comes from the animated content: leaving the row's own 54px
+  // height on would snap it to final size in the first frame.
+  const minHeightClass = row.tone === 'terminus' ? 'min-h-16' : 'min-h-[54px]';
 
   return (
-    <DataTableRow className={ROW_TONE_CLASS[row.tone]}>
-      <DataTableCell>
+    <DataTableRow
+      data-state={hidden ? 'closed' : 'open'}
+      inert={hidden || undefined}
+      className={cn(ROW_TONE_CLASS[row.tone], 'h-auto', hidden && 'border-t-0 border-b-0')}
+    >
+      <CollapseCell hidden={hidden} minHeightClass={minHeightClass}>
         <div className={cn('flex items-center gap-1', INDENT_CLASS[row.level] ?? 'pl-12')}>
           {hasChildren ? (
-            <button
-              type="button"
-              onClick={() => onToggle(row.key)}
-              aria-expanded={!isCollapsed}
-              aria-label={row.label}
-              className="flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground transition-transform duration-fast ease-out-quint active:scale-[0.97]"
-            >
-              <ChevronRight
-                className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}
-              />
-            </button>
+            /* 32px 命中區，外層仍佔 20px，讓有／無子列的標籤起點對齊。 */
+            <span className="flex w-5 shrink-0 justify-center">
+              <button
+                type="button"
+                onClick={() => onToggle(row.key)}
+                aria-expanded={!isCollapsed}
+                aria-label={row.label}
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-transform duration-fast ease-out-quint active:scale-[0.97]"
+              >
+                <ChevronRight
+                  className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}
+                />
+              </button>
+            </span>
           ) : (
             <span className="h-5 w-5 shrink-0" aria-hidden />
           )}
           <span className={LABEL_TONE_CLASS[row.tone]}>{row.label}</span>
         </div>
-      </DataTableCell>
-      {row.amountText === null ? (
-        <DataTableCell align="number" />
-      ) : (
-        <DataTableCell
-          align="number"
-          className={cn(AMOUNT_TONE_CLASS[row.tone], row.amountWarning && 'text-warning')}
-        >
-          {row.amountText}
-        </DataTableCell>
-      )}
+      </CollapseCell>
+      <CollapseCell hidden={hidden} align="number" minHeightClass={minHeightClass}>
+        {row.amountText !== null && (
+          <span className={cn(AMOUNT_TONE_CLASS[row.tone], row.amountWarning && 'text-warning')}>
+            {row.amountText}
+          </span>
+        )}
+      </CollapseCell>
     </DataTableRow>
   );
 };
@@ -163,8 +218,14 @@ export const StatementTable: React.FC<StatementTableProps> = ({
   <DataTable data-testid={testId} className={TERMINUS_FRAME_RULE}>
     <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
     <TableBody>
-      {flattenRows(rows, collapsed).map((row) => (
-        <StatementRowView key={row.key} row={row} collapsed={collapsed} onToggle={onToggle} />
+      {flattenRows(rows, collapsed).map(({ row, hidden }) => (
+        <StatementRowView
+          key={row.key}
+          row={row}
+          collapsed={collapsed}
+          onToggle={onToggle}
+          hidden={hidden}
+        />
       ))}
     </TableBody>
   </DataTable>

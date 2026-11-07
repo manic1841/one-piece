@@ -57,6 +57,8 @@ type MetricProps = {
   animatedValue?: number | null;
   /** Formatter for the animated figure. */
   animateFormat?: (value: number) => string;
+  /** Count up from zero on mount; the dashboard stat row opts in (motion-system §5.2). */
+  animateOnMount?: boolean;
   tone?: MoneyTone;
   /** Preformatted change line, e.g. "+6.8% YTD". */
   change?: string;
@@ -74,6 +76,7 @@ export function Metric({
   value,
   animatedValue,
   animateFormat = (raw) => String(Math.round(raw)),
+  animateOnMount = false,
   tone = 'default',
   change,
   changeTone = 'muted',
@@ -88,7 +91,12 @@ export function Metric({
         {animatedValue === undefined ? (
           value
         ) : (
-          <AnimatedNumber value={animatedValue} format={animateFormat} missing={value} />
+          <AnimatedNumber
+            value={animatedValue}
+            format={animateFormat}
+            missing={value}
+            animateOnMount={animateOnMount}
+          />
         )}
       </span>
       {change !== undefined && (

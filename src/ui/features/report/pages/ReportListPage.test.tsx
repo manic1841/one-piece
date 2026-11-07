@@ -101,10 +101,13 @@ describe('ReportListPage', () => {
     renderPage();
 
     // Summary: the most recent period that has a report, with all three figures.
+    // The figures count up from zero on mount (M07), so the settled values are awaited.
     await waitFor(() => expect(screen.getByTestId('report-latest-net-income')).toBeInTheDocument());
-    expect(screen.getByTestId('report-latest-net-income')).toHaveTextContent('NT$50,000');
-    expect(screen.getByTestId('report-latest-equity')).toHaveTextContent('NT$200,000');
-    expect(screen.getByTestId('report-latest-cash')).toHaveTextContent('NT$80,000');
+    await waitFor(() => {
+      expect(screen.getByTestId('report-latest-net-income')).toHaveTextContent('NT$50,000');
+      expect(screen.getByTestId('report-latest-equity')).toHaveTextContent('NT$200,000');
+      expect(screen.getByTestId('report-latest-cash')).toHaveTextContent('NT$80,000');
+    });
     expect(screen.getAllByText('2026 年 6 月').length).toBeGreaterThan(0);
 
     // History lists every period, newest first.

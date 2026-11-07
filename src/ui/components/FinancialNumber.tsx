@@ -17,6 +17,8 @@ type FinancialNumberProps = {
   animatedValue?: number | null;
   /** Formatter for the animated figure. Defaults to nothing, so `value` stays authoritative. */
   animateFormat?: (value: number) => string;
+  /** Count up from zero on mount; only for a figure that is the screen's subject (motion-system §5.2). */
+  animateOnMount?: boolean;
   size?: FinancialNumberSize;
   tone?: MoneyTone;
   /** Formatted change line, e.g. "+8.42% YTD · +NT$374,210". Omit when there is no change. */
@@ -38,6 +40,7 @@ export function FinancialNumber({
   value,
   animatedValue,
   animateFormat = (raw) => String(Math.round(raw)),
+  animateOnMount = false,
   size = 'default',
   tone = 'default',
   change,
@@ -56,7 +59,12 @@ export function FinancialNumber({
         {animatedValue === undefined ? (
           (value ?? MISSING)
         ) : (
-          <AnimatedNumber value={animatedValue} format={animateFormat} missing={MISSING} />
+          <AnimatedNumber
+            value={animatedValue}
+            format={animateFormat}
+            missing={MISSING}
+            animateOnMount={animateOnMount}
+          />
         )}
       </span>
       {change !== undefined && (

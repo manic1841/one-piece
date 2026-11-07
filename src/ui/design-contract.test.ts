@@ -202,4 +202,144 @@ describe('motion duration contract (motion-system §2)', () => {
     const missing = closeSurfaces.filter((file) => !read(file).includes('CLOSE_BUTTON_CLASS'));
     expect(missing).toEqual([]);
   });
+
+  /**
+   * M05 is asymmetric on purpose (motion-system §5.1): the exit has to be written
+   * out, so a half-removed pair silently falls back to a hard cut on one side.
+   */
+  it('pairs an expand and a collapse animation on every disclosure', () => {
+    const surfaces: Array<[file: string, prefix: string]> = [
+      ['components/ui/accordion.tsx', 'accordion'],
+      ['components/form/AdvancedDisclosure.tsx', 'disclosure'],
+      ['components/data-table/DataTableDetailRow.tsx', 'disclosure'],
+      ['components/statement/StatementTable.tsx', 'disclosure'],
+    ];
+    const missing = surfaces
+      .filter(([file, prefix]) => {
+        const source = read(file);
+        return (
+          !source.includes(`${prefix}-down`) ||
+          !source.includes(`${prefix}-up`) ||
+          !source.includes('data-[state=open]') ||
+          !source.includes('data-[state=closed]')
+        );
+      })
+      .map(([file]) => file);
+    expect(missing).toEqual([]);
+  });
+
+  /**
+   * The pair must also be wired the right way round (motion-system §2): a
+   * front-loaded expand animation cancels the length gap, which is what made
+   * expanding read as shorter than collapsing.
+   */
+  it('gives every disclosure the directional curve for its half of M05', () => {
+    const source = readFileSync(path.resolve(UI_DIR, '..', '..', 'tailwind.config.js'), 'utf8');
+    const pairs = ['accordion', 'disclosure'];
+    const wrong = pairs.filter((prefix) => {
+      return (
+        !source.includes(`'${prefix}-down': \`${prefix}-down \${ms(DURATION.expand)} \${bezier(EASE.expand)}\``) ||
+        !source.includes(`'${prefix}-up': \`${prefix}-up \${ms(DURATION.collapse)} \${bezier(EASE.collapse)}\``)
+      );
+    });
+    expect(wrong).toEqual([]);
+  });
+});
+
+/**
+ * M07 (motion-system §5.2) only runs between two confirmed values on a node that
+ * stays mounted. Both halves are invisible in review when they break: a missing
+ * formatter freezes the raw digits, and a skeleton keyed on `loading` remounts the
+ * figure at its new value, so it never counts.
+ */
+describe('number interpolation contract (motion-system §5.2)', () => {
+  const INTERPOLATING = [
+    'features/dashboard/pages/DashboardPage.tsx',
+    'features/account/components/AccountDetail.tsx',
+    'features/account/pages/AccountList.tsx',
+    'features/debt/components/DebtDetail.tsx',
+    'features/debt/pages/DebtListPage.tsx',
+    'features/portfolio/components/PortfolioDetail.tsx',
+    'features/portfolio/components/PortfolioList.tsx',
+    'features/project/components/ProjectDetail.tsx',
+    'features/report/pages/ReportListPage.tsx',
+    'features/retirement/components/AnnualYearPanel.tsx',
+    'features/retirement/components/ProjectionOverviewTab.tsx',
+    'features/retirement/components/SummaryMetrics.tsx',
+    'features/retirement/components/WorkspacePreview.tsx',
+    'features/retirement/components/WorkspaceRail.tsx',
+    'components/statement/StatementPanel.tsx',
+  ];
+
+  it('pairs every animatedValue with a numeric formatter', () => {
+    const incomplete = INTERPOLATING.filter((file) => {
+      const source = read(file);
+      return source.includes('animatedValue=') && !source.includes('animateFormat=');
+    });
+    expect(incomplete).toEqual([]);
+  });
+
+  /** A settled figure must survive a reload; only the first paint may blank it. */
+  it('does not gate a detail page on bare `loading`', () => {
+    const pages = [
+      'features/account/pages/AccountDetailPage.tsx',
+      'features/debt/pages/DebtDetailPage.tsx',
+      'features/project/pages/ProjectDetailPage.tsx',
+      'features/portfolio/pages/PortfolioDetailPage.tsx',
+      'features/portfolio/components/PortfolioList.tsx',
+    ];
+    const bare = pages.filter((file) => read(file).includes('if (loading) {'));
+    expect(bare).toEqual([]);
+  });
+
+  it('keeps the dashboard hero mounted across a reload', () => {
+    const source = read('features/dashboard/pages/DashboardPage.tsx');
+    expect(source).toContain('const firstLoad = loading && overview === null;');
+  });
+
+  /**
+   * Every applied figure counts up from zero on load (motion-system §5.2), so
+   * the two props travel together: a value that interpolates but never counts
+   * reads as dead on a screen whose whole subject is that number.
+   */
+  it('opts every interpolating figure into a mount count-up', () => {
+    const missing = INTERPOLATING.filter(
+      (file) => read(file).includes('animatedValue=') && !read(file).includes('animateOnMount'),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('opens the mount count-up on all six dashboard figures', () => {
+    const source = read('features/dashboard/pages/DashboardPage.tsx');
+    // One on the hero, one on the stat row: the five tiles share the second.
+    expect(source.match(/animateOnMount/g)).toHaveLength(2);
+  });
+
+  /** The report summary's three figures and the account total are set individually. */
+  it('opens the mount count-up on every report summary figure and the account total', () => {
+    expect(read('features/report/pages/ReportListPage.tsx').match(/animateOnMount/g)).toHaveLength(3);
+    expect(read('features/account/pages/AccountList.tsx')).toContain('animateOnMount');
+  });
+});
+
+describe('chart reveal contract (motion-system §5.7)', () => {
+  const tailwind = readFileSync(path.resolve(UI_DIR, '../../tailwind.config.js'), 'utf8');
+  const chart = read('components/charts/LineChart.tsx');
+
+  it('defines the keyframe and its animation binding', () => {
+    expect(tailwind).toContain("'chart-reveal': {");
+    expect(tailwind).toContain('${ms(DURATION.slow)} ${bezier(EASE.expand)}');
+  });
+
+  /** The reveal is a baseline clip, not a dash draw: `preserveAspectRatio="none"`
+   * would stretch a dash and scaling the group would thicken the stroke. */
+  it('grows the series out of the baseline with a clip', () => {
+    expect(chart).toContain('animate-chart-reveal');
+    expect(chart).toContain('[transform-origin:bottom]');
+    expect(chart).toContain('clipPath');
+  });
+
+  it('leaves a lone point already settled', () => {
+    expect(chart).toContain('geometry.points.length > 1');
+  });
 });

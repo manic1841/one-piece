@@ -30,6 +30,7 @@ const DebtDetail: React.FC<DebtDetailProps> = ({ account, trend, historyMonths, 
           value={formatCurrency(account.currentBalance)}
           animatedValue={account.currentBalance}
           animateFormat={formatCurrency}
+          animateOnMount
           size="hero"
           tone="negative"
         />
@@ -44,12 +45,24 @@ const DebtDetail: React.FC<DebtDetailProps> = ({ account, trend, historyMonths, 
         <Metric
           label={DEBT_DETAIL_LABELS.ORIGINAL_LABEL}
           value={formatCurrency(account.originalAmount)}
+          animatedValue={account.originalAmount}
+          animateFormat={formatCurrency}
+          animateOnMount
         />
         <Metric
           label={DEBT_DETAIL_LABELS.MONTHLY_PAYMENT_LABEL}
           value={formatCurrency(account.monthlyPayment)}
+          animatedValue={account.monthlyPayment}
+          animateFormat={formatCurrency}
+          animateOnMount
         />
-        <Metric label={DEBT_DETAIL_LABELS.INTEREST_RATE_LABEL} value={`${account.interestRate}%`} />
+        <Metric
+          label={DEBT_DETAIL_LABELS.INTEREST_RATE_LABEL}
+          value={`${account.interestRate}%`}
+          animatedValue={account.interestRate}
+          animateFormat={(raw) => `${raw.toFixed(2)}%`}
+          animateOnMount
+        />
         <Metric
           label={DEBT_DETAIL_LABELS.PERIOD_LABEL}
           value={`${formatDate(account.startDate)} ~ ${formatDate(account.endDate)}`}

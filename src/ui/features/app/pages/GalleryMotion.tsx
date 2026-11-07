@@ -3,6 +3,7 @@ import React from 'react';
 import { RefreshCw } from 'lucide-react';
 
 import { AnimatedNumber } from '@/ui/components/AnimatedNumber';
+import { LineChart } from '@/ui/components/charts/LineChart';
 import { Button } from '@/ui/components/ui/button';
 import {
   Sheet,
@@ -92,8 +93,41 @@ const NumberSection: React.FC = () => {
   );
 };
 
-type Gesture = { displacement: number; velocity: number; verdict: boolean | null };
+const REVEAL_VALUES = [42, 51, 47, 63, 58, 74, 69, 88, 81, 96];
+const REVEAL_LABELS = REVEAL_VALUES.map((_, index) => `D${index + 1}`);
 
+/** Reveal runs on mount only, so replaying means remounting the chart. */
+const ChartSection: React.FC = () => {
+  const [run, setRun] = React.useState(0);
+
+  return (
+    <GalleryModule label="M08 · CHART REVEAL">
+      <div className="max-w-md">
+        <LineChart
+          key={run}
+          values={REVEAL_VALUES}
+          labels={REVEAL_LABELS}
+          showArea
+          markLastPoint
+          height={120}
+          ariaLabel="Sample trend"
+        />
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="text" onClick={() => setRun((current) => current + 1)}>
+          Replay
+        </Button>
+        <span className={READOUT_CLASS}>slow · ease-expand</span>
+      </div>
+      <p className={cn(READOUT_CLASS, 'mt-3')}>
+        The series grows out of the baseline once, on first paint of real data. No overshoot, and
+        nothing replays on hover or on a period change.
+      </p>
+    </GalleryModule>
+  );
+};
+
+type Gesture = { displacement: number; velocity: number; verdict: boolean | null };
 /** Instrumentation. Fixed above the overlay while the sheet is open, because the
  * sheet itself slides out from under the numbers as it is dragged. */
 const GestureReadout: React.FC<{ gesture: Gesture | null }> = ({ gesture }) => (
@@ -218,6 +252,9 @@ export const GalleryMotionBody: React.FC = () => (
         <PressSection />
         <NumberSection />
         <SheetSection />
+      </div>
+      <div className="mt-6">
+        <ChartSection />
       </div>
       <div className="mt-6">
         <GalleryModule label="M12 · PARTICLE FIELD">
