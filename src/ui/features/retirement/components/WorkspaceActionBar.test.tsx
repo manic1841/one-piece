@@ -1,6 +1,8 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
+
 import { WorkspaceActionBar } from './WorkspaceActionBar';
 
 const renderBar = (calculating: boolean) =>
@@ -24,6 +26,11 @@ describe('WorkspaceActionBar calculate pending', () => {
     renderBar(true);
 
     expect(screen.getByRole('status')).toHaveTextContent('CALCULATING');
+    // The status region is not part of the button's name, so the action names
+    // itself; without it the button would be nameless while pending.
+    expect(
+      screen.getByRole('button', { name: PROJECTION_WORKSPACE_LABELS.CALCULATING }),
+    ).toBeInTheDocument();
   });
 
   it('waits before drawing the ring, and drops it when the wait ends', () => {

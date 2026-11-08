@@ -50,7 +50,18 @@ export function WorkspaceActionBar({
           {PROJECTION_WORKSPACE_LABELS.SAVE}
         </Button>
       ) : (
-        <Button onClick={onCalculate} disabled={!readiness.ready || calculating}>
+        <Button
+          onClick={onCalculate}
+          disabled={!readiness.ready || calculating}
+          // The visible text lives in a live region, which Playwright's (and some
+          // AT's) name computation drops from the button's own name, so the
+          // action is named explicitly and the region only announces changes.
+          aria-label={
+            calculating
+              ? PROJECTION_WORKSPACE_LABELS.CALCULATING
+              : PROJECTION_WORKSPACE_LABELS.CALCULATE
+          }
+        >
           {calculating && <OrbitLoader />}
           <span role="status">
             {calculating

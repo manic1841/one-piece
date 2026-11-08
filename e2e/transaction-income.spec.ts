@@ -81,7 +81,9 @@ test('income with allocation raises the project income', async ({ page }) => {
   await expect(dialog).toBeHidden();
 
   await page.goto(`/projects/${TARGET_PROJECT_ID}`);
-  const monthRow = page.getByRole('row', { name: new RegExp(todayYearMonth()) });
+  // By test id, not by accessible name: the expanded month renders a nested
+  // details row whose text also carries the month's dates.
+  const monthRow = page.getByTestId(`project-month-${todayYearMonth()}`);
   await expect(monthRow).toBeVisible();
   // Column order: 月份 / 期初 / 收入 / 支出 / 期末.
   await expect
