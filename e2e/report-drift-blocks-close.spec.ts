@@ -57,10 +57,11 @@ test('a late expense drifts the reports and blocks the close until they are rege
   await page.getByRole('button', { name: '新增交易' }).first().click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  await dialog.getByRole('button', { name: TARGET_PROJECT_NAME }).click();
   await dialog.getByRole('button', { name: '生活費' }).click();
   await pickFirstDetailCategory(dialog);
   await dialog.getByPlaceholder('0.00').fill(String(EXPENSE_AMOUNT));
+  await dialog.getByTestId('project-mode-toggle').click();
+  await dialog.getByRole('button', { name: TARGET_PROJECT_NAME }).click();
   await dialog.getByLabel('日期').fill('2026-09-15');
   await dialog.getByPlaceholder('補充這筆支出的脈絡').fill(`E2E 漂移 ${Date.now()}`);
   await dialog.getByRole('button', { name: '送出' }).click();

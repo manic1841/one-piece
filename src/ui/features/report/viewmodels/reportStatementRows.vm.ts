@@ -214,21 +214,59 @@ export const buildCashFlowRows = (vm: CashFlowVM): StatementRow[] => {
  */
 export const buildIncomeMetrics = (vm: IncomeStatementVM): StatementMetric[] =>
   incomeMetrics({
-    income: { value: vm.incomeTotalText },
-    expense: { value: vm.expenseTotalText },
-    netIncome: { value: vm.netIncomeText, tone: signTone(vm.netIncome) },
+    income: {
+      value: vm.incomeTotalText,
+      animatedValue: vm.incomeTotal,
+      animateFormat: formatCurrency,
+    },
+    expense: {
+      value: vm.expenseTotalText,
+      animatedValue: vm.expenseTotal,
+      animateFormat: formatCurrency,
+    },
+    netIncome: {
+      value: vm.netIncomeText,
+      animatedValue: vm.netIncome,
+      animateFormat: formatCurrency,
+      tone: signTone(vm.netIncome),
+    },
   });
 
 export const buildBalanceMetrics = (vm: BalanceSheetVM): StatementMetric[] =>
   balanceMetrics({
-    assets: { value: vm.assets.totalText },
-    liabilities: { value: vm.liabilities.totalText },
-    equity: { value: vm.equity.totalText },
+    assets: {
+      value: vm.assets.totalText,
+      animatedValue: vm.assets.total,
+      animateFormat: formatCurrency,
+    },
+    liabilities: {
+      value: vm.liabilities.totalText,
+      animatedValue: vm.liabilities.total,
+      animateFormat: formatCurrency,
+    },
+    equity: {
+      value: vm.equity.totalText,
+      animatedValue: vm.equity.total,
+      animateFormat: formatCurrency,
+    },
   });
 
 export const buildCashFlowMetrics = (vm: CashFlowVM): StatementMetric[] =>
   cashFlowMetrics({
-    beginning: { value: vm.beginningBalanceText },
-    ending: { value: vm.endingBalanceText },
-    netChange: { value: vm.netCashChangeText, tone: signTone(vm.netCashChange) },
+    beginning: {
+      value: vm.beginningBalanceText,
+      animatedValue: vm.beginningBalance,
+      animateFormat: formatCurrency,
+    },
+    ending: {
+      value: vm.endingBalanceText,
+      animatedValue: vm.endingBalance,
+      animateFormat: formatCurrency,
+    },
+    netChange: {
+      value: vm.netCashChangeText,
+      animatedValue: vm.netCashChange,
+      animateFormat: formatCurrency,
+      tone: signTone(vm.netCashChange),
+    },
   });

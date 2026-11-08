@@ -43,11 +43,6 @@ const incomeCategories: TransactionFormCategoryOption[] = [
   })),
 ];
 
-const advancedCategories: TransactionFormCategoryOption[] = [
-  ...expenseCategoryOptions,
-  ...incomeCategories,
-];
-
 type TransactionWithAllocationAttempt = {
   signature: string;
   idempotencyKey: string;
@@ -265,7 +260,6 @@ export const useTransactionForm = (
   return {
     expenseCategoryOptions,
     incomeCategories,
-    advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
     loading,

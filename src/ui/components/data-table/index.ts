@@ -9,6 +9,7 @@ export { DataTable, DataTableScrollArea } from './DataTable';
 export { DataTableColGroup } from './DataTableColGroup';
 export { DataTableHeadCell } from './DataTableHeadCell';
 export { DataTableRow, DataTableHeadRow } from './DataTableRow';
+export { DataTableDetailRow } from './DataTableDetailRow';
 export { DataTableCell } from './DataTableCell';
 export { NumberCell } from './NumberCell';
 export { NumberInput } from '../NumberInput';

@@ -11,6 +11,7 @@ import {
 } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabels';
 import { type RetirementProjectionYearDetailVM } from '@/ui/features/retirement/viewmodels/projectionDisplay.vm';
+import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 interface AnnualYearPanelProps {
@@ -88,6 +89,9 @@ export function AnnualYearPanel({ row, birthYear }: AnnualYearPanelProps) {
           <p className={eyebrowClass}>{COLUMNS.openingNetWorth}</p>
           <FinancialNumber
             value={row.openingText}
+            animatedValue={row.opening}
+            animateFormat={formatCurrency}
+            animateOnMount
             size="large"
             className="mt-1"
             tone={row.opening < 0 ? 'negative' : 'default'}

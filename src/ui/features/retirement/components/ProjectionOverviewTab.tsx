@@ -7,6 +7,7 @@ import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabe
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement/resultLabels';
 import { NetWorthChart } from '@/ui/features/retirement/components/NetWorthChart';
 import { type ProjectionViewVM } from '@/ui/features/retirement/viewmodels/projectionView.vm';
+import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 interface ProjectionOverviewTabProps {
@@ -99,6 +100,9 @@ export function ProjectionOverviewTab({ view, onSelectYear }: ProjectionOverview
               <Metric
                 label={PROJECTION_RESULT_LABELS.METRIC_MIN_NET_WORTH}
                 value={summary.minNetWorthText}
+                animatedValue={summary.minNetWorth}
+                animateFormat={formatCurrency}
+                animateOnMount
                 change={metaLine(minYear, birthYear)}
                 action={
                   minYear === null ? undefined : (
@@ -116,6 +120,9 @@ export function ProjectionOverviewTab({ view, onSelectYear }: ProjectionOverview
               <Metric
                 label={PROJECTION_RESULT_LABELS.METRIC_FINAL_NET_WORTH}
                 value={summary.finalNetWorthText}
+                animatedValue={summary.finalNetWorth}
+                animateFormat={formatCurrency}
+                animateOnMount
                 change={metaLine(view.planEndYear === 0 ? null : view.planEndYear, birthYear)}
                 action={
                   view.planEndYear === 0 ? undefined : (

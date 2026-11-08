@@ -398,7 +398,7 @@ export function LifeEventsSection({
 
       {!isDesktop && sheetOpen && (
         <Sheet open onOpenChange={(next) => !next && closeSheet()}>
-          <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetContent side="bottom" className="max-h-[80vh]">
             {inspector(false)}
           </SheetContent>
         </Sheet>

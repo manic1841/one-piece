@@ -1,5 +1,3 @@
-import { useFormContext, useWatch } from 'react-hook-form';
-
 import {
   FormControl,
   FormField,
@@ -9,16 +7,16 @@ import {
   TextArea,
 } from '@/ui/components/form';
 import { type LedgerCodeItem } from '@/ui/features/ledger/hooks/useLedgerCodes';
+import { useIntentSelection } from '@/ui/features/transaction/hooks/useIntentSelection';
 import {
   type TransactionFormCategoryOption,
   type TransactionFormProjectOption,
 } from '@/ui/features/transaction/types/transaction';
 
 import { AllocationSection } from './AllocationSection';
-import { AmountDateFields } from './AmountDateFields';
+import { AmountField, DateField } from './AmountFields';
 import { FormChipGroup } from './ChipGroup';
 import { DynamicCategorySelector } from './DynamicCategorySelector';
-import { TransactionAllocationToggle } from './TransactionAllocationToggle';
 
 type IncomePanelProps = {
   categories: TransactionFormCategoryOption[];
@@ -26,22 +24,27 @@ type IncomePanelProps = {
   allLedgerCodes: LedgerCodeItem[];
 };
 
+/** Income panel: same rhythm as the expense panel, so the two tabs read alike. */
 export function IncomePanel({ categories, projects, allLedgerCodes }: IncomePanelProps) {
-  const { control } = useFormContext();
-  const triggerAllocation = useWatch({ control, name: 'triggerAllocation' });
+  const selectIntent = useIntentSelection();
 
   return (
     <div className="space-y-5">
-      <AmountDateFields />
+      <AmountField />
+
       <FormField name="intent">
         <FormItem>
-          <FormLabel>收入類別</FormLabel>
-          <FormChipGroup options={categories} />
+          <FormLabel required>類別</FormLabel>
+          <FormChipGroup aria-label="類別" options={categories} onChange={selectIntent} />
           <FormMessage />
         </FormItem>
       </FormField>
 
       <DynamicCategorySelector allLedgerCodes={allLedgerCodes} />
+
+      <DateField />
+
+      <AllocationSection projects={projects} />
 
       <FormField name="description">
         <FormItem>
@@ -52,12 +55,6 @@ export function IncomePanel({ categories, projects, allLedgerCodes }: IncomePane
           <FormMessage />
         </FormItem>
       </FormField>
-
-      <FormField name="triggerAllocation">
-        <TransactionAllocationToggle label="收入分配" />
-      </FormField>
-
-      {triggerAllocation ? <AllocationSection projects={projects} title="收入分配" /> : null}
     </div>
   );
 }

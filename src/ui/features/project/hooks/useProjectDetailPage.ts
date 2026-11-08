@@ -134,6 +134,7 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
       income: totals.income,
       expense: totals.expense,
       net: totals.net,
+      balance: latestSnapshot?.closingBalance ?? null,
       balanceText: latestSnapshot?.closingBalanceText ?? PROJECT_BALANCE_MISSING,
     }),
     [totals, latestSnapshot],

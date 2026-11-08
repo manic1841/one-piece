@@ -143,6 +143,13 @@ export function ComposedChart({
     ariaLabel === undefined || children !== undefined
       ? {}
       : { role: 'img' as const, 'aria-label': ariaLabel };
+  // Bars can be negative, so the series grows out of the zero line in both
+  // directions rather than off the bottom edge. `view-box` makes the origin
+  // resolve against the plot, not the group's own box.
+  const revealOrigin = {
+    transformBox: 'view-box' as const,
+    transformOrigin: `0 ${layout.zeroY ?? COMPOSED_CHART_HEIGHT}px`,
+  };
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
@@ -198,40 +205,46 @@ export function ComposedChart({
               vectorEffect="non-scaling-stroke"
             />
           )}
-          {layout.lines.map((line, index) =>
-            line.areaPath ? (
-              <path
-                key={`area-${line.key}`}
-                d={line.areaPath}
-                fill={`url(#${gradientIdPrefix}-area-${index})`}
-                stroke="none"
+          {/* Only the data grows; grid, zero line and reference lines are
+              already in place, so the marker stays put while the series rises
+              to meet it. `non-scaling-stroke` on the lines is what makes the
+              scale safe — the stroke width never stretches with the group. */}
+          <g className="animate-chart-reveal" style={revealOrigin}>
+            {layout.lines.map((line, index) =>
+              line.areaPath ? (
+                <path
+                  key={`area-${line.key}`}
+                  d={line.areaPath}
+                  fill={`url(#${gradientIdPrefix}-area-${index})`}
+                  stroke="none"
+                />
+              ) : null,
+            )}
+            {layout.bars.map((bar) => (
+              <rect
+                key={bar.key}
+                x={bar.x}
+                y={bar.y}
+                width={bar.width}
+                height={bar.height}
+                fill={seriesColor(bar)}
+                fillOpacity={BAR_FILL_OPACITY}
               />
-            ) : null,
-          )}
-          {layout.bars.map((bar) => (
-            <rect
-              key={bar.key}
-              x={bar.x}
-              y={bar.y}
-              width={bar.width}
-              height={bar.height}
-              fill={seriesColor(bar)}
-              fillOpacity={BAR_FILL_OPACITY}
-            />
-          ))}
-          {layout.lines.map((line) => (
-            <path
-              key={line.key}
-              d={line.path}
-              fill="none"
-              stroke={seriesColor(line)}
-              strokeWidth={line.dashed ? DASHED_LINE_STROKE_WIDTH : LINE_STROKE_WIDTH}
-              {...(line.dashed ? { strokeDasharray: '5 4', strokeOpacity: 0.9 } : {})}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
+            ))}
+            {layout.lines.map((line) => (
+              <path
+                key={line.key}
+                d={line.path}
+                fill="none"
+                stroke={seriesColor(line)}
+                strokeWidth={line.dashed ? DASHED_LINE_STROKE_WIDTH : LINE_STROKE_WIDTH}
+                {...(line.dashed ? { strokeDasharray: '5 4', strokeOpacity: 0.9 } : {})}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </g>
           {layout.referenceLines.map((line) => (
             <line
               key={`ref-casing-${line.index}`}

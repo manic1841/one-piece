@@ -126,7 +126,8 @@ describe('AccountList header and summary', () => {
     await waitFor(() =>
       expect(screen.getByTestId('account-total-balance')).toHaveTextContent('NT$1,800,000'),
     );
-    expect(screen.getByTestId('account-active-count')).toHaveTextContent('1');
+    // The count counts up from zero on mount (M07), so the settled value is awaited.
+    await waitFor(() => expect(screen.getByTestId('account-active-count')).toHaveTextContent('1'));
   });
 
   it('reports a failed load instead of an empty state', async () => {

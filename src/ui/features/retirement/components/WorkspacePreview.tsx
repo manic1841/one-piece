@@ -16,6 +16,7 @@ import { type ProjectionSummaryVM } from '@/ui/features/retirement/viewmodels/pr
 import { type RetirementComparisonVM } from '@/ui/features/retirement/viewmodels/retirementComparison.vm';
 import { type RuleDraftVM } from '@/ui/features/retirement/viewmodels/ruleForm.vm';
 import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
+import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 interface WorkspacePreviewProps {
@@ -90,12 +91,18 @@ export function WorkspacePreview({
                 testId="metric-retirement-net-worth"
                 label={PROJECTION_RESULT_LABELS.METRIC_RETIREMENT_NET_WORTH}
                 value={calculated.summary.retirementNetWorthText ?? PROJECTION_COMMON_LABELS.DASH}
+                animatedValue={calculated.summary.retirementNetWorth}
+                animateFormat={formatCurrency}
+                animateOnMount
                 change={yearMeta(calculated.projection.retirementYear)}
               />
               <Metric
                 testId="metric-min-net-worth"
                 label={PROJECTION_RESULT_LABELS.METRIC_MIN_NET_WORTH}
                 value={calculated.summary.minNetWorthText}
+                animatedValue={calculated.summary.minNetWorth}
+                animateFormat={formatCurrency}
+                animateOnMount
                 tone={calculated.summary.minNetWorthNegative ? 'negative' : 'default'}
                 change={yearMeta(calculated.summary.minNetWorthYear)}
               />
@@ -103,6 +110,9 @@ export function WorkspacePreview({
                 testId="metric-final-net-worth"
                 label={PROJECTION_RESULT_LABELS.METRIC_FINAL_NET_WORTH}
                 value={calculated.summary.finalNetWorthText}
+                animatedValue={calculated.summary.finalNetWorth}
+                animateFormat={formatCurrency}
+                animateOnMount
                 tone={calculated.summary.finalNetWorthNegative ? 'negative' : 'default'}
                 change={yearMeta(endYear)}
               />

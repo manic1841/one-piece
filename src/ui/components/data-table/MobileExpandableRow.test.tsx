@@ -12,20 +12,24 @@ describe('MobileExpandableRow', () => {
     expect(row).not.toHaveAttribute('aria-expanded');
   });
 
+  /** The body stays mounted so the collapse can animate out (M05). */
+  const bodyState = () =>
+    screen.getByText('Details').closest('[data-state]')?.getAttribute('data-state');
+
   it('toggles details on click and reports aria-expanded', () => {
     render(<MobileExpandableRow data-testid="row" summary="Salary" details={<p>Details</p>} />);
 
     const row = screen.getByTestId('row');
     expect(row).toHaveAttribute('role', 'button');
     expect(row).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('Details')).toBeNull();
+    expect(bodyState()).toBe('closed');
 
     fireEvent.click(row);
     expect(row).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('Details')).toBeVisible();
+    expect(bodyState()).toBe('open');
 
     fireEvent.click(row);
-    expect(screen.queryByText('Details')).toBeNull();
+    expect(bodyState()).toBe('closed');
   });
 
   it('toggles with Enter and Space from the row itself', () => {
@@ -33,10 +37,10 @@ describe('MobileExpandableRow', () => {
 
     const row = screen.getByTestId('row');
     fireEvent.keyDown(row, { key: 'Enter' });
-    expect(screen.getByText('Details')).toBeVisible();
+    expect(bodyState()).toBe('open');
 
     fireEvent.keyDown(row, { key: ' ' });
-    expect(screen.queryByText('Details')).toBeNull();
+    expect(bodyState()).toBe('closed');
   });
 
   it('keeps action clicks from toggling the row', () => {
@@ -58,6 +62,6 @@ describe('MobileExpandableRow', () => {
 
     expect(onEdit).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('row')).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('Details')).toBeNull();
+    expect(bodyState()).toBe('closed');
   });
 });

@@ -50,7 +50,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
 }) => (
   <div className="space-y-8">
     <PageSection title={PROJECT_DETAIL_LABELS.BALANCE_SECTION_TITLE} spacing="compact">
-      <FinancialNumber value={summary.balanceText} size="hero" />
+      <FinancialNumber
+        value={summary.balanceText}
+        animatedValue={summary.balance}
+        animateFormat={formatCurrency}
+        animateOnMount
+        size="hero"
+      />
     </PageSection>
 
     <PageSection title={PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE} spacing="compact">
@@ -58,16 +64,25 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         <Metric
           label={PROJECT_SUMMARY_LABELS.INCOME}
           value={formatCurrency(summary.income)}
+          animatedValue={summary.income}
+          animateFormat={formatCurrency}
+          animateOnMount
           tone="positive"
         />
         <Metric
           label={PROJECT_SUMMARY_LABELS.EXPENSE}
           value={formatCurrency(summary.expense)}
+          animatedValue={summary.expense}
+          animateFormat={formatCurrency}
+          animateOnMount
           tone="negative"
         />
         <Metric
           label={PROJECT_SUMMARY_LABELS.NET_CASH_FLOW}
           value={formatCurrency(summary.net)}
+          animatedValue={summary.net}
+          animateFormat={formatCurrency}
+          animateOnMount
           tone={netTone(summary.net)}
         />
       </MetricGroup>

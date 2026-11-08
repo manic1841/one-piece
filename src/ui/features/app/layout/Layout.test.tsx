@@ -1,5 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { RouterProvider, createMemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
@@ -64,19 +66,19 @@ function PageMarker() {
 }
 
 function renderLayout({ initialRoute = '/', withPageMarker = false } = {}) {
+  // A data router is required by `useMatches`, which drives the page-entry key.
+  const router = createMemoryRouter(
+    [
+      {
+        element: <Layout />,
+        children: [{ path: '*', element: withPageMarker ? <PageMarker /> : null }],
+      },
+    ],
+    { initialEntries: [initialRoute] },
+  );
   return render(
     <ConfirmDialogProvider>
-      <MemoryRouter initialEntries={[initialRoute]}>
-        {withPageMarker ? (
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="*" element={<PageMarker />} />
-            </Route>
-          </Routes>
-        ) : (
-          <Layout />
-        )}
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </ConfirmDialogProvider>,
   );
 }
@@ -454,5 +456,49 @@ describe('Layout pixel pet and navigator', () => {
     fireEvent.click(firstLink!);
 
     await waitFor(() => expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument());
+  });
+});
+
+describe('Layout page entry', () => {
+  it('replays the entry when the route changes but not when only a param does', async () => {
+    const mounts = vi.fn();
+    function Page() {
+      useEffect(mounts, []);
+      return <div data-testid="page" />;
+    }
+
+    const router = createMemoryRouter(
+      [
+        {
+          element: <Layout />,
+          children: [
+            { path: 'reports/:period', element: <Page /> },
+            { path: 'accounts', element: <Page /> },
+          ],
+        },
+      ],
+      { initialEntries: ['/reports/2026-01'] },
+    );
+    render(
+      <ConfirmDialogProvider>
+        <RouterProvider router={router} />
+      </ConfirmDialogProvider>,
+    );
+
+    await screen.findByTestId('page');
+    const container = screen.getByRole('main').firstElementChild as HTMLElement;
+    expect(container.className).toContain('animate-page-enter');
+    expect(mounts).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await router.navigate('/reports/2026-02');
+    });
+    expect(screen.getByTestId('page')).toBeInTheDocument();
+    expect(mounts).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await router.navigate('/accounts');
+    });
+    expect(mounts).toHaveBeenCalledTimes(2);
   });
 });

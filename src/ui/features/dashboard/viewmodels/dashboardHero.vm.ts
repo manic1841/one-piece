@@ -18,6 +18,8 @@ export interface DashboardHeroVM {
   hasAnchor: boolean;
   anchorPeriodText: string | null;
   netWorthText: string;
+  /** Confirmed net worth, for the animated figure; null when there is no anchor. */
+  netWorth: number | null;
   ytd: {
     percentText: string;
     amountText: string | null;
@@ -35,6 +37,7 @@ export const mapDashboardOverviewToHeroVM = (
       hasAnchor: false,
       anchorPeriodText: null,
       netWorthText: '—',
+      netWorth: null,
       ytd: null,
       trend: { values: [], labels: [], points: [], hasData: false },
     };
@@ -47,6 +50,7 @@ export const mapDashboardOverviewToHeroVM = (
     hasAnchor: true,
     anchorPeriodText: `${formatYearMonth(year, month)} REPORT`,
     netWorthText: formatCurrency(anchor.netWorth),
+    netWorth: anchor.netWorth,
     ytd: buildYtdVM(anchor.netWorth, anchor.ytdBaseline?.netWorth ?? null),
     trend: buildTrendVM(anchor.netWorthSeries),
   };

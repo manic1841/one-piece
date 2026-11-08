@@ -1,4 +1,4 @@
-/** Shared chart vocabulary: tone → color and the donut slice ramp. */
+/** Shared chart vocabulary: tone → color and the categorical slice palette. */
 
 export type ChartTone =
   | 'primary'
@@ -60,11 +60,11 @@ export const CHART_TONE_FILL: Record<ChartTone, string> = {
 };
 
 /**
- * Categorical palette for pie/donut breakdowns: encodes *which category*, not
- * data state. Brand teal leads, then the `--chart-*` ramp by data order. No red
- * (reserved for `--negative`). See ADR-0081.
+ * Categorical palette for breakdowns: encodes *which category*, not data state.
+ * Brand teal leads, then the `--chart-*` ramp by data order. No red (reserved
+ * for `--negative`). See ADR-0081.
  */
-export const CHART_DONUT_COLORS = [
+export const CHART_CATEGORICAL_COLORS = [
   'hsl(var(--primary))',
   'hsl(var(--chart-1))',
   'hsl(var(--chart-4))',
@@ -74,3 +74,10 @@ export const CHART_DONUT_COLORS = [
   'hsl(var(--chart-6))',
   'hsl(var(--chart-7))',
 ];
+
+/**
+ * Colour for the nth category. The only definition of "nth category → nth
+ * colour", so donut slices and stacked shares cannot drift apart.
+ */
+export const chartCategoricalColor = (index: number) =>
+  CHART_CATEGORICAL_COLORS[index % CHART_CATEGORICAL_COLORS.length] ?? CHART_CATEGORICAL_COLORS[0];

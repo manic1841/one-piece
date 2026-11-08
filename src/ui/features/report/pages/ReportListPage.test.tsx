@@ -122,19 +122,22 @@ describe('ReportListPage', () => {
 
     renderPage();
 
-    // Summary: the anchor period and its four figures.
+    // Summary: the anchor period and its four figures. The figures count up from
+    // zero on mount (M07), so the settled values are awaited.
     const assets = await screen.findByRole('link', { name: '總資產，前往淨資產趨勢' });
-    expect(assets).toHaveTextContent('NT$600,000');
+    await waitFor(() => expect(assets).toHaveTextContent('NT$600,000'));
     // The shared period sits outside the links, in the section header only.
     expect(assets).not.toHaveTextContent('2026 年 6 月');
     expect(screen.getAllByText('2026 年 6 月')).toHaveLength(1);
-    expect(screen.getByRole('link', { name: '淨資產，前往淨資產趨勢' })).toHaveTextContent(
-      'NT$450,000',
-    );
-    expect(screen.getByRole('link', { name: '總負債，前往淨資產趨勢' })).toHaveTextContent(
-      'NT$150,000',
-    );
-    expect(screen.getByRole('link', { name: '儲蓄率，前往收支分析' })).toHaveTextContent('12.5%');
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: '淨資產，前往淨資產趨勢' })).toHaveTextContent(
+        'NT$450,000',
+      );
+      expect(screen.getByRole('link', { name: '總負債，前往淨資產趨勢' })).toHaveTextContent(
+        'NT$150,000',
+      );
+      expect(screen.getByRole('link', { name: '儲蓄率，前往收支分析' })).toHaveTextContent('12.5%');
+    });
 
     // History lists every period, newest first.
     const periods = screen
@@ -230,9 +233,8 @@ describe('ReportListPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: REPORT_SUMMARY_LABELS.RETRY_ACTION }));
 
-    expect(await screen.findByRole('link', { name: '淨資產，前往淨資產趨勢' })).toHaveTextContent(
-      'NT$450,000',
-    );
+    const netWorth = await screen.findByRole('link', { name: '淨資產，前往淨資產趨勢' });
+    await waitFor(() => expect(netWorth).toHaveTextContent('NT$450,000'));
   });
 
   it('shows a retryable warning when loading fails', async () => {

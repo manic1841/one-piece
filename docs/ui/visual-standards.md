@@ -1,6 +1,6 @@
 # 頁面視覺標準 (Visual Standards)
 
-> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；空／載入／錯誤三態的義務與無障礙契約屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
+> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；**動態**屬 [`motion-system.md`](motion-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；空／載入／錯誤三態的義務與無障礙契約屬 [`states-and-a11y.md`](states-and-a11y.md)。五份文件權威不重疊。
 
 本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異時以該事實的歸屬文件為準。
 
@@ -18,7 +18,7 @@
 4. **Color communicates state**
 5. **Motion has a purpose**
 
-> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的並列拆解圖（donut）使用 `chart-*` 類別色板；這道例外只適用於分類拆解，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
+> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的拆解圖使用 `chart-*` 類別色板；這道例外只適用於分類編碼，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
 
 Tie-break：若一個做法同時符合與違反多條原則，以序號較小的原則勝出；仍不明確時，選**裝飾較少、新元素較少**的那一個。`development-guide` §4 的六個提問是同一判斷的展開。
 
@@ -426,6 +426,7 @@ ONE PIECE VISUAL CHECK
 [ ] 沒有不必要的 Card / Pill / Shadow
 [ ] Page hierarchy 一眼可讀
 [ ] 畫面組合與 gallery 對應 section 一致（自製替代即 drift）
+[ ] 動態符合 [`motion-system.md`](motion-system.md)：有對應的動畫 ID、用 token、不重播頁面進場
 ```
 
 ### 最後的判斷標準

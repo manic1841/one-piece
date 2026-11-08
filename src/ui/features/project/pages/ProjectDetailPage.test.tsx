@@ -163,10 +163,22 @@ describe('ProjectDetailPage states', () => {
       loading: true,
     } as never);
 
-    renderDetail(buildProject());
+    renderDetailWithoutProject();
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText(PROJECT_DETAIL_LABELS.LOADING_LABEL)).toBeInTheDocument();
+  });
+
+  it('blanks the page on every load so the balance counts up again', () => {
+    mockUseProjectDetailView.mockReturnValue({
+      ...learnViewResult,
+      loading: true,
+    } as never);
+
+    renderDetail(buildProject());
+
+    // Every load remounts the figure, so M07 counts it up from zero each time.
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders the error alert with a retry action when the view fails', () => {
@@ -205,19 +217,20 @@ describe('ProjectDetailPage states', () => {
     expect(screen.queryByText(PROJECT_DETAIL_LABELS.NOT_FOUND_TITLE)).not.toBeInTheDocument();
   });
 
-  it('renders the summary metrics and the cash-flow panel', () => {
+  it('renders the summary metrics and the cash-flow panel', async () => {
     mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
 
     renderDetail(buildProject());
 
     expect(screen.getByText(PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE)).toBeInTheDocument();
-    expect(screen.getByText('NT$150,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$90,000')).toBeInTheDocument();
+    // The summary figures count up from zero on mount (M07), so the settled values are awaited.
+    expect(await screen.findByText('NT$150,000')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('NT$90,000')).toBeInTheDocument());
     expect(screen.getByText(PROJECT_DETAIL_LABELS.CASH_FLOW_SECTION_TITLE)).toBeInTheDocument();
     expect(screen.getByText(PROJECT_DETAIL_LABELS.CASH_FLOW_EMPTY_HINT)).toBeInTheDocument();
   });
 
-  it('takes the summary balance from the latest snapshot, never from the period net', () => {
+  it('takes the summary balance from the latest snapshot, never from the period net', async () => {
     mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
     const { unmount } = renderDetail(buildProject());
 
@@ -226,11 +239,12 @@ describe('ProjectDetailPage states', () => {
 
     mockUseProjectDetailView.mockReturnValue({
       ...learnViewResult,
-      latestSnapshot: { closingBalanceText: 'NT$40,000' },
+      latestSnapshot: { closingBalance: 40000, closingBalanceText: 'NT$40,000' },
     } as never);
     renderDetail(buildProject());
 
-    expect(screen.getByText('NT$40,000')).toBeInTheDocument();
+    // The hero counts up from zero on mount, so the settled figure is awaited.
+    expect(await screen.findByText('NT$40,000')).toBeInTheDocument();
     expect(screen.queryByText(PROJECT_BALANCE_MISSING)).not.toBeInTheDocument();
   });
 });

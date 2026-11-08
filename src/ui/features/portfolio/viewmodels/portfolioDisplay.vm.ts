@@ -31,6 +31,8 @@ export interface PortfolioListRowVM {
 }
 
 export interface PortfolioListOverviewVM {
+  /** 總值原始數值，供 M07 補間。 */
+  totalValue: number;
   totalValueText: string;
 }
 
@@ -64,11 +66,16 @@ export const mapPortfoliosToOverviewVM = (
     0,
   );
 
-  return { totalValueText: formatCurrency(totalValue) };
+  return { totalValue, totalValueText: formatCurrency(totalValue) };
 };
 
 /** 報酬拆解：讀快照凍結的 `performance`，不在頁面重算。 */
 export interface PortfolioReturnBreakdownVM {
+  /** 原始金額，供 M07 補間；無快照時為 0。 */
+  previousValue: number;
+  currentValue: number;
+  investmentCashFlow: number;
+  calculatedReturn: number;
   previousValueText: string;
   currentValueText: string;
   investmentCashFlowText: string;
@@ -88,17 +95,43 @@ export interface PortfolioDetailVM {
   id: string;
   name: string;
   isActive: boolean;
+  /** 最新總值原始數值，供 M07 補間。 */
+  totalValue: number;
   totalValueText: string;
   asOfText: string | null;
   securitiesName: string;
   bankName: string;
   monthlyReturnText: string;
   cumulativeReturnText: string;
+  /** 原始報酬率（百分比數值），供 M07 補間；無快照時為 null。 */
+  monthlyReturn: number | null;
+  cumulativeReturn: number | null;
   breakdown: PortfolioReturnBreakdownVM;
   trend: MonthTrendSeries;
   performanceRows: PortfolioPerformanceRowVM[];
   allocation: HoldingsAllocationVM;
 }
+
+/** 報酬拆解的呈現資料；數值與文字成對產生，呼叫端不必各自 fallback。 */
+const toReturnBreakdown = (
+  performance: PortfolioSnapshot['performance'] | undefined,
+): PortfolioReturnBreakdownVM => {
+  const previousValue = performance?.openingValue ?? 0;
+  const currentValue = performance?.closingValue ?? 0;
+  const investmentCashFlow = performance?.netCashFlow ?? 0;
+  const calculatedReturn = performance?.gain ?? 0;
+
+  return {
+    previousValue,
+    currentValue,
+    investmentCashFlow,
+    calculatedReturn,
+    previousValueText: formatCurrency(previousValue),
+    currentValueText: formatCurrency(currentValue),
+    investmentCashFlowText: formatCurrency(investmentCashFlow),
+    calculatedReturnText: formatCurrency(calculatedReturn),
+  };
+};
 
 export const mapPortfolioToDetailVM = (
   portfolio: Portfolio,
@@ -112,6 +145,7 @@ export const mapPortfolioToDetailVM = (
     id: portfolio.id,
     name: portfolio.name,
     isActive: portfolio.isActive !== false,
+    totalValue: latest?.totalValue ?? 0,
     totalValueText: formatCurrency(latest?.totalValue ?? 0),
     asOfText: toAsOfText(latest),
     securitiesName: resolveAccountName(accountNames, portfolio.securitiesAccountId),
@@ -120,12 +154,9 @@ export const mapPortfolioToDetailVM = (
     cumulativeReturnText: performance
       ? formatPercentage(performance.cumulativeReturnRate, 2)
       : EMPTY_TEXT,
-    breakdown: {
-      previousValueText: formatCurrency(performance?.openingValue ?? 0),
-      currentValueText: formatCurrency(performance?.closingValue ?? 0),
-      investmentCashFlowText: formatCurrency(performance?.netCashFlow ?? 0),
-      calculatedReturnText: formatCurrency(performance?.gain ?? 0),
-    },
+    monthlyReturn: performance?.returnRate ?? null,
+    cumulativeReturn: performance?.cumulativeReturnRate ?? null,
+    breakdown: toReturnBreakdown(performance),
     trend: toMonthTrendSeries(
       snapshots.map((snapshot) => ({
         year: snapshot.year,
