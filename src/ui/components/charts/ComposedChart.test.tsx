@@ -124,6 +124,30 @@ describe('ComposedChart', () => {
     expect(container.textContent).toContain('M');
   });
 
+  it('puts both axis label columns in gutters beside the plot, never over it', () => {
+    const dualSeries: ComposedSeries[] = [
+      { kind: 'bar', tone: 'positive', values: [55_000, 70_000] },
+      { kind: 'line', tone: 'primary', values: [1_000_000, 2_000_000], axis: 'right' },
+    ];
+    render(<ComposedChart labels={['A', 'B']} series={dualSeries} />);
+
+    const left = screen.getByTestId('chart-axis-left');
+    const right = screen.getByTestId('chart-axis-right');
+    const plot = left.parentElement?.querySelector('svg')?.parentElement;
+
+    // The gutters are siblings of the plot column, not overlays inside it.
+    expect(left.parentElement).toBe(right.parentElement);
+    expect(left.contains(plot ?? null)).toBe(false);
+    expect(left.nextElementSibling?.contains(plot ?? null)).toBe(true);
+  });
+
+  it('leaves no gutter when there is no scale to label', () => {
+    render(<ComposedChart labels={['A', 'B']} series={[]} />);
+
+    expect(screen.queryByTestId('chart-axis-left')).toBeNull();
+    expect(screen.queryByTestId('chart-axis-right')).toBeNull();
+  });
+
   it('marks the requested column with a reference line and caption', () => {
     const { container } = render(
       <ComposedChart

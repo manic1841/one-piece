@@ -4,7 +4,6 @@ import {
   COMPOSED_CHART_HEIGHT,
   type ComposedSeries,
   buildComposedGeometry,
-  pickComposedXLabels,
 } from './composedChartGeometry';
 
 /** y of every coordinate pair in a path (or a fragment of one). */
@@ -52,6 +51,32 @@ describe('buildComposedGeometry', () => {
     );
     expect(layout.leftLabels.at(-1)?.text).toBe('0');
     expect(layout.zeroY).toBeDefined();
+  });
+
+  it('gives the right axis its own zero baseline', () => {
+    const layout = buildComposedGeometry(
+      ['A', 'B'],
+      [
+        { kind: 'bar', tone: 'positive', values: [810, 880] },
+        { kind: 'line', tone: 'primary', values: [-1_000, 1_500], axis: 'right' },
+      ],
+    );
+
+    expect(layout.zeroY).toBeDefined();
+    expect(layout.rightZeroY).toBeDefined();
+    expect(layout.rightZeroY).not.toBe(layout.zeroY);
+  });
+
+  it('leaves the right zero baseline off when the right scale excludes zero', () => {
+    const layout = buildComposedGeometry(
+      ['A', 'B'],
+      [
+        { kind: 'line', tone: 'asset', values: [810, 880] },
+        { kind: 'line', tone: 'primary', values: [1_000_000, 2_000_000], axis: 'right' },
+      ],
+    );
+
+    expect(layout.rightZeroY).toBeUndefined();
   });
   it('grows positive bars up from the zero baseline and negative bars down', () => {
     const layout = buildComposedGeometry(
@@ -211,18 +236,5 @@ describe('buildComposedGeometry', () => {
     const bar = layout.bars[0];
     expect(bar.y).toBeGreaterThanOrEqual(0);
     expect(bar.y + bar.height).toBeLessThanOrEqual(COMPOSED_CHART_HEIGHT);
-  });
-});
-
-describe('pickComposedXLabels', () => {
-  it('always includes the last column', () => {
-    const indices = pickComposedXLabels(30);
-
-    expect(indices[0]).toBe(0);
-    expect(indices[indices.length - 1]).toBe(29);
-  });
-
-  it('returns an empty list for no columns', () => {
-    expect(pickComposedXLabels(0)).toEqual([]);
   });
 });

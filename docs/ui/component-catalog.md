@@ -20,10 +20,12 @@
 | `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow                                     |
 | `src/ui/components/AnimatedNumber.tsx`                  | AnimatedNumber                                                 |
 | `src/ui/components/Avatar.tsx`                          | Avatar                                                         |
+| `src/ui/components/charts/ChartAxisGutter.tsx`          | charts / ChartAxisGutter                                       |
 | `src/ui/components/charts/BarChart.tsx`                 | charts / BarChart                                              |
 | `src/ui/components/charts/ChartLegend.tsx`              | charts / ChartLegend                                           |
 | `src/ui/components/charts/ChartScrubber.tsx`            | charts / ChartScrubber                                         |
 | `src/ui/components/charts/ChartTooltip.tsx`             | charts / ChartTooltip                                          |
+| `src/ui/components/charts/ChartXLabelRow.tsx`           | charts / ChartXLabelRow                                        |
 | `src/ui/components/charts/ComposedChart.tsx`            | charts / ComposedChart                                         |
 | `src/ui/components/charts/DonutChart.tsx`               | charts / DonutChart                                            |
 | `src/ui/components/charts/InteractiveBarChart.tsx`      | charts / InteractiveBarChart                                   |
@@ -112,12 +114,15 @@
 
 | 檔案                                                  | 種類                                                 |
 | ----------------------------------------------------- | ---------------------------------------------------- |
+| `src/ui/components/charts/axisLabels.ts`              | 軸標籤避讓（零基線標籤與讓位）                       |
 | `src/ui/components/charts/chartTheme.ts`              | 表面常數（色調對應、donut 色階、數值格式）           |
 | `src/ui/components/charts/chartInteraction.ts`        | 互動共用（點型別、keyboard scrubber、tooltip 定位）  |
 | `src/ui/components/charts/composedChartGeometry.ts`   | 幾何計算（`ComposedChart` 使用）                     |
 | `src/ui/components/charts/donutSlices.ts`             | 幾何計算（donut 切片、百分比與 conic-gradient stop） |
 | `src/ui/components/charts/lineChartGeometry.ts`       | 幾何計算（`LineChart` 使用）                         |
 | `src/ui/components/charts/monthTrendSeries.ts`        | 月份趨勢資料整理（標籤、tooltip、升冪序列）          |
+| `src/ui/components/charts/useMeasuredWidth.ts`        | 寬度量測 hook（圖表標籤密度用）                      |
+| `src/ui/components/charts/xLabels.ts`                 | 軸標籤密度（抽稀、年份折疊、槽寬預算）               |
 | `src/ui/components/eyebrow.ts`                        | 表面常數（11px 全大寫 mono 標籤的共用 class）        |
 | `src/ui/components/moneyTone.ts`                      | 表面常數（金額語意的色調對應）                       |
 | `src/ui/components/data-table/index.ts`               | barrel                                               |
@@ -393,6 +398,16 @@
   - Props：`labels`、`series`、`referenceLines?`、`points`（`{ title, value, meta? }[]`）、`height?`、`showLabels?`、`ariaLabel`（必填）、`onPointClick?`、`className?`。
   - **不要用於**：只是要看趨勢、不需要明細——用 `ComposedChart`。
   - 範例：`src/ui/features/retirement/components/CashFlowChart.tsx`、`src/ui/features/retirement/components/NetWorthChart.tsx`
+
+- **`charts / ChartAxisGutter`** — y 軸刻度欄：把值標籤放在繪圖區旁邊的固定 48px 欄位，讓線與面積永遠不會穿過數字。純展示、`aria-hidden`、`pointer-events-none`，刻度一律由大到小（上到下）。
+  - Props：`side`（`left`/`right`）、`labels`（`{ y, text }[]`，已排序）、`height`、`viewBoxHeight`。
+  - **不要用於**：沒有 y 值標籤的圖表（`BarChart`），也不要在呼叫端自行計算標籤位置——交給 `lineChartGeometry` / `composedChartGeometry`。
+  - 範例：`src/ui/components/charts/LineChart.tsx`、`src/ui/components/charts/ComposedChart.tsx`。
+
+- **`charts / ChartXLabelRow`** — x 軸標籤列：絕對定位的標籤，兩端可保留與 gutter 等寬的空盒，讓標籤從繪圖區邊緣起算。
+  - Props：`labels`（`{ xRatio, text }[]`）、`leftGutter`、`rightGutter`、`testId?`。
+  - **不要用於**：非時間軸的標籤列；有 gutter 的圖表也不要在外面自行拼一份等寬空盒。
+  - 範例：`src/ui/components/charts/LineChart.tsx`、`src/ui/components/charts/ComposedChart.tsx`。
 
 ## data-table 套件
 

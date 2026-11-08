@@ -167,6 +167,11 @@
   - **列內動作**：有 detail 頁的資料整列可點擊走 List → Detail，不用 Actions 欄；無 detail 頁允許 row 端 ghost icon action（icon-only、muted、hover 語意）。
   - **Pointer event priority**：整列導覽與列內拖曳（grip）並存時，優先序為「點擊/輕觸列的普通區域 → 導覽 Detail；在 grip 上點擊/拖曳 → 拖曳排序，且不觸發導覽」。grip 的互動必須 stop propagation 並抑制拖曳結束後的一次 click，但**不得因此關閉整列的導覽能力**；reorder mode 期間整列導覽維持有效。三種禁止的實作缺陷：點 grip 同時開啟 Detail、drag 結束才觸發 row click、reorder mode 直接停用 row click。
   - **鍵盤可及性**：整列可點擊的列是 [`states-and-a11y.md`](states-and-a11y.md) §鍵盤可及性 明文列出的 **`<tr>` 例外**（`<tbody>` 的子項必須是 `row`）：以 `tabIndex={0}` + Enter／Space 承擔鍵盤等價（展開列另帶 `aria-expanded`），但**不得**加 `role`。不可點擊的列不給 `tabIndex`。
+- `chart-axis`：時間軸圖表（`LineChart` / `ComposedChart`）的座標軸。
+  - **y 標籤走側邊欄位**：值標籤放在圖旁邊的固定 48px gutter（`ChartAxisGutter`），不疊在繪圖區上——線與面積區因此永遠不會穿過數字。左軸走左側、右軸走右側；貼邊對齊、`tabular-nums`，行動版不縮寬。tick 的長度上限 6 字由 `formatAxisValue` 承擔，gutter 寬度跟著它走。
+  - **gutter 不吃 pointer**：gutter 是 `pointer-events-none`，hover／scrub 的命中區仍是繪圖區本身（overlay 與指標換算都以繪圖區為座標系）。沒有刻度可標時（`yAxis="none"`、資料為空、全部序列隱藏）不留 gutter。x 標籤列是繪圖欄的兄弟列，同樣以等寬空盒讓出 gutter，標籤才會從繪圖區左緣起算——標籤是絕對定位，`pl-12` 推不開。
+  - **格線一律由上往下**：`gridLines` 從頂端累加，兩張圖同一慣例；值標籤與格線同序（大到小、上到下）。反轉格線而保留標籤映射即可，不要改標籤。
+  - **刻度與標籤密度**：繪圖高度 < 140px 時 y 刻度降為 3，避免刻度壓線；x 標籤在槽寬不足時抽稀、最少留首末兩個、重複年份折掉。密度規則只在 `src/ui/components/charts/xLabels.ts`，寬度一律量繪圖欄本身（`useMeasuredWidth`），不量視窗——圖表在格線裡比視窗窄。
 - `form`：全站表單共通原則。表單狀態與驗證時機的規則（RHF、`useForm` 呼叫點、submit gate）見 `ui-layer-architecture.md` §4，此段只規範元件表面。
   - **欄位群組**：`FormItem` 是唯一決定 label / control / error 垂直佈局的地方（`space-y-2`）。欄位不得自行決定 label 或 error 的位置與間距。
   - **表面的分層**：表單內容以間距與細線分層，不套外框；Card 只保留給表單中的 alert 與狀態回報。

@@ -15,7 +15,6 @@ const PADDING_TOP = 16;
 const PADDING_BOTTOM = 16;
 const PADDING_SIDE = 10;
 const GRID_LINE_COUNT = 4;
-export const MAX_X_LABELS = 6;
 /** Fraction of a column slot the whole bar group occupies. */
 const COLUMN_FILL = 0.7;
 /** Fraction of each bar slot left as a gap between neighbouring bars. */
@@ -115,8 +114,10 @@ export type ComposedChartLayout = {
   gridLines: number[];
   leftLabels: { y: number; text: string }[];
   rightLabels: { y: number; text: string }[];
-  /** y position of the left-axis zero baseline, present when the left axis is used. */
+  /** y position of the left-axis zero baseline, present when the left axis spans 0. */
   zeroY?: number;
+  /** y position of the right-axis zero baseline, present when the right axis spans 0. */
+  rightZeroY?: number;
   referenceLines: { index: number; x: number; xRatio: number; tone: ChartTone; label?: string }[];
 };
 
@@ -390,6 +391,9 @@ export function buildComposedGeometry(
     ...(leftScale && leftScale.min <= 0 && leftScale.max >= 0
       ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) }
       : {}),
+    ...(rightScale && rightScale.min <= 0 && rightScale.max >= 0
+      ? { rightZeroY: Number(yFor(0, rightScale).toFixed(2)) }
+      : {}),
     referenceLines: referenceLines
       .filter((line) => line.index >= 0 && line.index < count)
       .map((line) => ({
@@ -400,14 +404,4 @@ export function buildComposedGeometry(
         ...(line.label !== undefined ? { label: line.label } : {}),
       })),
   };
-}
-
-/** Column indices to render as x-axis labels (subset, always including the last). */
-export function pickComposedXLabels(count: number, maxLabels: number = MAX_X_LABELS): number[] {
-  if (count === 0) return [];
-  const step = Math.max(1, Math.ceil(count / Math.max(2, maxLabels)));
-  const indices: number[] = [];
-  for (let index = 0; index < count; index += step) indices.push(index);
-  if (indices[indices.length - 1] !== count - 1) indices.push(count - 1);
-  return indices;
 }

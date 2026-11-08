@@ -26,6 +26,7 @@ ui
 ├─ components/         # Shared Design System components (Stateless, Pure)
 ├─ hooks/              # Shared UI hooks (application controllers and mechanisms)
 ├─ constants/          # Display labels: the only source of data-value display text
+├─ test/               # Test-only seams (viewport stubbing and similar helpers)
 ├─ utils/              # Presentation helpers (Formatting, etc.)
 └─ assets/             # Static UI assets
 ```
