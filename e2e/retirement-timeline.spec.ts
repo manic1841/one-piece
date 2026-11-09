@@ -119,6 +119,9 @@ test('preview compares retirement ages without changing the result until applied
   const comparison = page.getByRole('region', { name: 'WHAT IF YOU RETIRE…' });
   await expect(comparison).toBeVisible();
   const metric = page.getByTestId('metric-retirement-net-worth');
+  // The figure counts up on mount (M07) and only hands its live region back once
+  // settled; capture the baseline then, or `original` is a half-drawn frame.
+  await expect(metric.locator('[aria-live="polite"]')).toBeVisible();
   const original = await metric.textContent();
   await comparison.getByRole('button', { name: 'Retire one year earlier' }).click();
   await expect(comparison.getByRole('columnheader', { name: 'Try · 59' })).toBeVisible();

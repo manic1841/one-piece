@@ -42,10 +42,10 @@ Decision record: [ADR-0062](../adr/0062-ui-tier-separation-and-surface-import-ba
 | Tier                    | Directories                                                       | May import                                                                                   | Must never import                                             |
 | ----------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | **Surface**             | everything under `src/ui` not listed in another tier              | UI components, Controllers, ViewModels, `constants`, `utils`                                 | `@/domains`, `@/application`, `@/infra` — **including types** |
-| **ViewModel**           | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types**                                    | application behavior (use cases, workflows), `@/infra`        |
+| **ViewModel**           | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types**, `utils`                           | application behavior (use cases, workflows), `@/infra`        |
 | **Controller**          | `features/*/hooks`, `hooks`, `contexts`, `features/*/contexts`    | use cases / workflows, domain, ViewModels, `constants`, `utils`, other Controller mechanisms | repositories, Firestore, API clients, storage, `@/infra`      |
 | **Display Labels**      | `constants`                                                       | same import scope as ViewModel                                                               | `@/application`, `@/infra`, domain behavior                   |
-| **Presentation Helper** | `utils`, `features/*/utils`                                       | pure formatting/styling functions                                                            | anything with business or data semantics                      |
+| **Presentation Helper** | `utils`, `features/*/utils`                                       | pure formatting/styling functions, other `utils`                                             | anything with business or data semantics                      |
 
 **Surface is the fail-closed default.** Membership in a tier is decided by directory, not by file role: any file under
 `src/ui` that is not inside one of the directories listed for a non-Surface tier is Surface. A new directory is therefore
@@ -55,7 +55,12 @@ not a tier, so a file directly inside it stays Surface.
 
 **Display Labels is a ViewModel-tier import scope.** Its _responsibility_ is unique (the only source of data-value
 display text, see rule 7 and [`ui-labeling-guideline.md`](ui-labeling-guideline.md)), but what it may import is deliberately identical to ViewModel: label maps
-consume domain values and types as mapping input. It must not acquire domain behavior.
+consume domain values and types as mapping input, and reuse a shared glyph constant instead of respelling it (e.g. the
+missing-value dash from `utils`). It must not acquire domain behavior.
+
+**`utils` is allowed downward, never upward.** ViewModel and Display Labels may call Presentation Helpers — a ViewModel
+pre-formats every value it emits, so it must be able to reach the formatters. The reverse does not hold: a helper may not
+import a ViewModel, a Controller, domain or application code.
 
 Call direction is one-way: `Surface → Controller → (Query | Command) → Use Case`. ViewModel is the **only bridge**
 between domain/application shapes and components.
@@ -81,7 +86,9 @@ between domain/application shapes and components.
     map may be imported from `@/domains` by any UI tier.
 8.  **Feature Isolation (components)**: shared components belong in `src/ui/components`; feature **components** must
     not be imported across features. ViewModels are exempt — a ViewModel may be imported by another feature when a
-    second consumer genuinely needs the same projection.
+    second consumer genuinely needs the same projection. The one component exception is the gallery
+    (`features/app/pages/Gallery*`): its job is to show other features' finished components, so it may import any
+    feature's components; other pages under `app` stay bound by the rule.
 9.  **Shared Component Reuse**: before creating a new shared component, extend an existing one in `src/ui/components`
     when it covers the use case. Create a new shared component only when nothing existing can be extended, and migrate
     existing duplicate implementations in the same task.
@@ -399,7 +406,7 @@ Pixel Pet 是唯一主導航,不使用傳統 bottom nav 作為主 Navigator(所�
 - **桌機**:click pet 展開 Navigator overlay(floating panel);hover 只做輕微反應,滑鼠移開 overlay **不**立即關閉(避免誤觸),由點擊外部或再點 pet 關閉。
 - **行動版**:tap pet 開啟 Navigator bottom sheet;再 tap pet 或 Close 關閉;不使用 hover。
 - **目的地**:清單內容、Dashboard 的 home 語意與 Quick Access 的獨立性見 §6.1 與 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md);本節只定互動行為,不重述。
-- **動畫**:panel／Sheet 進出場走 [`design-system.md`](design-system.md) 的動態 token。
+- **動畫**:panel／Sheet 進出場走 [`motion-system.md`](motion-system.md) 的動態 token。
 - **Phase 8 圖像**:以正式 pixel-art mascot 替換 placeholder 圖像,僅換圖,不改本互動契約。
 - **寵物反應**:`idle / happy / nod / alert` 為最近財務期間狀態的資料驅動顯示,不做情境式 context 管線。Layout 層 hook 讀最近財務期間狀態後映射:CLOSED → `happy`、NEEDS_REVIEW → `alert`、IN_PROGRESS → `nod`、其他(含無期間) → `idle`。Navigator 內目前的頁面以 accent 態高亮。取捨理由見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md)。
 

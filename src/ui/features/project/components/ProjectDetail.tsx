@@ -31,11 +31,14 @@ import {
   type ProjectMonthGroup,
   type ProjectSummary,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
+import { formatCurrency } from '@/ui/utils';
 
 const netTone = (net: number): 'positive' | 'negative' => (net >= 0 ? 'positive' : 'negative');
 
 interface ProjectDetailProps {
   summary: ProjectSummary;
+  /** Raw live balance; `null` while unknown. The hero counts it up on mount (M07). */
+  balance: number | null;
   balanceText: string | null;
   balanceLoading: boolean;
   /** Display copy plus the raw failure for the alert's tooltip. */
@@ -53,6 +56,7 @@ interface ProjectDetailProps {
 /** 專案詳情的資料 sections（ADR-0062：header 由 page 層擁有）。 */
 const ProjectDetail: React.FC<ProjectDetailProps> = ({
   summary,
+  balance,
   balanceText,
   balanceLoading,
   balanceError,
@@ -70,7 +74,13 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
         <Skeleton className="h-12 w-48" />
       ) : (
         <div data-testid="project-balance">
-          <FinancialNumber value={balanceText} size="hero" />
+          <FinancialNumber
+            value={balanceText}
+            animatedValue={balance}
+            animateFormat={formatCurrency}
+            animateOnMount
+            size="hero"
+          />
         </div>
       )}
       {balanceError !== null && (
@@ -91,9 +101,30 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
 
     <PageSection title={PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE} spacing="compact">
       <MetricGroup columns={3} lastSpansFull>
-        <Metric label={summary.incomeLabel} value={summary.incomeText} tone="positive" />
-        <Metric label={summary.expenseLabel} value={summary.expenseText} tone="negative" />
-        <Metric label={summary.netLabel} value={summary.netText} tone={netTone(summary.net)} />
+        <Metric
+          label={summary.incomeLabel}
+          value={summary.incomeText}
+          animatedValue={summary.income}
+          animateFormat={formatCurrency}
+          animateOnMount
+          tone="positive"
+        />
+        <Metric
+          label={summary.expenseLabel}
+          value={summary.expenseText}
+          animatedValue={summary.expense}
+          animateFormat={formatCurrency}
+          animateOnMount
+          tone="negative"
+        />
+        <Metric
+          label={summary.netLabel}
+          value={summary.netText}
+          animatedValue={summary.net}
+          animateFormat={formatCurrency}
+          animateOnMount
+          tone={netTone(summary.net)}
+        />
       </MetricGroup>
     </PageSection>
 

@@ -1590,7 +1590,10 @@ describe('ProjectionWorkspacePage', () => {
 
     const warning = screen.getByTestId('projection-warnings');
     expect(warning).toHaveTextContent('基準年度 2024 早於投影起點。');
-    expect(screen.getByTestId('metric-retirement-net-worth')).toHaveTextContent('NT$300,000');
+    // The figure counts up from zero on arrival (M07), so the settled value is awaited.
+    await waitFor(() =>
+      expect(screen.getByTestId('metric-retirement-net-worth')).toHaveTextContent('NT$300,000'),
+    );
     expect(screen.getByRole('region', { name: 'YOUR OUTLOOK' })).toHaveTextContent(
       'Your assets last through age 85.',
     );

@@ -2,7 +2,10 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { REPORT_LIST_LABELS } from '@/ui/constants/report/reportCenterLabels';
+import {
+  REPORT_LIST_LABELS,
+  REPORT_SUMMARY_LABELS,
+} from '@/ui/constants/report/reportCenterLabels';
 
 import ReportListPage from './ReportListPage';
 
@@ -24,6 +27,23 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
 vi.mock('@/ui/contexts/useAuthState', () => ({
   useAuthState: () => ({ userProfile: { householdId: 'h1' } }),
 }));
+
+const mockSummary = vi.hoisted(() => vi.fn());
+vi.mock('@/application/report/use_cases/getReportSummaryWorkflow', () => ({
+  getReportSummaryWorkflow: { execute: mockSummary },
+}));
+
+const summaryResult = (overrides: Record<string, unknown> = {}) => ({
+  kpis: {
+    yearMonth: '2026-06',
+    assets: 600000,
+    netWorth: 450000,
+    liabilities: 150000,
+    savingsRate: 12.5,
+    anchorClosed: true,
+  },
+  ...overrides,
+});
 
 const incomeReport = (yearMonth: string, netIncome: number) => ({
   id: `${yearMonth}-INCOME_STATEMENT`,
@@ -82,6 +102,8 @@ describe('ReportListPage', () => {
   beforeEach(() => {
     mocks.listReportsExecute.mockReset();
     mocks.listPeriodsExecute.mockReset();
+    mockSummary.mockReset();
+    mockSummary.mockResolvedValue(summaryResult());
   });
 
   it('summarises the latest report period with all three figures, and lists history newest-first', async () => {
@@ -100,12 +122,22 @@ describe('ReportListPage', () => {
 
     renderPage();
 
-    // Summary: the most recent period that has a report, with all three figures.
-    await waitFor(() => expect(screen.getByTestId('report-latest-net-income')).toBeInTheDocument());
-    expect(screen.getByTestId('report-latest-net-income')).toHaveTextContent('NT$50,000');
-    expect(screen.getByTestId('report-latest-equity')).toHaveTextContent('NT$200,000');
-    expect(screen.getByTestId('report-latest-cash')).toHaveTextContent('NT$80,000');
-    expect(screen.getAllByText('2026 年 6 月').length).toBeGreaterThan(0);
+    // Summary: the anchor period and its four figures. The figures count up from
+    // zero on mount (M07), so the settled values are awaited.
+    const assets = await screen.findByRole('link', { name: '總資產，前往淨資產趨勢' });
+    await waitFor(() => expect(assets).toHaveTextContent('NT$600,000'));
+    // The shared period sits outside the links, in the section header only.
+    expect(assets).not.toHaveTextContent('2026 年 6 月');
+    expect(screen.getAllByText('2026 年 6 月')).toHaveLength(1);
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: '淨資產，前往淨資產趨勢' })).toHaveTextContent(
+        'NT$450,000',
+      );
+      expect(screen.getByRole('link', { name: '總負債，前往淨資產趨勢' })).toHaveTextContent(
+        'NT$150,000',
+      );
+      expect(screen.getByRole('link', { name: '儲蓄率，前往收支分析' })).toHaveTextContent('12.5%');
+    });
 
     // History lists every period, newest first.
     const periods = screen
@@ -127,6 +159,37 @@ describe('ReportListPage', () => {
         name: REPORT_LIST_LABELS.MODE_YEARLY,
       }),
     ).toBeInTheDocument();
+  });
+
+  it('deep-links each KPI into the analysis and flags an unclosed anchor', async () => {
+    mockSummary.mockResolvedValue(
+      summaryResult({
+        kpis: {
+          yearMonth: '2026-06',
+          assets: 600000,
+          netWorth: 450000,
+          liabilities: 150000,
+          savingsRate: null,
+          anchorClosed: false,
+        },
+      }),
+    );
+    mocks.listReportsExecute.mockResolvedValue([]);
+    mocks.listPeriodsExecute.mockResolvedValue([]);
+
+    renderPage();
+
+    const assets = await screen.findByRole('link', { name: '總資產，前往淨資產趨勢' });
+    expect(assets.getAttribute('href')).toBe('/reports/analysis?series=assets#net-worth');
+    expect(screen.getByRole('link', { name: '總負債，前往淨資產趨勢' }).getAttribute('href')).toBe(
+      '/reports/analysis?series=debt#net-worth',
+    );
+    expect(screen.getByRole('link', { name: '儲蓄率，前往收支分析' }).getAttribute('href')).toBe(
+      '/reports/analysis#income',
+    );
+    expect(screen.getByRole('link', { name: '儲蓄率，前往收支分析' })).toHaveTextContent('—');
+    expect(screen.getAllByText('未關帳')).toHaveLength(1);
+    expect(screen.getByText(/查看完整分析/)).toBeInTheDocument();
   });
 
   it('aggregates the same data into year rows when switched to the year granularity', async () => {
@@ -156,6 +219,22 @@ describe('ReportListPage', () => {
     renderPage();
 
     await waitFor(() => expect(screen.getAllByText(REPORT_LIST_LABELS.EMPTY_TITLE).length).toBe(1));
+  });
+
+  it('shows a retryable error in the summary block when the summary fails', async () => {
+    mockSummary.mockRejectedValueOnce(new Error('boom')).mockResolvedValue(summaryResult());
+    mocks.listReportsExecute.mockResolvedValue([]);
+    mocks.listPeriodsExecute.mockResolvedValue([]);
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByText(REPORT_SUMMARY_LABELS.LOAD_ERROR)).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: REPORT_SUMMARY_LABELS.RETRY_ACTION }));
+
+    const netWorth = await screen.findByRole('link', { name: '淨資產，前往淨資產趨勢' });
+    await waitFor(() => expect(netWorth).toHaveTextContent('NT$450,000'));
   });
 
   it('shows a retryable warning when loading fails', async () => {

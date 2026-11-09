@@ -18,6 +18,7 @@
 | `src/ui/components/AccessDenied.tsx`                    | AccessDenied                                                   |
 | `src/ui/components/AppFallback.tsx`                     | AppFallback                                                    |
 | `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow                                     |
+| `src/ui/components/AnimatedNumber.tsx`                  | AnimatedNumber                                                 |
 | `src/ui/components/Avatar.tsx`                          | Avatar                                                         |
 | `src/ui/components/charts/BarChart.tsx`                 | charts / BarChart                                              |
 | `src/ui/components/charts/ChartLegend.tsx`              | charts / ChartLegend                                           |
@@ -44,6 +45,7 @@
 | `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric                                           |
 | `src/ui/components/Module.tsx`                          | Module                                                         |
 | `src/ui/components/NumberInput.tsx`                     | NumberInput                                                    |
+| `src/ui/components/OrbitLoader.tsx`                     | OrbitLoader                                                    |
 | `src/ui/components/PageHeader.tsx`                      | PageHeader                                                     |
 | `src/ui/components/PageSection.tsx`                     | PageSection                                                    |
 | `src/ui/components/PeriodBadge.tsx`                     | PeriodBadge                                                    |
@@ -62,6 +64,7 @@
 | `src/ui/components/data-table/DataTable.tsx`            | data-table / DataTable                                         |
 | `src/ui/components/data-table/DataTableCell.tsx`        | data-table / DataTableCell                                     |
 | `src/ui/components/data-table/DataTableColGroup.tsx`    | data-table / DataTableColGroup                                 |
+| `src/ui/components/data-table/DataTableDetailRow.tsx`   | data-table / DataTableDetailRow                                |
 | `src/ui/components/data-table/DataTableHeadCell.tsx`    | data-table / DataTableHeadCell                                 |
 | `src/ui/components/data-table/DataTableRow.tsx`         | data-table / DataTableRow                                      |
 | `src/ui/components/data-table/MobileDataRow.tsx`        | data-table / MobileDataRow                                     |
@@ -128,8 +131,12 @@
 | `src/ui/components/form/index.ts`                     | barrel                                               |
 | `src/ui/components/form/styles.ts`                    | 表面常數                                             |
 | `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）                        |
+| `src/ui/components/ui/close-button.ts`                | 表面常數（sheet 與 drawer 共用的關閉鈕）             |
 | `src/ui/components/ui/input-styles.ts`                | 表面常數                                             |
+| `src/ui/components/ui/disclosure-styles.ts`           | 揭露內文的共用表面（M05 的成對 class）               |
+| `src/ui/components/ui/sheetDrag.ts`                   | 手勢判定純函式（bottom sheet 關閉門檻）              |
 | `src/ui/components/ui/tabs-styles.ts`                 | 表面常數                                             |
+| `src/ui/components/ui/useSheetDrag.ts`                | 內部接線（pointer 手勢與回彈，`sheet` 使用）         |
 
 ## 頁面骨架
 
@@ -203,7 +210,7 @@
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
-  - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
+  - Props：`value?: string | null`、`animatedValue?`（已確認的原始數值，提供時改由 `AnimatedNumber` 補間）、`animateFormat?`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
   - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `NumberInput`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/project/pages/ProjectDetailPage.tsx`（hero 專案餘額）。
 
@@ -213,7 +220,7 @@
   - 範例：`src/ui/features/retirement/components/ProjectionSnapshotTab.tsx`、`src/ui/features/retirement/components/AnnualYearPanel.tsx`、`src/ui/features/retirement/components/LifeEventTimeline.tsx`、`src/ui/features/retirement/components/RetirementPlanDetail.tsx`；gallery section 04。
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
-  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`action?`（尾端動作，例如跳至該年）、`testId?`、`className?`。
+  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`animatedValue?`、`animateFormat?`、`tone?`、`change?`、`changeTone?`、`action?`（尾端動作，例如跳至該年）、`testId?`、`className?`。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，3 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
 
@@ -233,10 +240,16 @@
   - **不要用於**：表格列的展開明細（那是 `data-table` 的列展開，見 [`design-system.md`](design-system.md) `data-table`）；需要 tab 語意的區塊切換（用 `ui/tabs`）；**section 標題本身**——非摺疊的 section 用 `PageSection` 的 `title`，不要拿 accordion trigger 當標題樣式。
   - 範例：`src/ui/features/monthly_close/stages/portfolio_cash_flow/components/PortfolioCashFlowSection.tsx`（每個 portfolio 一個可摺疊 section）；`src/ui/features/setting/components/LedgerCodeSettings.tsx`（把科目清單依類型分成可收合的群組、預設全開，群組標題帶筆數）。
 
-- **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
+- **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的粗線。
   - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`onActivate?`（提供時該列變成可點擊的 button，供導覽／選取）、`className?`。
   - **不要用於**：完整交易資料表（用 `data-table` 套件）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（RECENT TRANSACTIONS）。
+
+- **`AnimatedNumber`** — 在兩個已確認數值之間補間；符合 §5.2 判準的數字一律在載入時從 0 起算（motion-system M07）；`prefers-reduced-motion` 下直接跳終值。`FinancialNumber` / `Metric` 提供 `animatedValue` 時由它接手，一般不需要單獨使用。
+  - Props：`value`（已確認數值，`null` 顯示 `missing`）、`format`、`missing?`、`durationMs?`（覆寫補間長度；預設 `data` 的 400ms，目前僅 Motion Lab 用來對照 300／400／500）、`animateOnMount?`（判準內的每一處都開）、`className?`。
+  - **不要用於**：表格儲存格（多列同時跳動妨礙掃視）；`change` 之類的衍生文字與日期；載入中尚未確認的值。
+  - 骨架綁在 `loading` 上，讓數字每次載入重新從 0 起算；判準與理由見 motion-system §5.2。
+  - 範例：`src/ui/components/FinancialNumber.tsx`、`src/ui/components/MetricGroup.tsx`。
 
 - **`ListSectionHeader`** — 清單區塊的標題列：標題（可選 `(n)` 計數）＋ 尾端動作。section 標題 class 在此決定，垂直間距由呼叫端給（`className`）。
   - Props：`title`（必填）、`count?`、`actions?`、`className?`。
@@ -268,7 +281,7 @@
   - **不要用於**：表單欄位列（用 `form` 套件）。
   - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`
 
-- **`FilterStrip`** — 語意為 filter 的底線式篩選列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。沿用 `tabs` 的觸發區 token（選中態 2px 底線以 `-mb-px` 咬住細線），但**細線由呼叫端的列提供**——本元件不畫自己的容器框線，因此可嵌進任何有底線的列。
+- **`FilterStrip`** — 語意為 filter 的按鈕切換列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。未選中為 outline 按鈕、淡化字色；選中態＝primary 字色 ＋ 微抬升底色，框線不變。按鈕相連成一段：無 gap、按鈕之間無分隔線，整組只有兩端圓角與外側邊界。樣式以 `/gallery` 的 Filter Strip section 為準。
   - Props：`items`（`{ id, label }[]`，必填）、`value`（選取的 id）、`onValueChange`（必填）、`ariaLabel`（必填）、`className?`。
   - **不要用於**：切換內容區塊的 tab（用 `ui/tabs`）；需要 server-side 重載的資料範圍選擇（那是期間瀏覽，不是情境篩選）。
   - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
@@ -322,7 +335,9 @@
 
 ## 圖表 (charts)
 
-資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts`：語意圖表用 tone→token 對應（`primary` / `positive` / `negative` / `neutral` / `investment` / `asset`），分類拆解圖（donut）用 `CHART_DONUT_COLORS` 的 `chart-*` 類別色板（[`design-system.md`](design-system.md) §1、[ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
+資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts`：語意圖表用 tone→token 對應（`primary` / `positive` / `negative` / `neutral` / `investment` / `asset`），以顏色編碼分類的拆解圖用 `CHART_CATEGORICAL_COLORS` 的 `chart-*` 類別色板，取色一律經 `chartCategoricalColor(index)` 而不自行 modulo（[`design-system.md`](design-system.md) §1、[ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
+
+折線、長條、複合與圓環都在首次拿到資料時由基線揭露（M08，[`motion-system.md`](motion-system.md) §5.7）；一律開啟，掛載即揭露，之後的期間切換不重播。互動版同樣保留揭露。
 
 - **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸預設以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀；`includeZero` 可改為 0 基底。
   - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`includeZero?`（y 值域含 0）、`zeroLine?`（在 0 畫虛線，需 0 落在值域內）、`yAxis?`（`none`/`left`，左側值標籤）、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
@@ -337,21 +352,22 @@
 
 - **`charts / ComposedChart`** — 複合圖：分組長條與折線共用同一塊繪圖區。長條可為負值（由 0 基準線向下長），折線可選擇填滿；具 `axis: 'right'` 的序列使用獨立的右側 y 軸。可標記 `referenceLines`（依欄位 index 畫垂直虛線，例如退休年）。左／右軸刻度與 x 軸標籤由元件推導。
   - Props：`labels`、`series`（`{ kind: 'bar' | 'line', tone, values, axis?, area?, baselineValues? }[]`）、`referenceLines?`（`{ index, tone?, label? }[]`）、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供欄位、長條矩形、折線路徑、軸標籤與實際使用的標記）。
-  - 值以**大小**呈現；長條一律從 0 基準線長出，負值向下。折線與同軸的長條共用一個 y 值域。
+  - 值以**大小**呈現；長條一律從 0 基準線長出，負值向下。折線與同軸的長條共用一個 y 值域。折線的 `values` 可含 `null`：該點跳過、折線斷成子路徑，軸值域也略過它（用來表達缺月份，不補 0）。
+  - 長條 series 可設 `toneBySign`：正值用序列 tone、負值改用 `negative` tone（淨現金流的零基準雙向柱）。
   - `area` 的面積預設填到 0 基準線；`baselineValues` 逐點指定另一條線為下緣（堆疊帶，例如把投資報酬疊在收入之上）；基線逐點變動時，面積路徑的下緣會逐一描過基線取樣點，不會只收兩個角點而切過那條線。面積一律是該序列顏色的**單色資料歸屬漸層**：濃度端在該帶自己的線上，往它的基線淡出；基線在線的上方時（零基準以下的支出帶、或被堆疊在別人之下）方向整個反轉（[ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)）。
   - 一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
   - **不要用於**：需要 hover 明細——用 `InteractiveComposedChart`。
   - 範例：`src/ui/features/retirement/components/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨資產變動線＋淨資產右軸線）。
 
-- **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_DONUT_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
+- **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_CATEGORICAL_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
   - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
   - **不要用於**：需要精確讀值——圓環只適合看比例；精確值用數字或表格。
   - 範例：`src/ui/features/dashboard/components/AssetCompositionBlock.tsx`（資產組成）。
 
-- **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。
-  - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`。
-  - **不要用於**：需要互動切換序列（本輪未實作）。
-  - 範例：`src/ui/components/charts/DonutChart.tsx`（`vertical` 模式）。
+- **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。提供 `onToggle` 時每個項目成為切換鈕（`aria-pressed`），以 `active` 標示目前是否顯示；關閉的項目降透明度，命中高度至少 32px。
+  - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`、`onToggle?`、`active?`（目前可見的 label 清單）。
+  - **不要用於**：非序列的篩選（那用 `FilterStrip`）。沒有 `onToggle` 時純展示，與圖表互動無關。
+  - 範例：`src/ui/components/charts/DonutChart.tsx`（`vertical` 模式）；`src/ui/features/report/components/analysisChart/engine/AnalysisChart.tsx`（可切換）。
 
 - **`charts / ChartTooltip`** — 圖表 hover 卡片表面（標題／數值／次要行）。定位由呼叫端負責。
   - Props：`title`、`value`、`meta?`、`className?`、`style?`。
@@ -397,6 +413,12 @@
   - Props：原生 `td`／`th` 屬性，另加 `align?`（`'text'`（預設）或 `'number'`）。
   - **不要用於**：數字欄不要手寫右對齊與等寬——用 `align="number"`。
   - 範例：`src/ui/features/monthly_close/stages/securities_trade/components/TradeTable.tsx`
+
+- **`DataTableDetailRow`** — 展開列的詳情列（跨所有欄的單一 cell），接在可點擊的彙總列之後。
+  - Props：`open`、`colSpan`、`contentClassName?`、原生 `tr` 屬性。
+  - 展開狀態由呼叫端受控；列保持掛載以播收合動畫，高度走 `height: auto ↔ 0`（見 [`motion-system.md`](motion-system.md) §5.1）。
+  - **不要用於**：子樹要留在同一組固定欄寬裡（那是 `StatementTable`）；區塊級面板（用 `ui/accordion`）。
+  - 範例：`src/ui/features/debt/components/detail/DebtHistoryTable.tsx`、`src/ui/features/transaction/components/TransactionItem.tsx`
 
 - **`DataTableColGroup`** — 以百分比陣列定義欄寬；總和必須為 100（開發模式會報錯）。
   - Props：`widths`（必填，百分比陣列，總和 100）、`className?`。
@@ -453,10 +475,15 @@
   - Props：同 `TextInput` 的 string value 契約，另加 `surface?`（`form`（預設）／`table`）、`compact?`、`prefix?`、`error?`（僅 `surface="form"` 呈現）。
   - **不要用於**：表格儲存格的顯示（用 `NumberCell`）；唯讀推導值（用 `ReadoutField`）。
   - 範例：`src/ui/features/transaction/components/form/AllocationSection.tsx`（form surface）、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`（table surface）。
+- **`OrbitLoader`** — 真實非同步任務的 pending 指示環（`src/ui/components/OrbitLoader.tsx`；[`motion-system.md`](motion-system.md) §5.4）。
+  - Props：`appearAfterMs?`（預設 300，`0` 立即可見）、`className?`。
+  - 行為：延遲出現以免瞬時閃爍；`aria-hidden`，狀態文字由呼叫端放在旁邊並自帶 `role="status"`；reduced-motion 下停在原地當靜態環；不宣稱百分比。
+  - **不要用於**：瞬時操作；有真實進度可回報的場合（那裡要的是進度條）。
+  - 範例：`src/ui/features/retirement/components/WorkspaceActionBar.tsx`
 - **`DateInput`** — 日期欄位，emit ISO `yyyy-MM-dd`。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：年月（用 `YearMonthPicker`）。
-  - 範例：`src/ui/features/transaction/components/form/AmountDateFields.tsx`
+  - 範例：`src/ui/features/transaction/components/form/AmountFields.tsx`
 - **`Select`**（`SelectField`）— 單值選欄位。
   - Props：`options`（必填）、`value?`、`onChange?`、`onBlur?`、`placeholder?`、`noneLabel?`、`error?`、`disabled?`、`className?`、`id?`、`name?` 與 `aria-*`。
   - 變體：選填的「無值」列以 `noneLabel` 表示；**option 不得自帶空字串 value**（違反時開發模式報錯）。
@@ -478,7 +505,7 @@
 
 欄位形狀、但不承載表單狀態的輔助元件。
 
-- **`AdvancedDisclosure`** — 表單內「Advanced」揭露：field 形狀的邊框切換鈕（`ChevronDown`），展開後顯示次要欄位（visual-standards：複雜設定預設隱藏）。**不是** `ui/accordion`——那是有 mono 標題列的 section 級面板。
+- **`AdvancedDisclosure`** — 表單內「Advanced」揭露：單一邊框群組，頂部標題列（`ChevronDown`）切換；展開後在同一框內、以 `bg-muted/50` 內縮底色顯示次要欄位（同展開子列的材質語言，見 `design-system.md` §3），使子層與標題列明確隸屬同一群組。**不是** `ui/accordion`——那是有 mono 標題列的 section 級面板。
   - Props：`label`（必填）、`open`（必填，受控）、`onOpenChange`（必填）、`children`、`className?`。
   - **不要用於**：section 級可摺疊面板（用 `ui/accordion`）；區塊切換（用 `ui/tabs`）。
   - 範例：`src/ui/features/app/pages/GalleryInteraction.tsx`
@@ -510,7 +537,7 @@
 
 `src/ui/components/ui/` 是 shadcn 產生的 primitive 群，包 Radix 或原生元素：`accordion`、`alert`、`badge`、`button`、`card`、`checkbox`、`command`、`dialog`、`dropdown-menu`、`input`、`label`、`popover`、`select`、`sheet`、`switch`、`table`、`tabs`、`textarea`。
 
-- 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向。`switch` 沒有自己的錯誤樣式，只轉發 `FormControl` 注入的 `error` 為 `aria-invalid`。
+- 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向，且 `side="bottom"` 預設可拖曳關閉（`draggable={false}` 可退出，手勢規則見 [`motion-system.md`](motion-system.md) §5.3）。`switch` 沒有自己的錯誤樣式，只轉發 `FormControl` 注入的 `error` 為 `aria-invalid`。
 - **何時不要用**：表單欄位不要直接用 `input`／`select`／`textarea`，用 `form/` 的對應欄位（見下方裁決）；表格不要直接用 `table`，用 `data-table` 套件。
 - 這些元件的表面契約（尺寸、狀態、radius、shadow 允用清單）屬 [`design-system.md`](design-system.md) §7。
 - 範例：`src/ui/features/retirement/pages/ProjectionWorkspacePage.tsx`

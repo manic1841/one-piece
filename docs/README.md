@@ -14,6 +14,7 @@
 
 - [transaction-flow.md](transaction-flow.md) — 交易流程、意圖分層與分配語意。
 - [financial_report.md](financial_report.md) — 報表來源、符號原則與儀表板錨定。
+- [financial_analysis.md](financial_analysis.md) — 歷史財務分析的指標、可畫期間與錨定。
 - [monthly-close.md](monthly-close.md) — 關帳工作流與階段資料邊界。
 - [debt-accounts.md](debt-accounts.md) — 債務生命週期與還款語意。
 - [retirement-system.md](retirement-system.md) — 退休計畫與投影。
@@ -29,6 +30,7 @@
 
 - [ui/ui-layer-architecture.md](ui/ui-layer-architecture.md) — UI 分層、依賴方向與動作位置。
 - [ui/design-system.md](ui/design-system.md) — token 與元件表面契約。
+- [ui/motion-system.md](ui/motion-system.md) — 動態契約、動畫清單與驗收。
 - [ui/visual-standards.md](ui/visual-standards.md) — 頁面層級版面與互動標準。
 - [ui/states-and-a11y.md](ui/states-and-a11y.md) — 三態義務與無障礙。
 - [ui/component-catalog.md](ui/component-catalog.md) — 共用元件目錄。

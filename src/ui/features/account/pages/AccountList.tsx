@@ -344,11 +344,17 @@ const AccountList: React.FC = () => {
             testId="account-total-balance"
             label={ACCOUNT_SUMMARY_LABELS.TOTAL_BALANCE}
             value={formatCurrency(totalBalance)}
+            animatedValue={totalBalance}
+            animateFormat={formatCurrency}
+            animateOnMount
           />
           <Metric
             testId="account-active-count"
             label={ACCOUNT_SUMMARY_LABELS.ACTIVE_ACCOUNTS}
             value={String(activeCount)}
+            animatedValue={activeCount}
+            animateFormat={(raw) => String(Math.round(raw))}
+            animateOnMount
           />
         </MetricGroup>
       </PageSection>

@@ -78,7 +78,7 @@ export function ProjectionRuleDialog({
 
   return (
     <Sheet open={open} onOpenChange={(next) => !next && onCancel()}>
-      <SheetContent side="bottom" className={cn('max-h-[92vh] overflow-y-auto')}>
+      <SheetContent side="bottom" className="max-h-[92vh]">
         <SheetHeader>
           <SheetTitle className={cn(sectionTitleClass, 'text-muted-foreground')}>
             {title}

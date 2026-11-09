@@ -97,15 +97,17 @@ describe('ReportDetailPage', () => {
     expect(screen.getByRole('tab', { name: '資產負債表' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '現金流量表' })).toBeInTheDocument();
     expect(screen.getByText('收入合計')).toBeInTheDocument();
-    // 三張表各帶三個摘要指標，值為已產生報表的當期值。
-    expect(screen.getByTestId('statement-metric-income')).toHaveTextContent('NT$50,000');
-    expect(screen.getByTestId('statement-metric-expense')).toHaveTextContent('NT$20,000');
-    expect(screen.getByTestId('statement-metric-net-income')).toHaveTextContent('NT$30,000');
-    expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$200,000');
+    // 三張表各帶三個摘要指標，值為已產生報表的當期值；值從 0 起算（M07），等終值落定再斷言。
+    await waitFor(() => {
+      expect(screen.getByTestId('statement-metric-income')).toHaveTextContent('NT$50,000');
+      expect(screen.getByTestId('statement-metric-expense')).toHaveTextContent('NT$20,000');
+      expect(screen.getByTestId('statement-metric-net-income')).toHaveTextContent('NT$30,000');
+      expect(screen.getByTestId('statement-metric-assets')).toHaveTextContent('NT$200,000');
+      expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('NT$200,000');
+      expect(screen.getByTestId('statement-metric-ending-balance')).toHaveTextContent('NT$80,000');
+    });
     expect(screen.getByTestId('statement-metric-liabilities')).toHaveTextContent('NT$0');
-    expect(screen.getByTestId('statement-metric-equity')).toHaveTextContent('NT$200,000');
     expect(screen.getByTestId('statement-metric-beginning-balance')).toHaveTextContent('NT$0');
-    expect(screen.getByTestId('statement-metric-ending-balance')).toHaveTextContent('NT$80,000');
     expect(screen.getByTestId('statement-metric-net-cash-change')).toHaveTextContent('NT$0');
     // The final summary row is emphasised in the primary colour.
     const terminus = screen
@@ -178,6 +180,32 @@ describe('ReportDetailPage', () => {
 
     await waitFor(() => expect(screen.getByText('薪資')).toBeInTheDocument());
     expect(screen.queryByRole('button', { name: /前往關帳/ })).not.toBeInTheDocument();
+  });
+
+  it('links a yearly report to the annual analysis', async () => {
+    const navigate = vi.fn();
+    mockNavigate.mockReturnValue(navigate);
+    mocks.getBundleExecute.mockResolvedValue(bundle);
+    mocks.getPeriodExecute.mockResolvedValue(null);
+
+    renderPage('2026');
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: REPORT_DETAIL_LABELS.VIEW_YEAR_ANALYSIS }),
+    );
+    expect(navigate).toHaveBeenCalledWith('/reports/analysis?period=2026');
+  });
+
+  it('does not offer the annual analysis link on a monthly report', async () => {
+    mocks.getBundleExecute.mockResolvedValue(bundle);
+    mocks.getPeriodExecute.mockResolvedValue({ yearMonth: '2026-06', status: 'CLOSED' });
+
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('薪資')).toBeInTheDocument());
+    expect(
+      screen.queryByRole('button', { name: REPORT_DETAIL_LABELS.VIEW_YEAR_ANALYSIS }),
+    ).not.toBeInTheDocument();
   });
 
   it('steps to the previous calendar month', async () => {

@@ -16,17 +16,19 @@ const TARGET_PROJECT_ID = 'proj_travel';
 const TARGET_PROJECT_NAME = '旅遊基金';
 /**
  * The month whose figure is read. Two properties make it the right row:
- * - **No project snapshot exists for it.** The seed snapshots projects only for
- *   the report months (`2026-07`…`09`), and a snapshotted month's row shows the
- *   frozen close-time figures instead of the live journal
+ * - **No project snapshot exists for it.** Project snapshots are written only for
+ *   `REPORT_MONTHS` (`scripts/qa/plan/projectDocs.ts`), and a snapshotted month's row
+ *   shows the frozen close-time figures instead of the live journal
  *   (`projectDetail.vm.ts`: `group.income = group.snapshot?.income ?? totals.income`).
- *   Booking an expense there would move nothing.
- * - **Inside the seed window**, so the row already exists with a non-zero income
- *   to anchor the reading on: `proj_travel` takes 8% of every seeded salary.
+ *   Booking an expense into a snapshot month would move nothing.
+ * - **Inside the seed window, before the report months**, so the row already exists
+ *   with a non-zero income to anchor the reading on — `proj_travel` takes 8% of every
+ *   seeded salary, and no seeded expense hits it before 2026. Re-check this constant
+ *   whenever `REPORT_MONTHS` grows backwards.
  */
-const FIGURE_MONTH = '2026-06';
+const FIGURE_MONTH = '2025-06';
 /** Pinned so the expense lands on FIGURE_MONTH instead of whatever "today" is. */
-const EXPENSE_DATE = '2026-06-15';
+const EXPENSE_DATE = '2025-06-15';
 const EXPENSE_AMOUNT = 250;
 const DESCRIPTION = `E2E 備份還原 ${Date.now()}`;
 
@@ -138,10 +140,11 @@ test('an exported backup can be uploaded back and restores the household', async
   await page.getByRole('button', { name: '新增交易' }).first().click();
   const form = page.getByRole('dialog');
   await expect(form).toBeVisible();
-  await form.getByRole('button', { name: TARGET_PROJECT_NAME }).click();
+  await form.getByPlaceholder('0.00').fill(String(EXPENSE_AMOUNT));
   await form.getByRole('button', { name: '生活費' }).click();
   await pickFirstDetailCategory(form);
-  await form.getByPlaceholder('0.00').fill(String(EXPENSE_AMOUNT));
+  await form.getByTestId('project-mode-toggle').click();
+  await form.getByRole('button', { name: TARGET_PROJECT_NAME }).click();
   await form.getByLabel('日期').fill(EXPENSE_DATE);
   await form.getByPlaceholder('補充這筆支出的脈絡').fill(DESCRIPTION);
   await form.getByRole('button', { name: '送出' }).click();

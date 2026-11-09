@@ -171,6 +171,7 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     isActive,
     monthGroups,
     summary,
+    balance,
     balanceText,
     latestSettledText,
     hasMore,

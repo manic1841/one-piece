@@ -2,8 +2,8 @@ import type {
   DashboardNetWorthPoint,
   DashboardOverview,
 } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
-import type { ChartPoint } from '@/ui/components/charts/chartInteraction';
 import { formatCurrency, formatMonthLabel, formatYearMonth } from '@/ui/utils';
+import { type ChartPoint, heroPoint } from '@/ui/utils/chartInteraction';
 
 export type { DashboardComposition } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
 
@@ -18,6 +18,8 @@ export interface DashboardHeroVM {
   hasAnchor: boolean;
   anchorPeriodText: string | null;
   netWorthText: string;
+  /** Confirmed net worth, for the animated figure; null when there is no anchor. */
+  netWorth: number | null;
   ytd: {
     percentText: string;
     amountText: string | null;
@@ -35,6 +37,7 @@ export const mapDashboardOverviewToHeroVM = (
       hasAnchor: false,
       anchorPeriodText: null,
       netWorthText: '—',
+      netWorth: null,
       ytd: null,
       trend: { values: [], labels: [], points: [], hasData: false },
     };
@@ -47,6 +50,7 @@ export const mapDashboardOverviewToHeroVM = (
     hasAnchor: true,
     anchorPeriodText: `${formatYearMonth(year, month)} REPORT`,
     netWorthText: formatCurrency(anchor.netWorth),
+    netWorth: anchor.netWorth,
     ytd: buildYtdVM(anchor.netWorth, anchor.ytdBaseline?.netWorth ?? null),
     trend: buildTrendVM(anchor.netWorthSeries),
   };
@@ -76,11 +80,11 @@ const buildTrendVM = (series: DashboardNetWorthPoint[]): DashboardHeroTrendVM =>
   return {
     values,
     labels,
-    points: values.map((value, index) => ({
-      title: labels[index],
-      value: formatCurrency(value),
-      meta: formatMonthOverMonth(values, index),
-    })),
+    points: values.map((value, index) =>
+      heroPoint(labels[index] ?? '', { id: 'netWorth', value: formatCurrency(value) }, [
+        { id: 'change', value: formatMonthOverMonth(values, index) },
+      ]),
+    ),
     hasData: present.length > 0,
   };
 };

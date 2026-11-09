@@ -1,5 +1,6 @@
 import { ChartLegend } from '@/ui/components/charts/ChartLegend';
 import { InteractiveComposedChart } from '@/ui/components/charts/InteractiveComposedChart';
+import { heroPoint } from '@/ui/components/charts/chartInteraction';
 import {
   type ComposedReferenceLine,
   type ComposedSeries,
@@ -75,11 +76,30 @@ export function CashFlowChart({
         labels={labels}
         series={buildSeries(projection)}
         referenceLines={[...byPriority.values()]}
-        points={projection.chartData.map((point) => ({
-          title: `${PROJECTION_CHART_LABELS.tooltipYearPrefix} ${point.year}`,
-          value: `${PROJECTION_CHART_LABELS.netCashFlow} ${point.netCashFlowText}`,
-          meta: `${PROJECTION_CHART_LABELS.income} ${point.incomeText} · ${PROJECTION_CHART_LABELS.investmentReturn} ${point.investmentIncomeText} · ${PROJECTION_CHART_LABELS.expense} ${point.expenseText} · ${PROJECTION_CHART_LABELS.netWorth} ${point.savingsText}`,
-        }))}
+        points={projection.chartData.map((point) =>
+          heroPoint(
+            `${PROJECTION_CHART_LABELS.tooltipYearPrefix} ${point.year}`,
+            {
+              id: 'netCashFlow',
+              label: PROJECTION_CHART_LABELS.netCashFlow,
+              value: point.netCashFlowText,
+            },
+            [
+              {
+                id: 'income',
+                label: PROJECTION_CHART_LABELS.income,
+                value: point.incomeText,
+              },
+              {
+                id: 'investmentReturn',
+                label: PROJECTION_CHART_LABELS.investmentReturn,
+                value: point.investmentIncomeText,
+              },
+              { id: 'expense', label: PROJECTION_CHART_LABELS.expense, value: point.expenseText },
+              { id: 'netWorth', label: PROJECTION_CHART_LABELS.netWorth, value: point.savingsText },
+            ],
+          ),
+        )}
         height={360}
         ariaLabel={PROJECTION_CHART_LABELS.cashFlowAriaLabel}
         {...(onSelectYear === undefined

@@ -142,7 +142,10 @@ const toCollections = (docs: SeedDoc[], householdId: string) => {
   const bucketsToArray = (kind: EntityCollection) =>
     [...entities[kind].keys()].sort(byId).map((id) => {
       const bucket = entities[kind].get(id)!;
-      return { [ENTITY_KEY[kind]]: bucket[ENTITY_KEY[kind]], snapshots: snapshotArray(bucket.snapshots) };
+      return {
+        [ENTITY_KEY[kind]]: bucket[ENTITY_KEY[kind]],
+        snapshots: snapshotArray(bucket.snapshots),
+      };
     });
 
   return {
@@ -169,9 +172,7 @@ const toCollections = (docs: SeedDoc[], householdId: string) => {
  * Builds and validates the payload. Validation runs before the caller writes
  * anything, so plan/schema drift fails loudly with no partial file.
  */
-export const buildDemoBackupPayload = (
-  identity: DemoBackupIdentity,
-): HouseholdBackupPayload => {
+export const buildDemoBackupPayload = (identity: DemoBackupIdentity): HouseholdBackupPayload => {
   const { householdId, uid, email, householdName } = identity;
   const docs = buildQaSeedPlan({ uid, email, householdId });
 

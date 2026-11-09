@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { disclosureBodyClass } from '../ui/disclosure-styles';
 import {
   dataTableLabelClass,
   mobileDataListClass,
@@ -136,8 +137,18 @@ export const MobileExpandableRow: React.FC<MobileExpandableRowProps> = ({
       {meta !== undefined && (
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">{meta}</div>
       )}
-      {isExpandable && isExpanded && (
-        <div className="mt-3 border-t border-border pt-2">{details}</div>
+      {isExpandable && (
+        // Stays mounted so the collapse can animate too. `height: auto <-> 0`
+        // interpolates under `interpolate-size: allow-keywords`, so the height is
+        // never measured (motion-system §5.1 M05). `grid-rows-[0fr]` would rest at
+        // content height here because the container has no definite height.
+        <div
+          data-state={isExpanded ? 'open' : 'closed'}
+          inert={!isExpanded}
+          className={disclosureBodyClass}
+        >
+          <div className="mt-3 border-t border-border pt-2">{details}</div>
+        </div>
       )}
     </div>
   );

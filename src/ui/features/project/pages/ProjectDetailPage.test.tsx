@@ -168,10 +168,22 @@ describe('ProjectDetailPage states', () => {
       loading: true,
     } as never);
 
-    renderDetail(buildProject());
+    renderDetailWithoutProject();
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText(PROJECT_DETAIL_LABELS.LOADING_LABEL)).toBeInTheDocument();
+  });
+
+  it('gates the first paint even when the project came from the list', () => {
+    mockUseProjectDetailView.mockReturnValue({
+      ...learnViewResult,
+      loading: true,
+    } as never);
+
+    renderDetail(buildProject());
+
+    // The figures must not mount from stale data before their own load lands.
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders the error alert with a retry action when the view fails', () => {
@@ -210,21 +222,22 @@ describe('ProjectDetailPage states', () => {
     expect(screen.queryByText(PROJECT_DETAIL_LABELS.NOT_FOUND_TITLE)).not.toBeInTheDocument();
   });
 
-  it('renders the summary metrics and the cash-flow panel', () => {
+  it('renders the summary metrics and the cash-flow panel', async () => {
     mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
 
     renderDetail(buildProject());
 
     expect(screen.getByText(PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE)).toBeInTheDocument();
-    expect(screen.getByText('NT$150,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$90,000')).toBeInTheDocument();
+    // The summary figures count up from zero on mount (M07), so the settled values are awaited.
+    expect(await screen.findByText('NT$150,000')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('NT$90,000')).toBeInTheDocument());
     // The summary never claims to be more than the recent window.
     expect(screen.getAllByText(/近 12 個月/)).toHaveLength(3);
     expect(screen.getByText(PROJECT_DETAIL_LABELS.CASH_FLOW_SECTION_TITLE)).toBeInTheDocument();
     expect(screen.getByText(PROJECT_DETAIL_LABELS.CASH_FLOW_EMPTY_HINT)).toBeInTheDocument();
   });
 
-  it('renders the live balance and its last settled month', () => {
+  it('renders the live balance and its last settled month', async () => {
     mockUseProjectDetailView.mockReturnValue({
       ...learnViewResult,
       balance: 40000,
@@ -233,7 +246,8 @@ describe('ProjectDetailPage states', () => {
 
     renderDetail(buildProject());
 
-    expect(screen.getByText('NT$40,000')).toBeInTheDocument();
+    // The hero counts up from zero on mount, so the settled figure is awaited.
+    expect(await screen.findByText('NT$40,000')).toBeInTheDocument();
     expect(screen.getByText(/最後結算月份 2026-09/)).toBeInTheDocument();
   });
 

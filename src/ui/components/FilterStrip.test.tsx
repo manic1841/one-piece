@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FilterStrip } from './FilterStrip';
@@ -35,7 +35,7 @@ describe('FilterStrip', () => {
     expect(onValueChange).toHaveBeenCalledWith('EXPENSE');
   });
 
-  it('marks the selection with the shared underline tokens, not a filled surface', () => {
+  it('marks the selection with the shared button tokens, not a filled surface', () => {
     render(
       <FilterStrip
         items={ITEMS}
@@ -48,9 +48,33 @@ describe('FilterStrip', () => {
     const selected = screen.getByRole('button', { name: '支出' });
     const unselected = screen.getByRole('button', { name: '全部' });
 
-    expect(selected.className).toContain('aria-pressed:border-primary');
-    expect(selected.className).toContain('-mb-px');
+    expect(selected.className).toContain('aria-pressed:text-primary');
+    expect(selected.className).toContain('aria-pressed:bg-elevated');
+    expect(selected.className).not.toContain('aria-pressed:border-primary');
+    expect(selected.className).not.toContain('aria-pressed:font-semibold');
+    expect(selected.className).toContain('border border-input');
     expect(selected.className).not.toContain('bg-primary');
-    expect(unselected.className).not.toContain('shadow');
+    expect(unselected.className).toContain('text-muted-foreground');
+    expect(unselected.className).not.toMatch(/(^|\s)bg-elevated/);
+    expect(unselected.className).not.toMatch(/shadow-(sm|md|lg|xl|2xl|inner)/);
+    expect(unselected.className).not.toContain('border-b-2');
+  });
+
+  it('joins the buttons with no gap and no separators inside one outline', () => {
+    render(
+      <FilterStrip items={ITEMS} value="ALL" onValueChange={vi.fn()} ariaLabel="交易類型篩選" />,
+    );
+
+    const group = screen.getByRole('group', { name: '交易類型篩選' });
+    const first = within(group).getByRole('button', { name: '全部' });
+    const last = within(group).getByRole('button', { name: '支出' });
+
+    expect(group.className).not.toContain('gap-');
+    expect(first.className).toContain('rounded-r-none');
+    expect(first.className).toContain('border-r-0');
+    expect(first.className).not.toContain('rounded-l-none');
+    expect(last.className).toContain('rounded-l-none');
+    expect(last.className).toContain('border-l-0');
+    expect(last.className).not.toContain('rounded-r-none');
   });
 });

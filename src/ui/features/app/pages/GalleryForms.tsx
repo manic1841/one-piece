@@ -28,6 +28,12 @@ import { SelectField } from '@/ui/components/form/Select';
 import { Button } from '@/ui/components/ui/button';
 import { Checkbox } from '@/ui/components/ui/checkbox';
 import { Switch } from '@/ui/components/ui/switch';
+import { getIntentLabel } from '@/ui/constants/transaction';
+import { ExpenseCategoryPicker } from '@/ui/features/transaction/components/form/ExpenseCategoryPicker';
+import {
+  MORE_EXPENSE_INTENTS,
+  QUICK_EXPENSE_INTENTS,
+} from '@/ui/features/transaction/components/form/expenseCategoryGroups';
 
 import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
@@ -312,6 +318,36 @@ const CheckboxSection: React.FC = () => {
   );
 };
 
+/**
+ * Curated category picker demo: one live instance (expand it to see the whole
+ * set) and one seeded with a hidden choice to show the pinning rule. Both are
+ * bound to a real `Form` because the picker reads its value from `FormField`.
+ */
+const CategoryPickerDemo: React.FC<{ initial?: string; label?: string }> = ({
+  initial = '',
+  label,
+}) => {
+  const form = useForm<{ intent: string }>({ defaultValues: { intent: initial } });
+  const categories = [...QUICK_EXPENSE_INTENTS, ...MORE_EXPENSE_INTENTS].map((intent) => ({
+    value: intent,
+    label: getIntentLabel(intent),
+  }));
+
+  return (
+    <Form {...form}>
+      <form aria-label={label} onSubmit={(event) => event.preventDefault()}>
+        <FormField name="intent">
+          <FormItem>
+            <FormLabel required>類別</FormLabel>
+            <ExpenseCategoryPicker categories={categories} />
+            <FormMessage />
+          </FormItem>
+        </FormField>
+      </form>
+    </Form>
+  );
+};
+
 const SelectionSection: React.FC = () => {
   const [cadence, setCadence] = React.useState('monthly');
 
@@ -324,6 +360,16 @@ const SelectionSection: React.FC = () => {
           <Radio value="yearly" label="Yearly" />
         </RadioGroup>
       </GalleryModule>
+      <GalleryModule label="QUICK SET + MORE · CURATED CATEGORY PICKER">
+        <div className="grid max-w-xl gap-6 md:grid-cols-2">
+          <CategoryPickerDemo />
+          <CategoryPickerDemo initial="RENT" label="pinned hidden choice" />
+        </div>
+      </GalleryModule>
+      <GalleryCaption>
+        長清單只露高頻的一列，其餘收在「+
+        更多」後面原地展開；從收起的那組挑中的項目會被釘回可見列，選中的類別 不會因為收合而消失。
+      </GalleryCaption>
     </GallerySection>
   );
 };

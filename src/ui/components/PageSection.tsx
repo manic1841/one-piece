@@ -65,7 +65,7 @@ export function PageSection({
     >
       {(hasHeading || action !== undefined) && (
         <div className={cn(HEADER_MARGIN_CLASS[spacing])}>
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             {hasHeading && (
               <p className={cn(sectionTitleClass, 'flex items-center gap-2')}>
                 {status !== undefined && (

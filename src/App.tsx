@@ -23,6 +23,7 @@ import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPa
 import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
 import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
 import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
+import ReportAnalysisPage from '@/ui/features/report/pages/ReportAnalysisPage';
 import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
 import ReportListPage from '@/ui/features/report/pages/ReportListPage';
 import ProjectionListPage from '@/ui/features/retirement/pages/ProjectionListPage';
@@ -87,6 +88,7 @@ const router = createBrowserRouter([
       { path: 'portfolios', element: <PortfoliosPage /> },
       { path: 'portfolios/:id', element: <PortfolioDetailPage /> },
       { path: 'reports', element: <ReportListPage /> },
+      { path: 'reports/analysis', element: <ReportAnalysisPage /> },
       { path: 'reports/:period', element: <ReportDetailPage /> },
       { path: 'retirement', element: <ProjectionListPage /> },
       { path: 'retirement/new', element: <ProjectionWorkspacePage /> },

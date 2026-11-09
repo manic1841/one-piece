@@ -150,7 +150,6 @@ const Transactions: React.FC = () => {
   const {
     expenseCategoryOptions,
     incomeCategories,
-    advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
     loading: formSubmitting,
@@ -206,12 +205,18 @@ const Transactions: React.FC = () => {
 
   const isFiltered = searchTerm.trim() !== '' || filterType !== TRANSACTION_FILTER_ALL;
 
-  const projectOptions = projects
-    .filter((project) => project.isActive)
-    .map((project) => ({
-      id: project.id,
-      name: project.name,
-    }));
+  // Stable identity: the form's allocation-template effect depends on this list
+  // and would otherwise re-run on every parent render.
+  const projectOptions = useMemo(
+    () =>
+      projects
+        .filter((project) => project.isActive)
+        .map((project) => ({
+          id: project.id,
+          name: project.name,
+        })),
+    [projects],
+  );
 
   return (
     <div className="space-y-6">
@@ -235,12 +240,14 @@ const Transactions: React.FC = () => {
           ariaLabel={TRANSACTIONS_PAGE_SEARCH_LABEL}
         />
         <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
-          <FilterStrip
-            items={TRANSACTION_FILTER_ITEMS}
-            value={filterType}
-            onValueChange={setFilterType}
-            ariaLabel={TRANSACTIONS_PAGE_FILTER_LABEL}
-          />
+          <div className="md:pb-3">
+            <FilterStrip
+              items={TRANSACTION_FILTER_ITEMS}
+              value={filterType}
+              onValueChange={setFilterType}
+              ariaLabel={TRANSACTIONS_PAGE_FILTER_LABEL}
+            />
+          </div>
           <div className="md:pb-3">
             <TransactionPeriodPicker
               period={period}
@@ -269,7 +276,9 @@ const Transactions: React.FC = () => {
         onDelete={handleDelete}
       />
 
-      {userProfile?.householdId && isFormOpen && (
+      {/* Always mounted while a household exists: Radix needs the dialog to
+          survive `open=false` to play its exit animation. */}
+      {userProfile?.householdId && (
         <TransactionForm
           isOpen={isFormOpen}
           mode={editingTransactionId ? 'edit' : 'create'}
@@ -284,7 +293,6 @@ const Transactions: React.FC = () => {
           projects={projectOptions}
           expenseCategoryOptions={expenseCategoryOptions}
           incomeCategories={incomeCategories}
-          advancedCategories={advancedCategories}
           allActiveLedgerCodes={allActiveLedgerCodes}
           loadIncomeAllocationTemplate={loadIncomeAllocationTemplate}
         />

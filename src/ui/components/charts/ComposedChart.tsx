@@ -2,13 +2,14 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
-import { CHART_TONE_COLOR } from './chartTheme';
+import { CHART_COLOR_TOKEN_COLOR, CHART_TONE_COLOR } from './chartTheme';
 import {
   COMPOSED_CHART_HEIGHT,
   COMPOSED_CHART_WIDTH,
   type ComposedChartLayout,
   type ComposedReferenceLine,
   type ComposedSeries,
+  MAX_X_LABELS,
   buildComposedGeometry,
   pickComposedXLabels,
 } from './composedChartGeometry';
@@ -22,6 +23,26 @@ const BAR_FILL_OPACITY = 0.6;
 const AREA_GRADIENT_OPACITY = 0.38;
 const LINE_STROKE_WIDTH = 1.8;
 const DASHED_LINE_STROKE_WIDTH = 1.2;
+/** Narrowest slot an x label may occupy before the next one is dropped. */
+const MIN_X_LABEL_SLOT = 64;
+
+const MONTH_LABEL = /^([A-Z]{3}) (\d{4})$/;
+
+/** Drop the repeated year so neighbouring labels fit; the first label keeps it. */
+const shortenXLabels = (
+  labels: string[],
+  indices: number[],
+): { index: number; position: number; text: string }[] => {
+  let previousYear: string | null = null;
+  return indices.map((index, position) => {
+    const raw = labels[index];
+    const match = MONTH_LABEL.exec(raw);
+    if (match === null) return { index, position, text: raw };
+    const text = match[2] === previousYear ? match[1] : raw;
+    previousYear = match[2];
+    return { index, position, text };
+  });
+};
 
 type ComposedChartProps = {
   labels: string[];
@@ -30,6 +51,16 @@ type ComposedChartProps = {
   referenceLines?: ComposedReferenceLine[];
   /** Rendered plot height in px. */
   height?: number;
+  /** Fixed y domain, e.g. `{ min: 0, max: 100 }` for a percentage axis. */
+  yDomain?: { min: number; max: number };
+  /** Gridline and tick count. Defaults to 4. */
+  yTicks?: number;
+  /** Fixed tick decimals; use for narrow domains where rounding would repeat labels. */
+  yDecimals?: number;
+  /** Suffix appended to every left tick label, e.g. `%`. */
+  yUnit?: string;
+  /** Pin a line-only scale to include the zero baseline. */
+  includeZero?: boolean;
   showLabels?: boolean;
   ariaLabel?: string;
   className?: string;
@@ -48,22 +79,80 @@ export function ComposedChart({
   series,
   referenceLines = [],
   height = COMPOSED_CHART_HEIGHT,
+  yDomain,
+  yTicks,
+  yDecimals,
+  yUnit,
+  includeZero,
   showLabels = true,
   ariaLabel,
   className,
   children,
 }: ComposedChartProps) {
-  const layout = buildComposedGeometry(labels, series, referenceLines);
-  const xLabelIndices = pickComposedXLabels(labels.length);
+  const layout = buildComposedGeometry(labels, series, referenceLines, {
+    ...(yDomain === undefined ? {} : { yDomain }),
+    ...(yTicks === undefined ? {} : { yTicks }),
+    ...(yDecimals === undefined ? {} : { yDecimals }),
+    ...(includeZero === undefined ? {} : { includeZero }),
+  });
+  const seriesColor = (item: {
+    tone: keyof typeof CHART_TONE_COLOR;
+    colorToken?: keyof typeof CHART_COLOR_TOKEN_COLOR;
+  }) =>
+    item.colorToken === undefined
+      ? CHART_TONE_COLOR[item.tone]
+      : CHART_COLOR_TOKEN_COLOR[item.colorToken];
+  // A padded scale can leave the zero baseline between gridlines; label it so a
+  // negative bar is not read against the nearest (non-zero) tick. The tick it
+  // replaces is dropped to keep the two 11px labels from colliding.
+  const zeroLabelY = layout.zeroY;
+  const leftLabels =
+    zeroLabelY !== undefined &&
+    !layout.leftLabels.some((label) => Math.abs(label.y - zeroLabelY) < 10)
+      ? [
+          ...layout.leftLabels.filter((label) => Math.abs(label.y - zeroLabelY) >= 20),
+          { y: zeroLabelY, text: '0' },
+        ]
+      : layout.leftLabels;
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [width, setWidth] = React.useState<number | null>(null);
+  React.useEffect(() => {
+    const element = containerRef.current;
+    if (element === null) return;
+    const measure = () => setWidth(element.getBoundingClientRect().width);
+    measure();
+    window.addEventListener('resize', measure);
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => measure());
+    observer?.observe(element);
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+    };
+  }, []);
+  const xLabels = shortenXLabels(
+    labels,
+    pickComposedXLabels(
+      labels.length,
+      width === null ? MAX_X_LABELS : Math.min(MAX_X_LABELS, Math.floor(width / MIN_X_LABEL_SLOT)),
+    ),
+  );
   // Gradient ids must be unique per chart instance, or a second chart on the page reuses the first.
   const gradientIdPrefix = React.useId().replace(/:/g, '');
   const a11yProps =
     ariaLabel === undefined || children !== undefined
       ? {}
       : { role: 'img' as const, 'aria-label': ariaLabel };
+  // Bars can be negative, so the series grows out of the zero line in both
+  // directions rather than off the bottom edge. `view-box` makes the origin
+  // resolve against the plot, not the group's own box.
+  const revealOrigin = {
+    transformBox: 'view-box' as const,
+    transformOrigin: `0 ${layout.zeroY ?? COMPOSED_CHART_HEIGHT}px`,
+  };
 
   return (
-    <div className={cn('relative', className)}>
+    <div ref={containerRef} className={cn('relative', className)}>
       <div className="relative" style={{ height }} {...a11yProps}>
         <svg
           className="block h-full w-full"
@@ -84,10 +173,10 @@ export function ComposedChart({
                 >
                   <stop
                     offset="0%"
-                    stopColor={CHART_TONE_COLOR[line.tone]}
+                    stopColor={seriesColor(line)}
                     stopOpacity={AREA_GRADIENT_OPACITY}
                   />
-                  <stop offset="100%" stopColor={CHART_TONE_COLOR[line.tone]} stopOpacity={0} />
+                  <stop offset="100%" stopColor={seriesColor(line)} stopOpacity={0} />
                 </linearGradient>
               ),
             )}
@@ -116,37 +205,55 @@ export function ComposedChart({
               vectorEffect="non-scaling-stroke"
             />
           )}
-          {layout.lines.map((line, index) =>
-            line.areaPath ? (
-              <path
-                key={`area-${line.key}`}
-                d={line.areaPath}
-                fill={`url(#${gradientIdPrefix}-area-${index})`}
-                stroke="none"
+          {/* Only the data grows; grid, zero line and reference lines are
+              already in place, so the marker stays put while the series rises
+              to meet it. `non-scaling-stroke` on the lines is what makes the
+              scale safe — the stroke width never stretches with the group. */}
+          <g className="animate-chart-reveal" style={revealOrigin}>
+            {layout.lines.map((line, index) =>
+              line.areaPath ? (
+                <path
+                  key={`area-${line.key}`}
+                  d={line.areaPath}
+                  fill={`url(#${gradientIdPrefix}-area-${index})`}
+                  stroke="none"
+                />
+              ) : null,
+            )}
+            {layout.bars.map((bar) => (
+              <rect
+                key={bar.key}
+                x={bar.x}
+                y={bar.y}
+                width={bar.width}
+                height={bar.height}
+                fill={seriesColor(bar)}
+                fillOpacity={BAR_FILL_OPACITY}
               />
-            ) : null,
-          )}
-          {layout.bars.map((bar) => (
-            <rect
-              key={bar.key}
-              x={bar.x}
-              y={bar.y}
-              width={bar.width}
-              height={bar.height}
-              fill={CHART_TONE_COLOR[bar.tone]}
-              fillOpacity={BAR_FILL_OPACITY}
-            />
-          ))}
-          {layout.lines.map((line) => (
-            <path
-              key={line.key}
-              d={line.path}
-              fill="none"
-              stroke={CHART_TONE_COLOR[line.tone]}
-              strokeWidth={line.dashed ? DASHED_LINE_STROKE_WIDTH : LINE_STROKE_WIDTH}
-              {...(line.dashed ? { strokeDasharray: '5 4', strokeOpacity: 0.9 } : {})}
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            ))}
+            {layout.lines.map((line) => (
+              <path
+                key={line.key}
+                d={line.path}
+                fill="none"
+                stroke={seriesColor(line)}
+                strokeWidth={line.dashed ? DASHED_LINE_STROKE_WIDTH : LINE_STROKE_WIDTH}
+                {...(line.dashed ? { strokeDasharray: '5 4', strokeOpacity: 0.9 } : {})}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </g>
+          {layout.referenceLines.map((line) => (
+            <line
+              key={`ref-casing-${line.index}`}
+              x1={line.x}
+              x2={line.x}
+              y1={0}
+              y2={COMPOSED_CHART_HEIGHT}
+              stroke="hsl(var(--background))"
+              strokeWidth={3.5}
               vectorEffect="non-scaling-stroke"
             />
           ))}
@@ -157,24 +264,25 @@ export function ComposedChart({
               x2={line.x}
               y1={0}
               y2={COMPOSED_CHART_HEIGHT}
-              stroke={CHART_TONE_COLOR[line.tone]}
+              stroke={seriesColor(line)}
               strokeWidth={1.5}
               strokeDasharray="4 4"
-              strokeOpacity={0.8}
+              strokeOpacity={1}
               vectorEffect="non-scaling-stroke"
             />
           ))}
         </svg>
 
-        {layout.leftLabels.length > 0 && (
+        {leftLabels.length > 0 && (
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            {layout.leftLabels.map((label, index) => (
+            {leftLabels.map((label, index) => (
               <span
                 key={`left-${index}`}
                 className="absolute left-0 -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground"
                 style={{ top: `${(label.y / COMPOSED_CHART_HEIGHT) * 100}%` }}
               >
                 {label.text}
+                {yUnit ?? ''}
               </span>
             ))}
           </div>
@@ -197,7 +305,7 @@ export function ComposedChart({
             <span
               key={`ref-label-${line.index}`}
               aria-hidden="true"
-              className="pointer-events-none absolute top-0 whitespace-nowrap font-mono text-[11px] uppercase tracking-widest"
+              className="pointer-events-none absolute top-0 rounded-sm bg-background/80 px-1 whitespace-nowrap font-mono text-[11px] uppercase tracking-widest"
               style={{
                 left: `${line.xRatio * 100}%`,
                 transform:
@@ -217,9 +325,10 @@ export function ComposedChart({
         {children?.(layout)}
       </div>
 
-      {showLabels && xLabelIndices.length > 0 && (
+      {/* With every series hidden the geometry returns an empty layout, so there are no columns to anchor labels to. */}
+      {showLabels && layout.columns.length > 0 && (
         <div className="relative mt-2 h-4">
-          {xLabelIndices.map((index, position) => (
+          {xLabels.map(({ index, position, text }) => (
             <span
               key={`${labels[index]}-${index}`}
               className="absolute whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground"
@@ -228,12 +337,12 @@ export function ComposedChart({
                 transform:
                   position === 0
                     ? 'none'
-                    : position === xLabelIndices.length - 1
+                    : position === xLabels.length - 1
                       ? 'translateX(-100%)'
                       : 'translateX(-50%)',
               }}
             >
-              {labels[index]}
+              {text}
             </span>
           ))}
         </div>

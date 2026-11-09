@@ -15,9 +15,8 @@ const identity = {
 /** Documents the payload would write, excluding the household document itself. */
 const countPayloadDocs = (payload: ReturnType<typeof buildDemoBackupPayload>) => {
   const { collections } = payload;
-  const withSnapshots = (
-    entries: ReadonlyArray<{ snapshots: readonly unknown[] }>,
-  ): number => entries.reduce((sum, entry) => sum + 1 + entry.snapshots.length, 0);
+  const withSnapshots = (entries: ReadonlyArray<{ snapshots: readonly unknown[] }>): number =>
+    entries.reduce((sum, entry) => sum + 1 + entry.snapshots.length, 0);
 
   return (
     withSnapshots(collections.accounts) +

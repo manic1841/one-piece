@@ -37,7 +37,8 @@ export const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({ rows }) 
 
   return (
     <>
-      <MobileDataList>
+      {/* Four numeric columns only fit from `lg`; tablets keep the grouped rows. */}
+      <MobileDataList className="md:block lg:hidden">
         {rows.map((row) => (
           <MobileDataRow
             key={row.period}
@@ -72,7 +73,7 @@ export const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({ rows }) 
         ))}
       </MobileDataList>
 
-      <DataTableScrollArea>
+      <DataTableScrollArea className="md:hidden lg:block">
         <DataTable data-testid="report-history-table">
           <DataTableColGroup widths={COLUMN_WIDTHS} />
           <TableHeader>

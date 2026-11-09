@@ -1,31 +1,9 @@
-/** Shared pieces of chart interaction: point vocabulary, keyboard scrubber, and tooltip anchoring. */
+/** Chart interaction hooks. The pure vocabulary lives in `@/ui/utils/chartInteraction`. */
 import * as React from 'react';
 
-export type ChartPoint = {
-  /** Period / point caption, e.g. "SEP 2026". */
-  title: string;
-  /** Highlighted value line, e.g. "$4,812,430". */
-  value: string;
-  /** Muted secondary line, e.g. "+8.42% YTD". */
-  meta?: string;
-};
+import { TOOLTIP_CARD_ALLOWANCE, TOOLTIP_GAP, clampIndex } from '@/ui/utils/chartInteraction';
 
-/** Accessible description of a point: aria-valuetext for the interactive charts. */
-export const describePoint = (point: ChartPoint): string =>
-  [point.title, point.value, point.meta].filter((part) => part !== undefined).join(', ');
-
-/** Keep an index inside `[0, count - 1]`. */
-export const clampIndex = (index: number, count: number): number =>
-  Math.min(count - 1, Math.max(0, index));
-
-/** Flip the tooltip to the left of its anchor near the right edge. */
-export const shouldFlipTooltip = (xRatio: number): boolean => xRatio > 0.72;
-
-/** Gap between the tooltip card and the point it describes, in px. */
-export const TOOLTIP_GAP = 12;
-
-/** Assumed card height (3 lines) until the real card has been measured. */
-export const TOOLTIP_CARD_ALLOWANCE = 84;
+export * from '@/ui/utils/chartInteraction';
 
 /**
  * Measures the rendered tooltip card so the charts can anchor it inside the plot.
@@ -58,6 +36,7 @@ export const useChartScrubber = (
   count: number,
   plotHeight: number,
   onActivate?: (index: number) => void,
+  selectedIndex?: number,
 ) => {
   const [active, setActive] = React.useState<number | null>(null);
   const { ref: tooltipRef, allowedTopRatio } = useTooltipAllowance(plotHeight, active);
@@ -66,13 +45,14 @@ export const useChartScrubber = (
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
       event.preventDefault();
       const step = event.key === 'ArrowRight' ? 1 : -1;
-      setActive(clampIndex((active ?? -1) + step, count));
+      setActive(clampIndex((active ?? selectedIndex ?? -1) + step, count));
       return;
     }
     if (event.key === 'Enter' || event.key === ' ') {
-      if (onActivate === undefined || active === null) return;
+      const index = active ?? selectedIndex;
+      if (onActivate === undefined || index === undefined) return;
       event.preventDefault();
-      onActivate(active);
+      onActivate(index);
       return;
     }
     if (event.key === 'Escape') setActive(null);
