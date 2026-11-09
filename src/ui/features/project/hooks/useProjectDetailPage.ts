@@ -6,7 +6,6 @@ import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAc
 import { type Project } from '@/domains/project/schemas';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
-  PROJECT_BALANCE_MISSING,
   PROJECT_DANGER_LABELS,
   PROJECT_DETAIL_LABELS,
 } from '@/ui/constants/project/projectDetailLabels';
@@ -16,6 +15,9 @@ import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDeta
 import {
   type ProjectDebtRow,
   type ProjectSummary,
+  toBalanceText,
+  toLatestSettledText,
+  toProjectSummaryVM,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { formatCurrency } from '@/ui/utils';
@@ -37,10 +39,16 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const {
     monthGroups,
     totals,
-    latestSnapshot,
+    balance,
+    lastSettledYearMonth,
+    hasMore,
+    loadMore,
     loading: viewLoading,
+    balanceLoading,
+    balanceError,
     error: viewError,
     reload,
+    retryBalance,
   } = useProjectDetailView(householdId, id || '');
 
   const { updateProject, deleteProject } = useProjectCmds(householdId);
@@ -129,14 +137,12 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     setStatusOverride(nextActive);
   }, [activeProject, isActive, updateProject]);
 
-  const summary = useMemo<ProjectSummary>(
-    () => ({
-      income: totals.income,
-      expense: totals.expense,
-      net: totals.net,
-      balanceText: latestSnapshot?.closingBalanceText ?? PROJECT_BALANCE_MISSING,
-    }),
-    [totals, latestSnapshot],
+  const summary = useMemo<ProjectSummary>(() => toProjectSummaryVM(totals), [totals]);
+
+  const balanceText = useMemo(() => toBalanceText(balance), [balance]);
+  const latestSettledText = useMemo(
+    () => toLatestSettledText(lastSettledYearMonth),
+    [lastSettledYearMonth],
   );
 
   const handleDelete = useCallback(async () => {
@@ -165,10 +171,17 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     isActive,
     monthGroups,
     summary,
+    balanceText,
+    latestSettledText,
+    hasMore,
+    loadMore,
     loading: fetchState === 'loading' || viewLoading,
+    balanceLoading,
+    balanceError,
     error,
     notFound,
     reload: reloadAll,
+    retryBalance,
     handleRename,
     handleToggleActive,
     handleDelete,

@@ -70,7 +70,8 @@ const readMonthFigure = async (
  * feeds the restore, and the confirmation that names the file.
  *
  * The round-trip is made observable by one recognizable change: an expense booked
- * into a seeded month. The project's monthly figure moves by exactly that amount,
+ * into a seeded month. The month carries no snapshot, so its income and expense
+ * come straight from the journal; the figure moves by exactly the booked amount
  * and the restore — taken before the expense existed — must move it back. Both
  * the income and the expense of the same row are read, so a row that simply
  * vanished would fail the income comparison instead of passing the expense one.
@@ -155,6 +156,10 @@ test('an exported backup can be uploaded back and restores the household', async
     .toBeCloseTo(before.expense + EXPENSE_AMOUNT, 2);
   const afterChange = await readMonthFigure(page, FIGURE_MONTH);
   expect(afterChange.income).toBeCloseTo(before.income, 2);
+  // The month has no snapshot, yet its balances roll forward instead of dashing.
+  await expect(
+    page.getByTestId(`project-month-${FIGURE_MONTH}`).getByRole('cell').nth(4),
+  ).not.toHaveText('—');
 
   // 4. Restore the file taken before the change. The upload goes through the
   //    button that opens the real file chooser, not a direct setInputFiles on the

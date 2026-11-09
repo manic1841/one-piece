@@ -2,8 +2,10 @@ import React from 'react';
 
 import { DangerZone } from '@/ui/components/DangerZone';
 import { FinancialNumber } from '@/ui/components/FinancialNumber';
+import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
 import { PageSection } from '@/ui/components/PageSection';
+import { Skeleton } from '@/ui/components/Skeleton';
 import {
   DataTable,
   DataTableCell,
@@ -22,7 +24,6 @@ import {
   PROJECT_DANGER_LABELS,
   PROJECT_DEBT_COLUMN_WIDTHS,
   PROJECT_DETAIL_LABELS,
-  PROJECT_SUMMARY_LABELS,
 } from '@/ui/constants/project/projectDetailLabels';
 import { ProjectCashFlowPanel } from '@/ui/features/project/components/detail/ProjectCashFlowPanel';
 import {
@@ -30,46 +31,69 @@ import {
   type ProjectMonthGroup,
   type ProjectSummary,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
-import { formatCurrency } from '@/ui/utils';
 
 const netTone = (net: number): 'positive' | 'negative' => (net >= 0 ? 'positive' : 'negative');
 
 interface ProjectDetailProps {
   summary: ProjectSummary;
+  balanceText: string | null;
+  balanceLoading: boolean;
+  /** Display copy plus the raw failure for the alert's tooltip. */
+  balanceError: { message: string; detail: string } | null;
+  onRetryBalance: () => void;
+  latestSettledText: string;
   projectDebt: ProjectDebtRow[];
   monthGroups: ProjectMonthGroup[];
+  /** `null` means the older-data probe failed: "more" is unknown (ADR-0072). */
+  hasMore: boolean | null;
+  onLoadMore: () => void;
   onDelete: () => void;
 }
 
 /** 專案詳情的資料 sections（ADR-0062：header 由 page 層擁有）。 */
 const ProjectDetail: React.FC<ProjectDetailProps> = ({
   summary,
+  balanceText,
+  balanceLoading,
+  balanceError,
+  onRetryBalance,
+  latestSettledText,
   projectDebt,
   monthGroups,
+  hasMore,
+  onLoadMore,
   onDelete,
 }) => (
   <div className="space-y-8">
     <PageSection title={PROJECT_DETAIL_LABELS.BALANCE_SECTION_TITLE} spacing="compact">
-      <FinancialNumber value={summary.balanceText} size="hero" />
+      {balanceLoading ? (
+        <Skeleton className="h-12 w-48" />
+      ) : (
+        <div data-testid="project-balance">
+          <FinancialNumber value={balanceText} size="hero" />
+        </div>
+      )}
+      {balanceError !== null && (
+        <div className="mt-2">
+          <LoadErrorAlert
+            errorMessage={balanceError.detail}
+            message={balanceError.message}
+            retryLabel={PROJECT_DETAIL_LABELS.RETRY_ACTION}
+            onRetry={onRetryBalance}
+            testId="project-balance-error"
+          />
+        </div>
+      )}
+      {!balanceLoading && balanceError === null && (
+        <p className="mt-1 text-xs text-muted-foreground">{latestSettledText}</p>
+      )}
     </PageSection>
 
     <PageSection title={PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE} spacing="compact">
-      <MetricGroup columns={3}>
-        <Metric
-          label={PROJECT_SUMMARY_LABELS.INCOME}
-          value={formatCurrency(summary.income)}
-          tone="positive"
-        />
-        <Metric
-          label={PROJECT_SUMMARY_LABELS.EXPENSE}
-          value={formatCurrency(summary.expense)}
-          tone="negative"
-        />
-        <Metric
-          label={PROJECT_SUMMARY_LABELS.NET_CASH_FLOW}
-          value={formatCurrency(summary.net)}
-          tone={netTone(summary.net)}
-        />
+      <MetricGroup columns={3} lastSpansFull>
+        <Metric label={summary.incomeLabel} value={summary.incomeText} tone="positive" />
+        <Metric label={summary.expenseLabel} value={summary.expenseText} tone="negative" />
+        <Metric label={summary.netLabel} value={summary.netText} tone={netTone(summary.net)} />
       </MetricGroup>
     </PageSection>
 
@@ -115,7 +139,7 @@ const ProjectDetail: React.FC<ProjectDetailProps> = ({
       )}
     </PageSection>
 
-    <ProjectCashFlowPanel groups={monthGroups} />
+    <ProjectCashFlowPanel groups={monthGroups} hasMore={hasMore} onLoadMore={onLoadMore} />
 
     <DangerZone actionLabel={PROJECT_DANGER_LABELS.DELETE} onAction={onDelete} />
   </div>

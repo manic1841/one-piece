@@ -3,10 +3,18 @@ import { type Transaction } from '@/domains/ledger/schemas';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
+import { windowToDateRange } from '../monthWindow';
+
 export interface ListProjectRecordsRequest {
   householdId: string;
   projectId: string;
   yearMonth?: string;
+  /** Inclusive `YYYY-MM` lower bound of the queried window. */
+  fromYearMonth?: string;
+  /** Inclusive `YYYY-MM` upper bound of the queried window. */
+  toYearMonth?: string;
+  /** Cap on the records returned for the window. */
+  limit?: number;
 }
 
 const toMillis = (value: unknown): number => {
@@ -28,13 +36,38 @@ const toMillis = (value: unknown): number => {
 
 export class ListProjectRecordsUseCase {
   async execute(request: ListProjectRecordsRequest): Promise<Transaction[]> {
-    const { householdId, projectId, yearMonth } = request;
+    const {
+      householdId,
+      projectId,
+      yearMonth,
+      fromYearMonth,
+      toYearMonth,
+      limit: maxLimit,
+    } = request;
+
+    const range = windowToDateRange({
+      from: fromYearMonth ?? '0000-01',
+      to: toYearMonth ?? '9999-12',
+    });
 
     const directRecords = yearMonth
       ? await transactionRepository.getTransactionsByProject(householdId, projectId, yearMonth)
-      : await transactionRepository.listByProject(householdId, projectId);
+      : await transactionRepository.listByProject({
+          householdId,
+          projectId,
+          sinceDate: fromYearMonth ? range.start : undefined,
+          untilDate: toYearMonth ? range.endExclusive : undefined,
+          maxLimit,
+        });
 
-    const allocations = await allocationRepository.listByProject(householdId, projectId, yearMonth);
+    const allocations = await allocationRepository.listByProject({
+      householdId,
+      projectId,
+      yearMonth,
+      sinceYearMonth: fromYearMonth,
+      untilYearMonth: toYearMonth,
+      maxLimit,
+    });
 
     const allocatedAmountByTransaction = new Map<
       string,
@@ -106,11 +139,14 @@ export class ListProjectRecordsUseCase {
       .filter((record): record is Transaction => record !== null);
 
     // Include transfer records where this project is either source or destination
-    const transferCandidates = await transactionRepository.listTransfersByProject(
+    const transferCandidates = await transactionRepository.listTransfersByProject({
       householdId,
       projectId,
       yearMonth,
-    );
+      sinceDate: fromYearMonth ? range.start : undefined,
+      untilDate: toYearMonth ? range.endExclusive : undefined,
+      maxLimit,
+    });
 
     const transferRecords: Transaction[] = transferCandidates
       .map((t) => {
@@ -130,9 +166,9 @@ export class ListProjectRecordsUseCase {
       })
       .filter((r): r is Transaction => r !== null);
 
-    return [...directRecords, ...allocationRecords, ...transferRecords].sort(
-      (a, b) => toMillis(b.date) - toMillis(a.date),
-    );
+    return [...directRecords, ...allocationRecords, ...transferRecords]
+      .sort((a, b) => toMillis(b.date) - toMillis(a.date))
+      .slice(0, maxLimit);
   }
 }
 

@@ -1,38 +1,36 @@
 import { type Project } from '@/domains/project/schemas';
+import { formatCurrencyOrDash } from '@/ui/utils';
 
-export interface ProjectSnapshotTotals {
-  income: number;
-  expense: number;
+/** Live project balance plus the month it was last settled in. */
+export interface ProjectBalanceVM {
+  balance: number | null;
+  /** `YYYY-MM` of the newest snapshot, null when the project was never settled. */
+  lastSettledYearMonth: string | null;
 }
 
 export interface ProjectRowVM {
   id: string;
   name: string;
   isActive: boolean;
-  income: number;
-  expense: number;
-  net: number;
+  /** Raw sign-bearing balance, for the amount tone. */
+  balance: number | null;
+  balanceText: string;
+  lastSettledMonthText: string;
 }
-
-export const toProjectSnapshotTotals = (
-  snapshots: readonly { income: number; expense: number }[],
-): ProjectSnapshotTotals => ({
-  income: snapshots.reduce((sum, snapshot) => sum + snapshot.income, 0),
-  expense: snapshots.reduce((sum, snapshot) => sum + snapshot.expense, 0),
-});
 
 export const toProjectRows = (
   projects: readonly Project[],
-  totalsByProject: ReadonlyMap<string, ProjectSnapshotTotals>,
+  balances: ReadonlyMap<string, ProjectBalanceVM>,
+  neverSettledLabel: string,
 ): ProjectRowVM[] =>
   projects.map((project) => {
-    const totals = totalsByProject.get(project.id) ?? { income: 0, expense: 0 };
+    const entry = balances.get(project.id);
     return {
       id: project.id,
       name: project.name,
       isActive: project.isActive,
-      income: totals.income,
-      expense: totals.expense,
-      net: totals.income - totals.expense,
+      balance: entry?.balance ?? null,
+      balanceText: formatCurrencyOrDash(entry?.balance ?? null),
+      lastSettledMonthText: entry?.lastSettledYearMonth ?? neverSettledLabel,
     };
   });

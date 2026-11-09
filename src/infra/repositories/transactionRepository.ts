@@ -38,6 +38,20 @@ const toMillis = (value: unknown): number => {
   return 0;
 };
 
+export interface ListByProjectParams {
+  householdId: string;
+  projectId: string;
+  /** Inclusive lower bound on `date`. */
+  sinceDate?: Date;
+  /** Exclusive upper bound on `date`. */
+  untilDate?: Date;
+  maxLimit?: number;
+}
+
+export interface ListTransfersByProjectParams extends ListByProjectParams {
+  yearMonth?: string;
+}
+
 class TransactionRepository extends BaseRepository<Transaction, [string, string?]> {
   private readonly collectionName = 'transactions';
 
@@ -193,16 +207,21 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     );
   }
 
-  async listTransfersByProject(
-    householdId: string,
-    projectId: string,
-    yearMonth?: string,
-    sinceDate?: Date,
-  ): Promise<Transaction[]> {
+  async listTransfersByProject({
+    householdId,
+    projectId,
+    yearMonth,
+    sinceDate,
+    untilDate,
+    maxLimit,
+  }: ListTransfersByProjectParams): Promise<Transaction[]> {
     const buildDateRangeConstraints = () => {
       const constraints: QueryConstraint[] = [];
       if (sinceDate) {
         constraints.push(where('date', '>=', sinceDate));
+      }
+      if (untilDate) {
+        constraints.push(where('date', '<', untilDate));
       }
       if (yearMonth) {
         const [year, month] = yearMonth.split('-').map(Number);
@@ -212,6 +231,9 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
       }
       if (constraints.length > 0) {
         constraints.push(orderBy('date', 'desc'));
+      }
+      if (maxLimit) {
+        constraints.push(limit(maxLimit));
       }
       return constraints;
     };
@@ -335,16 +357,24 @@ class TransactionRepository extends BaseRepository<Transaction, [string, string?
     });
   }
 
-  async listByProject(
-    householdId: string,
-    projectId: string,
-    sinceDate?: Date,
-  ): Promise<Transaction[]> {
+  async listByProject({
+    householdId,
+    projectId,
+    sinceDate,
+    untilDate,
+    maxLimit,
+  }: ListByProjectParams): Promise<Transaction[]> {
     const constraints: QueryConstraint[] = [where('projectId', '==', projectId)];
     if (sinceDate) {
       constraints.push(where('date', '>=', sinceDate));
     }
+    if (untilDate) {
+      constraints.push(where('date', '<', untilDate));
+    }
     constraints.push(orderBy('date', 'desc'));
+    if (maxLimit) {
+      constraints.push(limit(maxLimit));
+    }
     return this.list([householdId], constraints);
   }
 }

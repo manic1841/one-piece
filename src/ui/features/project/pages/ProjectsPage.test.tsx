@@ -44,9 +44,8 @@ const rowVM = {
   id: 'pr1',
   name: 'Kitchen Remodel',
   isActive: true,
-  income: 150000,
-  expense: 90000,
-  net: 60000,
+  balanceText: 'NT$60,000',
+  lastSettledMonthText: '2026-09',
 };
 
 const controllerBase = {
@@ -86,9 +85,8 @@ describe('ProjectsPage', () => {
 
     expect(screen.getByText('名稱')).toBeInTheDocument();
     expect(screen.getAllByText('狀態').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('收入').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('支出').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('淨現金流').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('餘額').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('最後結算月份').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Kitchen Remodel').length).toBe(2);
     expect((await screen.findAllByText('進行中')).length).toBeGreaterThan(0);
   });
@@ -113,7 +111,7 @@ describe('ProjectsPage', () => {
 
     const mobileRow = await screen.findByTestId('project-row-mobile-pr1');
     expect(mobileRow.textContent).toContain('Kitchen Remodel');
-    expect(mobileRow.textContent).toContain('淨現金流');
+    expect(mobileRow.textContent).toContain('最後結算月份');
     expect(mobileRow.textContent).toContain('NT$60,000');
 
     const list = mobileRow.closest('div.md\\:hidden') ?? mobileRow.parentElement;
@@ -202,10 +200,7 @@ describe('ProjectsPage', () => {
     expect(
       screen.getByRole('group', { name: PROJECTS_PAGE_LABELS.FILTER_LABEL }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '僅進行中' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    expect(screen.getByRole('button', { name: '進行中' })).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: '含停用' }));
     expect(setShowInactive).toHaveBeenCalledWith(true);

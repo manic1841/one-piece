@@ -27,10 +27,17 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
     isActive,
     monthGroups,
     summary,
+    balanceText,
+    latestSettledText,
+    hasMore,
+    loadMore,
     loading,
+    balanceLoading,
+    balanceError,
     error,
     notFound,
     reload,
+    retryBalance,
     handleRename,
     handleToggleActive,
     handleDelete,
@@ -118,9 +125,16 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
 
       <ProjectDetail
         summary={summary}
+        balanceText={balanceText}
+        balanceLoading={balanceLoading}
+        balanceError={balanceError}
+        onRetryBalance={() => void retryBalance()}
+        latestSettledText={latestSettledText}
         projectDebt={projectDebt}
         monthGroups={monthGroups}
-        onDelete={() => void handleDelete()}
+        hasMore={hasMore}
+        onLoadMore={loadMore}
+        onDelete={handleDelete}
       />
     </div>
   );

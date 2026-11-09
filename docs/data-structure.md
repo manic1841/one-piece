@@ -61,6 +61,10 @@ household 子集合走 catch-all，路徑與刪除權限由 application 層把�
 
 - **兩套會計不互相推導**：專案餘額由 Allocation 與 Transaction 推導（管理會計）；
   報表從分錄的 LedgerCode 計算（財務會計）（ADR-0006）。
+- **專案餘額是即時推導值**：餘額＝最新快照的 `closingBalance` 加上快照之後的交易、
+  轉帳與分配；沒有快照時以 0 為底。快照月的分配已含在 `closingBalance` 內，讀取時
+  排除該月。轉帳以 `toProjectId` 為流入、`fromProjectId` 為流出，不看 `projectId`
+  （ADR-0042）。餘額可以為負（ADR-0013）。
 - **快照是可重算的快取**：`transactions.entries` 才是唯一真相，程式碼只寫事件與
   Allocation，不直接寫專案快照（ADR-0012）。`debtAccounts.currentBalance` 同理由
   分錄推導（ADR-0015）。
