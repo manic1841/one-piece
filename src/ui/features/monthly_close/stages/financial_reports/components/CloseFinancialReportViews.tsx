@@ -30,13 +30,15 @@ import {
   combineDrift,
   formatDriftAmountText,
   formatDriftDelta,
+  formatDriftEdges,
   isDrifted,
 } from '../../../viewmodels/reportDrift.vm';
-
 /** 漂移金額 → 共用列的金額欄位：文字為 delta 或原值，警示色標記已漂移。 */
 const driftCell = (drift: DriftAmount): StatementAmountCell => ({
   amountText: formatDriftAmountText(drift),
   amountWarning: isDrifted(drift),
+  // 行動版沒有欄寬可容納 `a -> b` 的一行，改在金額下方另起一行；未漂移時不給。
+  amountChange: isDrifted(drift) ? formatDriftEdges(drift) : undefined,
 });
 
 /** 漂移金額 → 摘要指標值：當期值為本體，變化行為漂移 delta（未漂移則不顯示變化行）。 */

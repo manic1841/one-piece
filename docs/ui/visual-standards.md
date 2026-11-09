@@ -225,7 +225,9 @@ Financial Reports 三張表是一個**沒有欄名標題列的單表**，由資�
 - **階層以縮排表達**（級距見 [`design-system.md`](design-system.md) 的「間距級距」），可摺疊、**預設展開**、chevron 置於標籤**左側**；摺疊狀態跨分頁切換**不保留**（切回重置為展開）。
 - **金額欄一律靠表格最右**，與標籤欄兩欄配置（欄寬為程式碼常數）。
 - **現金流的實際餘額為表下的 muted 註腳**（對帳性質的次要觀察值），不與現金淨變動等重。
-- **行動版沿用同一張兩欄表**（標籤換行、無水平捲動），並沿用同一套語意階層，不另做 grouped card；資產負債表的五項權益來源固定呈現（含 0），確保 breakdown 不因歸零而被隱藏。
+- **行動版改用一列一筆的堆疊列，不沿用兩欄表**：`<md` 沒有 74/26 的欄寬可分配，硬留兩欄會把標籤與金額一起擠爛。列的形狀（label 左／金額右、44px chevron、漂移折成金額下方第二行）由 [`design-system.md`](design-system.md) 的 `data-table` Mobile 段定義，本節只要求三張表都走這條路：行動版不另做 grouped card，資產負債表的五項權益來源固定呈現（含 0），確保 breakdown 不因歸零而被隱藏。
+- **終結列在行動版滿版整列**：primary 與 2px 上下線一律保留，不因堆疊而少掉下線——手機上它就是結論的框。
+- **文字優先於表格語彙**：行動版仍沿用同一套語意階層與同一組字級，只是沒有表頭與欄對齊可用。
 
 ### 報表檢視 (Report View)
 
@@ -280,6 +282,7 @@ Mobile 不是 Desktop 縮小，而是相同資訊階層的不同排版。
 - 不以水平捲動作為主要解法。
 - Table → compact rows / grouped list。
 - Secondary information 可收進 Accordion。
+- 併排區塊在手機改為上下堆疊時，**每個區塊各自帶標題**，不靠另一半的欄寬暗示歸屬；只在桌機才有的欄（如沒有欄名的 `-` 佔位列）不帶到手機，改由列內既有文字承擔。
 - Primary action 保持容易觸及。
 - 底部固定列（sticky dock）以 `--bottom-overlay`（由 shell 量測系統級固定浮層髮布，無浮層時為 `0`）加上 `env(safe-area-inset-bottom)` 讓位，永不與固定浮層或 home indicator 重疊；高度不得寫死。
 - Reading order 與 Desktop 一致（見「響應式原則」）。

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
+import { MobileDataList } from '@/ui/components/data-table';
 import { cn } from '@/ui/utils/cn';
 
 import { statementTitleClass } from './StatementTable';
@@ -18,6 +19,9 @@ interface StatementPanelProps {
 /**
  * 一張報表的排版外框：標題（僅行動版）＋ 摘要指標列 ＋ 表格內容。內容由呼叫端提供，
  * 讓同一份外框同時服務報表檢視與月度關帳——兩個表面因此長得一樣。
+ *
+ * 指標列在 `<md` 改為 label 左／值右的堆疊列：三格在兩欄裡會留下一格孤兒與一條
+ * 沒有對應的直分隔線，堆疊後與下方的列式表同一套讀法。
  */
 export const StatementPanel: React.FC<StatementPanelProps> = ({
   title,
@@ -28,22 +32,45 @@ export const StatementPanel: React.FC<StatementPanelProps> = ({
   <div className="space-y-4" data-testid={testId}>
     {title !== undefined && <p className={cn(statementTitleClass, 'md:hidden')}>{title}</p>}
     {metrics !== undefined && (
-      <MetricGroup columns={3} lastSpansFull>
-        {metrics.map((item) => (
-          <Metric
-            key={item.key}
-            testId={item.testId}
-            label={item.label}
-            value={item.value}
-            animatedValue={item.animatedValue}
-            animateFormat={item.animateFormat}
-            animateOnMount
-            tone={item.tone}
-            change={item.change}
-            changeTone={item.changeTone}
-          />
-        ))}
-      </MetricGroup>
+      <>
+        <MobileDataList
+          className="space-y-0 divide-y divide-border"
+          data-testid="statement-metrics-stacked"
+        >
+          {metrics.map((item) => (
+            <Metric
+              key={item.key}
+              layout="stacked"
+              label={item.label}
+              value={item.value}
+              animatedValue={item.animatedValue}
+              animateFormat={item.animateFormat}
+              animateOnMount
+              tone={item.tone}
+              change={item.change}
+              changeTone={item.changeTone}
+            />
+          ))}
+        </MobileDataList>
+        <div className="hidden md:block">
+          <MetricGroup columns={3} lastSpansFull>
+            {metrics.map((item) => (
+              <Metric
+                key={item.key}
+                testId={item.testId}
+                label={item.label}
+                value={item.value}
+                animatedValue={item.animatedValue}
+                animateFormat={item.animateFormat}
+                animateOnMount
+                tone={item.tone}
+                change={item.change}
+                changeTone={item.changeTone}
+              />
+            ))}
+          </MetricGroup>
+        </div>
+      </>
     )}
     {children}
   </div>

@@ -8,6 +8,7 @@ import { type Project } from '@/domains/project/schemas';
 import {
   type DebtAccountDisplayVM,
   mapDebtAccountToDisplayVM,
+  sumActiveMonthlyDue,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
@@ -61,9 +62,9 @@ export function useDebtPage(householdId: string) {
     [debtAccounts],
   );
 
-  const totalMonthlyPayment = useMemo(
-    () => debtAccounts.filter((a) => a.isActive).reduce((s, a) => s + a.monthlyPayment, 0),
-    [debtAccounts],
+  const totalMonthlyDue = useMemo(
+    () => sumActiveMonthlyDue(debtAccountViews),
+    [debtAccountViews],
   );
 
   const getPaymentHistory = useCallback(
@@ -81,7 +82,7 @@ export function useDebtPage(householdId: string) {
     debtAccountViews,
     projects,
     totalDebt,
-    totalMonthlyPayment,
+    totalMonthlyDue,
     getPaymentHistory,
     reload: loadData,
   };

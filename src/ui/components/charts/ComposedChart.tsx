@@ -4,7 +4,7 @@ import { cn } from '@/ui/utils/cn';
 
 import { ChartAxisGutter } from './ChartAxisGutter';
 import { ChartXLabelRow } from './ChartXLabelRow';
-import { labelZeroBaseline } from './axisLabels';
+import { tickCountForHeight } from './axisLabels';
 import { CHART_COLOR_TOKEN_COLOR, CHART_TONE_COLOR } from './chartTheme';
 import {
   COMPOSED_CHART_HEIGHT,
@@ -72,9 +72,11 @@ export function ComposedChart({
   className,
   children,
 }: ComposedChartProps) {
+  const yTickCount = tickCountForHeight(height, yTicks);
   const layout = buildComposedGeometry(labels, series, referenceLines, {
     ...(yDomain === undefined ? {} : { yDomain }),
-    ...(yTicks === undefined ? {} : { yTicks }),
+    // A pinned count wins; a short plot thins out on its own.
+    ...(yTickCount === undefined ? {} : { yTicks: yTickCount }),
     ...(yDecimals === undefined ? {} : { yDecimals }),
     ...(includeZero === undefined ? {} : { includeZero }),
   });
@@ -85,8 +87,8 @@ export function ComposedChart({
     item.colorToken === undefined
       ? CHART_TONE_COLOR[item.tone]
       : CHART_COLOR_TOKEN_COLOR[item.colorToken];
-  const leftLabels = labelZeroBaseline(layout.leftLabels, layout.zeroY);
-  const rightLabels = labelZeroBaseline(layout.rightLabels, layout.rightZeroY);
+  const leftLabels = layout.leftLabels;
+  const rightLabels = layout.rightLabels;
   const [containerRef, width] = useMeasuredWidth<HTMLDivElement>();
   const xLabels = shortenXLabels(labels, pickXLabels(labels.length, xLabelBudget(width)));
   // Gradient ids must be unique per chart instance, or a second chart on the page reuses the first.

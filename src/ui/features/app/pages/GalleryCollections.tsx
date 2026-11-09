@@ -28,6 +28,7 @@ import { useSortableRow } from '@/ui/hooks/useSortableList';
 import { cn } from '@/ui/utils/cn';
 
 import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
+import { StatementRowsModule } from './GalleryStatement';
 
 /**
  * Collection surfaces: five ways to present a set of rows. Kept adjacent so the
@@ -141,6 +142,7 @@ const DataTableSection: React.FC = () => (
         ))}
       </div>
     </GalleryModule>
+    <StatementRowsModule />
     <GalleryCaption>
       唯讀的結構化紀錄：表頭 + 明確欄寬（總和 100%），供掃描與跨表比較。行動版改走 grouped card。
     </GalleryCaption>

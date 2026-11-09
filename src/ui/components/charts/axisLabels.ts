@@ -10,6 +10,18 @@ const ZERO_LABEL_KEEP_AWAY = 20;
 /** Closer than this, a normal tick already labels the baseline. */
 const ZERO_LABEL_COLLISION = 10;
 
+/** Below this plot height there is no room for four tick labels. */
+export const SHORT_PLOT_HEIGHT = 140;
+/** Tick count used under {@link SHORT_PLOT_HEIGHT}. */
+export const SHORT_PLOT_TICKS = 3;
+
+/**
+ * Tick count for a rendered plot height: the caller's pin wins, otherwise a short
+ * plot thins out and a tall one keeps the geometry default.
+ */
+export const tickCountForHeight = (height: number, pinned?: number): number | undefined =>
+  pinned ?? (height < SHORT_PLOT_HEIGHT ? SHORT_PLOT_TICKS : undefined);
+
 type AxisLabel = { y: number; text: string };
 
 /**

@@ -38,6 +38,25 @@ describe('ComposedChart', () => {
     expect(container.querySelectorAll('path')).toHaveLength(2);
   });
 
+  it('thins the y ticks out on a short plot (design-system chart-axis)', () => {
+    const gutter = (height: number) =>
+      render(
+        <ComposedChart labels={['A', 'B']} series={SERIES} height={height} />,
+      ).container.querySelectorAll('[data-testid="chart-axis-left"] > span').length;
+
+    expect(gutter(120)).toBeLessThan(gutter(200));
+  });
+
+  it('keeps a pinned tick count regardless of the height', () => {
+    const { container } = render(
+      <ComposedChart labels={['A', 'B']} series={SERIES} height={80} yTicks={5} />,
+    );
+
+    expect(
+      container.querySelectorAll('[data-testid="chart-axis-left"] > span').length,
+    ).toBeGreaterThan(3);
+  });
+
   it('renders a dashed secondary line thinner than a solid one', () => {
     const { container } = render(
       <ComposedChart

@@ -7,8 +7,12 @@ import {
   DataTableCell,
   DataTableColGroup,
   DataTableRow,
+  DataTableScrollArea,
+  MobileDataList,
   TableBody,
+  mobileDataRowClass,
 } from '@/ui/components/data-table';
+import { formatDriftEdgeLine } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
 import { cn } from '@/ui/utils/cn';
 
 import { disclosureBodyClass } from '../ui/disclosure-styles';
@@ -26,6 +30,12 @@ export type StatementRowTone =
   | 'subtotal'
   | 'terminus';
 
+/** 漂移的兩端；行動版另起一行，桌機已併入 `amountText`。 */
+export interface StatementAmountChange {
+  fromText: string;
+  toText: string;
+}
+
 export interface StatementRow {
   key: string;
   label: string;
@@ -33,6 +43,8 @@ export interface StatementRow {
   amountText: string | null;
   /** 以警示色渲染金額（如漂移的數字）。 */
   amountWarning?: boolean;
+  /** 漂移的兩端；行動版另起一行，桌機已併入 `amountText`。 */
+  amountChange?: StatementAmountChange;
   tone: StatementRowTone;
   /** 報表階層中的層級（1 = 第一層資料）；驅動縮排。 */
   level: number;
@@ -207,24 +219,130 @@ interface StatementTableProps {
  */
 const TERMINUS_FRAME_RULE = '[&_tbody>tr:last-child]:border-t-2 [&_tbody>tr:last-child]:border-b-2';
 
+/**
+ * 行動版列：`<md` 沒有欄寬可分配，74/26 的固定表會被擠壓，所以整張表改成一列一筆。
+ * 語意角色與縮排沿用桌面表（`LABEL_TONE_CLASS`／`AMOUNT_TONE_CLASS`／`INDENT_CLASS`），
+ * 只把「兩欄」換成「label 左、金額右」；折疊鈕維持在標籤左側，並撐到 44px 命中區。
+ * 漂移金額沒有 26% 的欄位可放，改把「期初 → 期末」折成金額下方的第二行。
+ *
+ * 收合沿用桌機的約定：收合中的列**仍掛載**，靠 `disclosureBodyClass` 的高度插值收掉
+ * （padding 因此落在內層，外殼自己不能有高度），否則手機上按 chevron 只會翻 `aria-expanded`。
+ */
+const StatementMobileRow: React.FC<{
+  row: StatementRow;
+  collapsed: ReadonlySet<string>;
+  onToggle: (key: string) => void;
+  hidden: boolean;
+}> = ({ row, collapsed, onToggle, hidden }) => {
+  const hasChildren = row.children.length > 0;
+  const isCollapsed = hasChildren && collapsed.has(row.key);
+  // The amount column is content-sized; the label column takes the rest so a
+  // long label wraps instead of pushing the figure off the row.
+  return (
+    <div
+      data-state={hidden ? 'closed' : 'open'}
+      inert={hidden || undefined}
+      className={cn(
+        mobileDataRowClass,
+        disclosureBodyClass,
+        ROW_TONE_CLASS[row.tone],
+        // The shell carries no height of its own when closed, so its own border
+        // and padding have to go too — otherwise a collapsed branch still shows
+        // a rule and a gap under the clipping body.
+        hidden && 'border-t-0 pt-0',
+        // `TERMINUS_FRAME_RULE` only reaches `tbody` rows; the list is outside it.
+        row.tone === 'terminus' && 'border-b-2 border-primary',
+      )}
+    >
+      <div
+        className={cn('flex flex-col py-2', row.tone === 'terminus' && 'min-h-16 justify-center')}
+      >
+        <div className="flex items-start gap-1">
+          <div
+            className={cn(
+              'flex min-w-0 flex-1 items-start gap-1',
+              INDENT_CLASS[row.level] ?? 'pl-12',
+            )}
+          >
+            {hasChildren ? (
+              <span className="flex w-11 shrink-0 justify-center">
+                <button
+                  type="button"
+                  onClick={() => onToggle(row.key)}
+                  aria-expanded={!isCollapsed}
+                  aria-label={row.label}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-transform duration-fast ease-out-quint active:scale-[0.97]"
+                >
+                  <ChevronRight
+                    className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}
+                  />
+                </button>
+              </span>
+            ) : (
+              <span className="h-11 w-11 shrink-0" aria-hidden />
+            )}
+            <span className={cn(LABEL_TONE_CLASS[row.tone], 'min-w-0 py-2.5')}>{row.label}</span>
+          </div>
+          <div className="flex shrink-0 flex-col items-end py-2.5">
+            {(row.amountChange?.toText ?? row.amountText) !== null && (
+              <span
+                className={cn(
+                  AMOUNT_TONE_CLASS[row.tone],
+                  'font-mono tabular-nums',
+                  row.amountWarning && 'text-warning',
+                )}
+              >
+                {row.amountChange?.toText ?? row.amountText}
+              </span>
+            )}
+            {row.amountChange !== undefined && (
+              <span className="mt-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+                {formatDriftEdgeLine(row.amountChange)}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const StatementTable: React.FC<StatementTableProps> = ({
   rows,
   collapsed,
   onToggle,
   testId,
-}) => (
-  <DataTable data-testid={testId} className={TERMINUS_FRAME_RULE}>
-    <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
-    <TableBody>
-      {flattenRows(rows, collapsed).map(({ row, hidden }) => (
-        <StatementRowView
-          key={row.key}
-          row={row}
-          collapsed={collapsed}
-          onToggle={onToggle}
-          hidden={hidden}
-        />
-      ))}
-    </TableBody>
-  </DataTable>
-);
+}) => {
+  const visible = flattenRows(rows, collapsed);
+  return (
+    <>
+      <MobileDataList data-testid={`${testId}-mobile`} className="space-y-0">
+        {visible.map(({ row, hidden }) => (
+          <StatementMobileRow
+            key={row.key}
+            row={row}
+            collapsed={collapsed}
+            onToggle={onToggle}
+            hidden={hidden}
+          />
+        ))}
+      </MobileDataList>
+      <DataTableScrollArea>
+        <DataTable data-testid={testId} className={TERMINUS_FRAME_RULE}>
+          <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
+          <TableBody>
+            {visible.map(({ row, hidden }) => (
+              <StatementRowView
+                key={row.key}
+                row={row}
+                collapsed={collapsed}
+                onToggle={onToggle}
+                hidden={hidden}
+              />
+            ))}
+          </TableBody>
+        </DataTable>
+      </DataTableScrollArea>
+    </>
+  );
+};

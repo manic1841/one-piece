@@ -6,6 +6,7 @@ import {
   mapDebtAccountToDisplayVM,
   mapDebtHistoryMonths,
   mapDebtPaymentTransactionToHistoryVM,
+  sumActiveMonthlyDue,
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 
 const buildSnapshot = (overrides: Partial<DebtSnapshot> = {}): DebtSnapshot =>
@@ -109,5 +110,21 @@ describe('debtDisplay.vm', () => {
 
   it('returns an empty history when there are no snapshots or payments', () => {
     expect(mapDebtHistoryMonths([], [])).toEqual([]);
+  });
+
+  describe('sumActiveMonthlyDue', () => {
+    it('adds the monthly due of active debt accounts only', () => {
+      const due = sumActiveMonthlyDue([
+        { isActive: true, monthlyDueAmount: 25_000 },
+        { isActive: false, monthlyDueAmount: 99_000 },
+        { isActive: true, monthlyDueAmount: 5_500 },
+      ]);
+
+      expect(due).toBe(30_500);
+    });
+
+    it('is zero when every account is inactive', () => {
+      expect(sumActiveMonthlyDue([{ isActive: false, monthlyDueAmount: 12_000 }])).toBe(0);
+    });
   });
 });

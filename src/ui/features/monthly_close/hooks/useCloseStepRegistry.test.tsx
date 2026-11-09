@@ -512,11 +512,11 @@ describe('useCloseStepRegistry', () => {
 
     render(<ClosePeriodHarness />);
 
-    await waitFor(() => expect(screen.getByText('NT$10,500,000')).toBeInTheDocument());
-    expect(screen.getByText('NT$6,200,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$4,300,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$117,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$179,000')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('NT$10,500,000')).toHaveLength(2));
+    expect(screen.getAllByText('NT$6,200,000')).toHaveLength(2);
+    expect(screen.getAllByText('NT$4,300,000')).toHaveLength(2);
+    expect(screen.getAllByText('NT$117,000')).toHaveLength(2);
+    expect(screen.getAllByText('NT$179,000')).toHaveLength(2);
   });
 
   it('annotates a CLOSE_PERIOD figure that drifted from the persisted report while live', async () => {
@@ -547,8 +547,11 @@ describe('useCloseStepRegistry', () => {
     render(<ClosePeriodHarness />);
 
     await waitFor(() =>
-      expect(screen.getByText('NT$4,200,000 -> NT$4,300,000')).toBeInTheDocument(),
+      expect(screen.getAllByText('NT$4,300,000').length).toBeGreaterThan(0),
     );
+    // Deskop keeps the one-line arrow; the phone layout names both ends instead.
+    expect(screen.getAllByText('NT$4,200,000 -> NT$4,300,000')).toHaveLength(1);
+    expect(screen.getAllByText(/期初 NT\$4,200,000 → 期末 NT\$4,300,000/)).toHaveLength(1);
   });
 
   it('renders the persisted CLOSE_PERIOD record with no drift marks for a CLOSED period', async () => {
@@ -582,8 +585,9 @@ describe('useCloseStepRegistry', () => {
 
     render(<ClosedHarness />);
 
-    await waitFor(() => expect(screen.getByText('NT$4,200,000')).toBeInTheDocument());
-    expect(screen.queryByText(/->/)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('NT$4,200,000')).toHaveLength(2));
+    expect(screen.queryByText('->')).not.toBeInTheDocument();
+    expect(screen.queryByText(/期初 /)).not.toBeInTheDocument();
   });
 
   // T11 (#235): the page refreshes stages through `control.refresh` and never

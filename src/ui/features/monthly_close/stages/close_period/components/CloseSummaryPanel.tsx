@@ -1,18 +1,24 @@
 import React from 'react';
 
-import { StatusGlyph } from '@/ui/components/StatusGlyph';
+import { StatusGlyph, type StatusGlyphType } from '@/ui/components/StatusGlyph';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
+import { MobileDataList, MobileDataRow } from '@/ui/components/data-table';
 import { eyebrowClass } from '@/ui/components/eyebrow';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseSectionHeading } from '@/ui/features/monthly_close/components/CloseSectionHeading';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
-import { isDrifted } from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
+import {
+  formatDriftEdgeLine,
+  formatDriftEdges,
+  isDrifted,
+} from '@/ui/features/monthly_close/viewmodels/reportDrift.vm';
 import { cn } from '@/ui/utils';
 
 import {
   CLOSE_ACTIVITY_STATUS,
+  type CloseActivityStatus,
   type CloseSummaryVM,
   type FinancialResultVM,
 } from '../../../mappers/closeSummary.mappers';
@@ -48,6 +54,37 @@ const financialRows: { key: keyof FinancialResultVM; label: string }[] = [
   { key: 'netCashFlow', label: MONTHLY_CLOSE_LABELS.NET_CASH_CHANGE },
 ];
 
+/** One summary row in either representation: list row on the phone, lined row on the desktop. */
+const SummaryRow: React.FC<{
+  mobile: boolean;
+  leading?: React.ReactNode;
+  label: React.ReactNode;
+  trailing?: React.ReactNode;
+  /** Second line (the phone has no column to keep it on the first). */
+  note?: React.ReactNode;
+}> = ({ mobile, leading, label, trailing, note }) => {
+  const content = (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        {leading}
+        <span className="min-w-0 truncate text-sm text-foreground">{label}</span>
+      </div>
+      {trailing !== undefined && <div className="shrink-0">{trailing}</div>}
+    </div>
+  );
+  return mobile ? (
+    <MobileDataRow className="py-2">
+      {content}
+      {note}
+    </MobileDataRow>
+  ) : (
+    <div className="border-b border-border/60 px-3 py-2 last:border-b-0">
+      {content}
+      {note}
+    </div>
+  );
+};
+
 export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   summary,
   loadErrorMessage = null,
@@ -59,6 +96,35 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   isReadOnly,
 }) => {
   const { confirm: confirmDialog } = useConfirm();
+
+  // Drift is resolved once per figure; both representations read the same rows.
+  const financial = financialRows.map((row) => {
+    const drift = summary.financialDrift?.[row.key];
+    const drifted = isDrifted(drift);
+    const edges = drift !== undefined && drifted ? formatDriftEdges(drift) : null;
+    return {
+      ...row,
+      drifted,
+      text: summary.financialText[row.key],
+      // The phone has no column for the delta, so it prints the ending figure
+      // and puts both ends on the line below.
+      mobileText: edges?.toText ?? summary.financialText[row.key],
+      edgeLine: edges === null ? null : formatDriftEdgeLine(edges),
+    };
+  });
+
+  const activityGlyph = (status: CloseActivityStatus) =>
+    status === CLOSE_ACTIVITY_STATUS.NOT_CONFIRMED ? 'waiting' : 'verified';
+
+  const reportGlyph = (isGenerated: boolean | null): { type: StatusGlyphType; label: string } => ({
+    type: isGenerated === true ? 'verified' : isGenerated === null ? 'review' : 'waiting',
+    label:
+      isGenerated === true
+        ? MONTHLY_CLOSE_LABELS.PERSISTED
+        : isGenerated === null
+          ? MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN
+          : MONTHLY_CLOSE_LABELS.NOT_PERSISTED,
+  });
 
   const handleClose = async () => {
     const confirmed = await confirmDialog({
@@ -86,26 +152,94 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
         className="border-b border-border pb-4"
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div
+        className="space-y-6 md:hidden"
+        data-testid="close-summary-mobile"
+        role="group"
+        aria-label={MONTHLY_CLOSE_LABELS.SUMMARY_LABEL}
+      >
+        <div className="space-y-2">
+          <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_ACTIVITY}</p>
+          <MobileDataList className="space-y-0">
+            {summary.activity.map((row) => (
+              <SummaryRow
+                key={row.stepText}
+                mobile
+                leading={<StatusGlyph type={activityGlyph(row.status)} />}
+                label={row.stepText}
+                trailing={
+                  row.dataText ? (
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                      {row.dataText}
+                    </span>
+                  ) : undefined
+                }
+              />
+            ))}
+          </MobileDataList>
+        </div>
+
+        <div className="space-y-2">
+          <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_FINANCIAL}</p>
+          <MobileDataList className="space-y-0">
+            {financial.map((row) => (
+              <SummaryRow
+                key={row.key}
+                mobile
+                label={row.label}
+                trailing={
+                  <span
+                    className={cn(
+                      'font-mono text-[13px] tabular-nums',
+                      row.drifted ? 'text-warning' : 'text-muted-foreground',
+                    )}
+                  >
+                    {row.mobileText}
+                  </span>
+                }
+                note={
+                  row.edgeLine === null ? undefined : (
+                    <p className="text-right font-mono text-[11px] tabular-nums text-warning">
+                      {row.edgeLine}
+                    </p>
+                  )
+                }
+              />
+            ))}
+          </MobileDataList>
+        </div>
+
+        <div className="space-y-2">
+          <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_REPORTS}</p>
+          <MobileDataList className="space-y-0">
+            {summary.reports.map((report) => (
+              <SummaryRow
+                key={report.title}
+                mobile
+                label={report.title}
+                trailing={<StatusGlyph {...reportGlyph(report.isGenerated)} />}
+              />
+            ))}
+          </MobileDataList>
+        </div>
+      </div>
+
+      <div className="hidden gap-6 md:grid lg:grid-cols-2" data-testid="close-summary-desktop">
         <div className="space-y-2">
           <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_ACTIVITY}</p>
           <ul className="space-y-1">
             {summary.activity.map((row) => (
-              <li
-                key={row.stepText}
-                className="flex items-center justify-between gap-3 border-b border-border/60 px-3 py-2 last:border-b-0"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <StatusGlyph
-                    type={
-                      row.status === CLOSE_ACTIVITY_STATUS.NOT_CONFIRMED ? 'waiting' : 'verified'
-                    }
-                  />
-                  <span className="truncate text-sm text-foreground">{row.stepText}</span>
-                </div>
-                <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                  {row.dataText ?? MONTHLY_CLOSE_LABELS.NO_DATA}
-                </span>
+              <li key={row.stepText}>
+                <SummaryRow
+                  mobile={false}
+                  leading={<StatusGlyph type={activityGlyph(row.status)} />}
+                  label={row.stepText}
+                  trailing={
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                      {row.dataText ?? MONTHLY_CLOSE_LABELS.NO_DATA}
+                    </span>
+                  }
+                />
               </li>
             ))}
           </ul>
@@ -115,25 +249,23 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
           <div className="space-y-2">
             <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_FINANCIAL}</p>
             <div className="space-y-1">
-              {financialRows.map((row) => {
-                const drift = summary.financialDrift?.[row.key];
-                return (
-                  <div
-                    key={row.key}
-                    className="flex items-center justify-between border-b border-border/60 px-3 py-2 last:border-b-0"
-                  >
-                    <span className="text-sm text-foreground">{row.label}</span>
+              {financial.map((row) => (
+                <SummaryRow
+                  key={row.key}
+                  mobile={false}
+                  label={row.label}
+                  trailing={
                     <span
                       className={cn(
                         'font-mono text-[13px] tabular-nums',
-                        isDrifted(drift) ? 'text-warning' : 'text-muted-foreground',
+                        row.drifted ? 'text-warning' : 'text-muted-foreground',
                       )}
                     >
-                      {summary.financialText[row.key]}
+                      {row.text}
                     </span>
-                  </div>
-                );
-              })}
+                  }
+                />
+              ))}
             </div>
           </div>
 
@@ -141,28 +273,12 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
             <p className={eyebrowClass}>{MONTHLY_CLOSE_LABELS.SUMMARY_REPORTS}</p>
             <div className="space-y-1">
               {summary.reports.map((report) => (
-                <div
+                <SummaryRow
                   key={report.title}
-                  className="flex items-center justify-between border-b border-border/60 px-3 py-2 last:border-b-0"
-                >
-                  <span className="text-sm text-foreground">{report.title}</span>
-                  <StatusGlyph
-                    type={
-                      report.isGenerated === true
-                        ? 'verified'
-                        : report.isGenerated === null
-                          ? 'review'
-                          : 'waiting'
-                    }
-                    label={
-                      report.isGenerated === true
-                        ? MONTHLY_CLOSE_LABELS.PERSISTED
-                        : report.isGenerated === null
-                          ? MONTHLY_CLOSE_LABELS.PERSISTENCE_UNKNOWN
-                          : MONTHLY_CLOSE_LABELS.NOT_PERSISTED
-                    }
-                  />
-                </div>
+                  mobile={false}
+                  label={report.title}
+                  trailing={<StatusGlyph {...reportGlyph(report.isGenerated)} />}
+                />
               ))}
             </div>
           </div>

@@ -160,7 +160,7 @@
   - **Input 數字**：34px 高（子表格可 32px）、右對齊 mono、`tabular-nums`、無原生 spinner（`[appearance:textfield]` + webkit spin button `appearance-none`）、空值填「—」。這是 `NumberInput` 的 `surface="table"`（`compact` 為 32px）；子表格的文字輸入（如持倉的 Symbol／Name）共用同一個 32px 緊湊幾何，但左對齊、一般字體（`textInputCompactClass`）。
   - **列高/內距**：資料列 54px（`h-[54px]` 是**最小**列高）、td padding `9px 12px`（pr 用 `pr-3`）。垂直內距必須讓「最高的 cell 內容（34px 輸入框）＋上下內距＋1px 分隔線」≤ 54px，否則列高會被內容撐開——純文字列不受影響（本來就由最小列高撐滿）。`border-b border-border` 細分隔線、無 zebra。
   - **Vertical alignment**：th `align-bottom`、td `align-middle`。
-  - **Mobile**：`md:hidden` grouped cards——label 左 / 值右的 row representation；淡 row boundary（`border-t border-border/60`）可接受，不做成厚重 Card；禁止行動版橫向捲動。
+  - **Mobile**：`md:hidden` row representation——label 左 / 值右，淡 row boundary（`border-t border-border/60`）可接受，不做成厚重 Card；禁止行動版橫向捲動。只有兩個欄位時不保留欄寬分配，整列改為一筆資料：可摺疊列的 chevron 撐到 44px 命中區，語意角色與縮排級距沿用桌面表（見下方「報表語意階層」），因此同一份 `StatementRow` 兩邊都渲染得出來。原本靠右緣欄位承載的附加資訊（如漂移的「期初 → 期末」）折成值下方的第二行，不新增欄。
   - **Hover**：**僅整列可點擊的列**提供 `hover:bg-muted/50`。hover 底色是「這列可點擊」的 subtle feedback 契約，不是表格的預設裝飾——不可點擊的列（純資料列、編輯中的輸入列、展開中的子列）一律不得有 hover 底色，避免暗示不存在的互動。列內可互動元素（ghost icon action、grip handle）的 hover 由該元素自身承擔，不擴散成整列底色。
   - **Selected**：`bg-muted` 實心（`data-[state=selected]:bg-muted` 或條件 class），配合既有 `border-b-0` 與 `bg-muted/50` 展開列模式。
   - **Card 包裹**：Table 不預設用 Card；Card 只在「需要明確包住一個獨立操作／狀態／資訊模組」時使用（snapshot history 等獨立模組可用，編輯中的 stage 表格不用）。

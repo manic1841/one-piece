@@ -69,6 +69,15 @@ export const mapDebtAccountToDisplayVM = (
   };
 };
 
+/**
+ * Household monthly debt service: the sum of what still-active accounts owe
+ * this month. Inactive accounts stay out — they no longer draw cash.
+ */
+export const sumActiveMonthlyDue = (
+  accounts: readonly { isActive: boolean; monthlyDueAmount: number }[],
+): number =>
+  accounts.reduce((sum, account) => sum + (account.isActive ? account.monthlyDueAmount : 0), 0);
+
 export interface DebtPaymentHistoryItemVM {
   id: string;
   yearMonth: string;

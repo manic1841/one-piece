@@ -55,4 +55,19 @@ describe('StatementPanel', () => {
 
     expect(screen.queryByText('損益表')).not.toBeInTheDocument();
   });
+
+  it('stacks the metrics as label/value rows below md and keeps the row above it', () => {
+    render(
+      <StatementPanel metrics={metrics}>
+        <p>body</p>
+      </StatementPanel>,
+    );
+
+    const stacked = screen.getByTestId('statement-metrics-stacked');
+    expect(stacked.className).toContain('md:hidden');
+    expect(stacked).toHaveTextContent('本期淨利');
+    expect(stacked).toHaveTextContent('NT$30,000');
+
+    expect(screen.getByTestId('statement-metric-net-income').closest('div.hidden')).not.toBeNull();
+  });
 });

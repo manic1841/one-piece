@@ -4,6 +4,7 @@ import { cn } from '@/ui/utils/cn';
 
 import { ChartAxisGutter } from './ChartAxisGutter';
 import { ChartXLabelRow } from './ChartXLabelRow';
+import { tickCountForHeight } from './axisLabels';
 import { CHART_TONE_COLOR, type ChartTone } from './chartTheme';
 import {
   LINE_CHART_HEIGHT,
@@ -38,9 +39,6 @@ type LineChartProps = {
   children?: (geometry: LineChartGeometry) => React.ReactNode;
 };
 
-/** Below this plot height there is no room for four tick labels. */
-const SHORT_PLOT_HEIGHT = 140;
-
 /**
  * Data-driven line chart: gridlines, optional area, axis labels. Pair with `InteractiveLineChart` for hover.
  *
@@ -66,7 +64,7 @@ export function LineChart({
 
   const geometry = buildLineGeometry(values, labels, {
     maxXLabels: xLabelBudget(plotWidth),
-    yTicks: height < SHORT_PLOT_HEIGHT ? 3 : undefined,
+    yTicks: tickCountForHeight(height),
     includeZero,
   });
   const color = CHART_TONE_COLOR[tone];

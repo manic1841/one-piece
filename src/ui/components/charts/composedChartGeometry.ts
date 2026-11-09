@@ -5,6 +5,7 @@
  * scales, column positions, bar rects, line paths and axis ticks are derived
  * here so every composed chart in the app shares one layout algorithm.
  */
+import { labelZeroBaseline } from './axisLabels';
 import { type ChartColorToken, type ChartTone } from './chartTheme';
 import { formatAxisValue } from './lineChartGeometry';
 
@@ -381,19 +382,34 @@ export function buildComposedGeometry(
     Number((PADDING_TOP + (index / (tickCount - 1)) * innerHeight).toFixed(2)),
   );
 
+  const zeroY =
+    leftScale && leftScale.min <= 0 && leftScale.max >= 0
+      ? Number(yFor(0, leftScale).toFixed(2))
+      : undefined;
+  const rightZeroY =
+    rightScale && rightScale.min <= 0 && rightScale.max >= 0
+      ? Number(yFor(0, rightScale).toFixed(2))
+      : undefined;
+  // Same label fixing as the line chart: a padded scale can leave 0 between two
+  // gridlines, so the baseline gets its own label and its neighbours make room.
+  const leftLabels = labelZeroBaseline(
+    leftScale ? buildAxisLabels(leftScale, tickCount, formatTick) : [],
+    zeroY,
+  );
+  const rightLabels = labelZeroBaseline(
+    rightScale ? buildAxisLabels(rightScale, tickCount, formatTick) : [],
+    rightZeroY,
+  );
+
   return {
     columns,
     bars,
     lines,
     gridLines,
-    leftLabels: leftScale ? buildAxisLabels(leftScale, tickCount, formatTick) : [],
-    rightLabels: rightScale ? buildAxisLabels(rightScale, tickCount, formatTick) : [],
-    ...(leftScale && leftScale.min <= 0 && leftScale.max >= 0
-      ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) }
-      : {}),
-    ...(rightScale && rightScale.min <= 0 && rightScale.max >= 0
-      ? { rightZeroY: Number(yFor(0, rightScale).toFixed(2)) }
-      : {}),
+    leftLabels,
+    rightLabels,
+    ...(zeroY === undefined ? {} : { zeroY }),
+    ...(rightZeroY === undefined ? {} : { rightZeroY }),
     referenceLines: referenceLines
       .filter((line) => line.index >= 0 && line.index < count)
       .map((line) => ({
