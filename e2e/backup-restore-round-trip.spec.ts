@@ -39,8 +39,28 @@ const EXPENSE_COLUMN = 3;
 const EXPORT_ACTION = '備份資料庫';
 const RESTORE_ACTION = '還原備份';
 const RESTORE_CONFIRM = '確認還原';
+const LOAD_MORE_ACTION = '載入更早的月份';
 /** The restore summary the page prints; the counts are whatever the use case returned. */
 const RESTORE_SUCCESS = /還原完成：已清除 \d+ 筆，並匯入 \d+ 筆資料。/;
+
+/**
+ * Load older months until the read row exists.
+ *
+ * MONTHLY CASH FLOW opens on the newest 12 calendar months, and `FIGURE_MONTH`
+ * sits well before them, so the row only appears after one or more "load more"
+ * clicks. Each retry both checks and clicks, so it needs no fixed step count.
+ */
+const revealMonth = async (page: Page, yearMonth: string): Promise<void> => {
+  const row = page.getByTestId(`project-month-${yearMonth}`);
+  await expect(async () => {
+    if ((await row.count()) > 0) return;
+    const loadMore = page.getByRole('button', { name: LOAD_MORE_ACTION });
+    // Still on the skeleton: clicking would race the first paint.
+    expect(await loadMore.count()).toBeGreaterThan(0);
+    await loadMore.click();
+    expect(await row.count()).toBeGreaterThan(0);
+  }).toPass({ timeout: 30_000 });
+};
 
 /**
  * Read one month's income and expense from the project's MONTHLY CASH FLOW row.
@@ -72,7 +92,8 @@ const readMonthFigure = async (
  * feeds the restore, and the confirmation that names the file.
  *
  * The round-trip is made observable by one recognizable change: an expense booked
- * into a seeded month. The project's monthly figure moves by exactly that amount,
+ * into a seeded month. The month carries no snapshot, so its income and expense
+ * come straight from the journal; the figure moves by exactly the booked amount
  * and the restore — taken before the expense existed — must move it back. Both
  * the income and the expense of the same row are read, so a row that simply
  * vanished would fail the income comparison instead of passing the expense one.
@@ -96,9 +117,11 @@ test('an exported backup can be uploaded back and restores the household', async
 
   // 1. Baseline. Read before anything else can touch the month, so step 5's
   //    restore back to these figures is what proves the file captured this
-  //    state. The row arrives with the project's own load, so wait for its income
-  //    to populate rather than reading the table mid-flight.
+  //    state. The row arrives with the project's own load plus the load-more
+  //    clicks that reach back to it, so wait for its income to populate rather
+  //    than reading the table mid-flight.
   await page.goto(`/projects/${TARGET_PROJECT_ID}`);
+  await revealMonth(page, FIGURE_MONTH);
   await expect
     .poll(async () => (await readMonthFigure(page, FIGURE_MONTH)).income, { timeout: 20_000 })
     .toBeGreaterThan(0);
@@ -153,11 +176,16 @@ test('an exported backup can be uploaded back and restores the household', async
   // exactly the amount, on the same row (income unchanged, so the row did not
   // simply shift).
   await page.goto(`/projects/${TARGET_PROJECT_ID}`);
+  await revealMonth(page, FIGURE_MONTH);
   await expect
     .poll(async () => (await readMonthFigure(page, FIGURE_MONTH)).expense)
     .toBeCloseTo(before.expense + EXPENSE_AMOUNT, 2);
   const afterChange = await readMonthFigure(page, FIGURE_MONTH);
   expect(afterChange.income).toBeCloseTo(before.income, 2);
+  // The month has no snapshot, yet its balances roll forward instead of dashing.
+  await expect(
+    page.getByTestId(`project-month-${FIGURE_MONTH}`).getByRole('cell').nth(4),
+  ).not.toHaveText('—');
 
   // 4. Restore the file taken before the change. The upload goes through the
   //    button that opens the real file chooser, not a direct setInputFiles on the
@@ -181,6 +209,7 @@ test('an exported backup can be uploaded back and restores the household', async
   //    is back on its baseline, and the income anchor confirms it is still the
   //    same populated row.
   await page.goto(`/projects/${TARGET_PROJECT_ID}`);
+  await revealMonth(page, FIGURE_MONTH);
   await expect
     .poll(async () => (await readMonthFigure(page, FIGURE_MONTH)).expense)
     .toBeCloseTo(before.expense, 2);

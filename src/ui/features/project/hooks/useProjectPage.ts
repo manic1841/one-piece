@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { listProjectBalancesUseCase } from '@/application/project/use_cases/listProjectBalancesUseCase';
 import { type Project, type ProjectCreate } from '@/domains/project/schemas';
+import { PROJECT_SETTLED_LABELS } from '@/ui/constants/project/projectDetailLabels';
 import {
+  type ProjectBalanceVM,
   type ProjectRowVM,
-  type ProjectSnapshotTotals,
   toProjectRows,
-  toProjectSnapshotTotals,
 } from '@/ui/features/project/viewmodels/projectPage.vm';
+import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { mergeReorderedIds } from '@/ui/utils/reorder';
 
 import { useProjectCmds } from './useProjectCmds';
-import { useProjectQueries, useProjects } from './useProjects';
+import { useProjects } from './useProjects';
 
 export interface ProjectArgs {
   project: ProjectCreate;
@@ -20,15 +22,13 @@ export interface ProjectArgs {
 
 export const useProjectPage = (householdId?: string) => {
   const { projects, loading, error, reload } = useProjects(householdId || '');
-  const { getProjectSnapshots } = useProjectQueries(householdId || '');
+  const auth = useAuthIdentity();
   const { createProject, updateProject, reorderProjects } = useProjectCmds(householdId || '');
   const { run } = useLoadingTask();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [localProjects, setLocalProjects] = useState<Project[]>([]);
-  const [totalsByProject, setTotalsByProject] = useState<Map<string, ProjectSnapshotTotals>>(
-    new Map(),
-  );
+  const [balances, setBalances] = useState<Map<string, ProjectBalanceVM>>(new Map());
 
   useEffect(() => {
     setLocalProjects(projects);
@@ -39,26 +39,41 @@ export const useProjectPage = (householdId?: string) => {
     void run(
       async () => {
         if (!householdId || localProjects.length === 0) return [];
-        return Promise.all(
-          localProjects.map(async (project) => {
-            const result = await getProjectSnapshots(project.id);
-            return [project.id, toProjectSnapshotTotals(result.ok ? result.value : [])] as const;
-          }),
+        // One permission check and one batch call for the page; a failed row
+        // keeps a null balance and renders a dash, the rest stand.
+        const balances = await listProjectBalancesUseCase.execute({
+          householdId,
+          projectIds: localProjects.map((project) => project.id),
+          auth,
+        });
+        return [...balances].map(
+          ([projectId, entry]) =>
+            [
+              projectId,
+              {
+                balance: entry.balance,
+                lastSettledYearMonth: entry.lastSettledYearMonth,
+              },
+            ] as const,
         );
       },
       {
         signal: controller.signal,
         writeBack: (result) => {
-          if (result.ok) setTotalsByProject(new Map(result.value));
+          if (result.ok) setBalances(new Map(result.value));
         },
       },
     );
     return () => controller.abort();
-  }, [householdId, localProjects, getProjectSnapshots, run]);
+  }, [householdId, auth, localProjects, run]);
 
   const create = async ({ project }: ProjectArgs) => {
-    await createProject(project);
+    const result = await createProject(project);
     setIsFormOpen(false);
+    // The list is the source of the rows; without this the new project would
+    // only appear after a manual refresh. Reload is a background refresh, so it
+    // must not be awaited into the dialog's saving state.
+    if (result.ok) void reload();
   };
 
   const update = async ({ id, project }: { id: string; project: Partial<ProjectCreate> }) => {
@@ -76,8 +91,8 @@ export const useProjectPage = (householdId?: string) => {
   };
 
   const rows = useMemo(
-    () => toProjectRows(localProjects, totalsByProject),
-    [localProjects, totalsByProject],
+    () => toProjectRows(localProjects, balances, PROJECT_SETTLED_LABELS.NEVER),
+    [localProjects, balances],
   );
   const activeCount = useMemo(() => rows.filter((row) => row.isActive).length, [rows]);
 

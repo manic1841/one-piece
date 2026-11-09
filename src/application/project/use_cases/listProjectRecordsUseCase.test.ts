@@ -164,4 +164,76 @@ describe('listProjectRecordsUseCase', () => {
     expect(transactionRepository.getByIds).toHaveBeenCalledTimes(1);
     expect(transactionRepository.getByIds).toHaveBeenCalledWith('household-1', ['tx-1']);
   });
+
+  it('passes the window as a whole-month date range to both record sources', async () => {
+    vi.mocked(transactionRepository.getTransactionsByProject).mockResolvedValue([] as never);
+    vi.mocked(transactionRepository.listByProject).mockResolvedValue([] as never);
+    vi.mocked(transactionRepository.getByIds).mockResolvedValue([] as never);
+    vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
+
+    await listProjectRecordsUseCase.execute({
+      householdId: 'household-1',
+      projectId: 'project-1',
+      fromYearMonth: '2026-02',
+      toYearMonth: '2026-04',
+    });
+
+    const start = new Date(2026, 1, 1);
+    const endExclusive = new Date(2026, 4, 1);
+    expect(transactionRepository.listByProject).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      projectId: 'project-1',
+      sinceDate: start,
+      untilDate: endExclusive,
+      maxLimit: undefined,
+    });
+    expect(transactionRepository.listTransfersByProject).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      projectId: 'project-1',
+      yearMonth: undefined,
+      sinceDate: start,
+      untilDate: endExclusive,
+      maxLimit: undefined,
+    });
+  });
+
+  it('caps the returned records at the limit, newest first', async () => {
+    const makeRecord = (id: string, day: number) => ({
+      id,
+      date: new Date(2026, 2, day),
+      description: id,
+      intentType: 'EXPENSE',
+      amount: -day,
+      projectId: 'project-1',
+      createdBy: 'u1',
+      entries: [],
+      ledgerCodes: [],
+      createdAt: new Date(2026, 2, day),
+      updatedAt: new Date(2026, 2, day),
+      updatedBy: 'u1',
+    });
+
+    vi.mocked(transactionRepository.listByProject).mockResolvedValue([
+      makeRecord('tx-oldest', 1),
+      makeRecord('tx-middle', 10),
+      makeRecord('tx-newest', 20),
+    ] as never);
+    vi.mocked(transactionRepository.getByIds).mockResolvedValue([] as never);
+    vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
+
+    const records = await listProjectRecordsUseCase.execute({
+      householdId: 'household-1',
+      projectId: 'project-1',
+      limit: 2,
+    });
+
+    expect(records.map((record) => record.id)).toEqual(['tx-newest', 'tx-middle']);
+    expect(transactionRepository.listByProject).toHaveBeenCalledWith({
+      householdId: 'household-1',
+      projectId: 'project-1',
+      sinceDate: undefined,
+      untilDate: undefined,
+      maxLimit: 2,
+    });
+  });
 });

@@ -7,7 +7,7 @@ import {
   resetQaEnvironment,
   signInEmulatorUser,
 } from './support/qa';
-import { parseMoney, pickFirstDetailCategory } from './support/ui';
+import { parseMoney, pickFirstDetailCategory, readSettledMoney } from './support/ui';
 
 const TARGET_PROJECT_ID = 'proj_travel';
 const TARGET_PROJECT_NAME = '旅遊基金';
@@ -31,18 +31,26 @@ test.beforeAll(() => {
 
 /**
  * Journey 2 — record income, confirm its allocation, and see the target
- * project's income rise by the allocated amount.
+ * project's balance rise by the allocated amount.
  *
- * Read from the project's MONTHLY CASH FLOW row for the transaction's month,
- * not the SUMMARY total: the SUMMARY is a sliding 12-month window
- * (`PROJECT_SUMMARY_WINDOW_MONTHS`), so a month that opens a new group moves it
- * by (amount − the month that drops out of the window) rather than by the
- * amount. The hero PROJECT BALANCE is likewise out of scope — it is
- * snapshot-derived and only moves when the period is settled.
+ * Read the hero PROJECT BALANCE rather than the SUMMARY total: the balance is
+ * derived live, so the allocation moves it by exactly the amount, while the
+ * SUMMARY is a sliding 12-month window that shifts by (amount − the month
+ * dropping out). The balance is anchored to the newest snapshot, so the
+ * expectation is a delta against the page's own earlier reading.
+ *
+ * The hero counts up from zero on mount, so both readings wait for the figure to
+ * settle; a raw `innerText` would sample a mid-animation frame.
  */
-test('income with allocation raises the project income', async ({ page }) => {
+test('income with allocation raises the project balance', async ({ page }) => {
   const session = await signInEmulatorUser(QA_EMAIL, QA_PASSWORD);
   await installEmulatorSession(page, session);
+
+  await page.goto(`/projects/${TARGET_PROJECT_ID}`);
+  const balance = page.getByTestId('project-balance');
+  await expect(balance).toBeVisible();
+  const before = await readSettledMoney(balance);
+  expect(before).toBeGreaterThan(0);
 
   await page.goto('/transactions');
   await page.getByRole('button', { name: '新增交易' }).first().click();
@@ -89,4 +97,7 @@ test('income with allocation raises the project income', async ({ page }) => {
   await expect
     .poll(async () => parseMoney(await monthRow.getByRole('cell').nth(2).innerText()))
     .toBeCloseTo(INCOME_AMOUNT, 2);
+  await expect
+    .poll(async () => readSettledMoney(page.getByTestId('project-balance')))
+    .toBeCloseTo(before + INCOME_AMOUNT, 2);
 });

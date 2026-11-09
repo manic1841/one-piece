@@ -271,10 +271,11 @@ E2E 由 [Playwright](https://playwright.dev/) 驅動,是最後一層信心來源
 tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不固定條數):
 
 - 登入:白名單內可進、白名單外被擋。
-- 記收入 → 確認分配 → 目標專案該月收入增加(觀測點是專案 MONTHLY CASH FLOW 的
-  當月列:SUMMARY 固定為最近 12 個月合計、PROJECT BALANCE 是快照衍生值,
-  兩者都不是「即時增加」的觀測點,見 [visual-standards.md](ui/visual-standards.md))。
-- 記支出 → 交易列表出現(專案餘額同樣是快照衍生值,於結算時更新)。
+- 記收入 → 確認分配 → 目標專案餘額增加(觀測點是專案詳情 hero 的 PROJECT BALANCE:
+  餘額是即時推導,分配會立刻反映;SUMMARY 固定為最近 12 個月合計、MONTHLY CASH FLOW
+  為 12 個日曆月視窗,兩者都不是「增量等於此筆金額」的觀測點,見
+  [visual-standards.md](ui/visual-standards.md))。
+- 記支出 → 交易列表出現(專案餘額同樣即時變動,於下一次進入詳情頁反映)。
 - 關帳:從「尚未開始關帳」的期間開始(seed 的 `2026-09`),依序走完 8 階段
   (帳戶餘額 → … → Close Period)、正式關帳,報表歷史出現該期間。
 - 報表漂移阻擋關帳:關帳走完 8 階段後補記一筆落在該期間的支出,關帳畫面出現
@@ -294,9 +295,9 @@ tests。刻意維持精簡;目前涵蓋的旅程如下(清單隨需求增減,不
 - 備份匯出→還原:設定頁匯出時攔截瀏覽器下載取得檔案,補一筆落在 `2026-06` 的支出
   (該月沒有專案快照,專案 MONTHLY CASH FLOW 讀的是即時分錄;有快照的
   `2026-07`…`09` 讀的是凍結值),再以真實 file chooser 上傳原檔並確認對話框,斷言同一
-  列的數字回到備份當時、收入錨點不變。**下載／上傳這段檔案 plumbing 是 Playwright
-  獨有的 seam**;payload 本身的邏輯與 JSON round-trip 由
-  `householdBackupRestore.integration.test.ts` 守。
+  列的數字回到備份當時、收入錨點不變,且該列期初／期末是由餘額反向推導而非空值。
+  **下載／上傳這段檔案 plumbing 是 Playwright 獨有的 seam**;payload 本身的邏輯與
+  JSON round-trip 由 `householdBackupRestore.integration.test.ts` 守。
 
 專案間轉帳不在範圍(功能暫停,見 [ADR-0042](adr/0042-pause-project-transfer-feature.md));
 貸款、退休匯入、offline 等列為 backlog。

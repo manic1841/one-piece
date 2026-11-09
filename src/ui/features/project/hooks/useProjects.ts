@@ -2,8 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { getProjectBalanceUseCase } from '@/application/project/use_cases/getProjectBalanceUseCase';
 import { getProjectWithSnapshotUseCase } from '@/application/project/use_cases/getProjectWithSnapshotUseCase';
-import { listProjectRecordsUseCase } from '@/application/project/use_cases/listProjectRecordsUseCase';
-import { listProjectSnapshotsUseCase } from '@/application/project/use_cases/listProjectSnapshotsUseCase';
+import {
+  type ListProjectRecordsRequest,
+  listProjectRecordsUseCase,
+} from '@/application/project/use_cases/listProjectRecordsUseCase';
+import {
+  type ListProjectSnapshotsRequest,
+  listProjectSnapshotsUseCase,
+} from '@/application/project/use_cases/listProjectSnapshotsUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Project, type ProjectWithSnapshot } from '@/domains/project/schemas';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
@@ -89,18 +95,24 @@ export function useProjectQueries(householdId: string) {
   );
 
   const getProjectRecords = useCallback(
-    async (projectId: string, yearMonth?: string) => {
+    async (
+      projectId: string,
+      options: Omit<ListProjectRecordsRequest, 'householdId' | 'projectId'> = {},
+    ) => {
       return run(async () => {
-        return listProjectRecordsUseCase.execute({ householdId, projectId, yearMonth });
+        return listProjectRecordsUseCase.execute({ householdId, projectId, ...options });
       });
     },
     [householdId, run],
   );
 
   const getProjectSnapshots = useCallback(
-    async (projectId: string, yearMonth?: string) => {
+    async (
+      projectId: string,
+      options: Omit<ListProjectSnapshotsRequest, 'householdId' | 'projectId'> = {},
+    ) => {
       return run(async () => {
-        return listProjectSnapshotsUseCase.execute({ householdId, projectId, yearMonth });
+        return listProjectSnapshotsUseCase.execute({ householdId, projectId, ...options });
       });
     },
     [householdId, run],

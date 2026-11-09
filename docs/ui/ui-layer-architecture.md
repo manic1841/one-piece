@@ -454,6 +454,7 @@ Global Header(sticky 系統狀態列)只負責:
 ### 7.1 責任切分
 
 - **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(僅啟用中／含停用的狀態篩選屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
+- **List 是列的來源**:create 成功後 List 必須自行刷新,新列立刻出現,不得要求使用者手動重整。刷新是背景動作(首載後的 `loading` 不回到 Skeleton),也不進入表單的儲存中狀態。
 - **Detail** = 該實體的管理動作:Edit(inline rename 或 Edit Form)、Activate/Deactivate、Danger Zone(刪除)。
 - **Workflow** = 該工作流的主要動作:Confirm、Close Period。
 

@@ -1,4 +1,13 @@
-import { type Transaction, collection, doc, getDocs, query, where } from 'firebase/firestore';
+import {
+  type QueryConstraint,
+  type Transaction,
+  collection,
+  doc,
+  getDocs,
+  limit,
+  query,
+  where,
+} from 'firebase/firestore';
 
 import { type Allocation, AllocationSchema } from '@/domains/allocation/schemas';
 import { db } from '@/firebase';
@@ -8,6 +17,17 @@ import { BaseRepository } from '@/infra/repositories/baseRepository';
  * AllocationRepository
  * Path: households/{householdId}/allocations
  */
+export interface ListAllocationsByProjectParams {
+  householdId: string;
+  projectId: string;
+  yearMonth?: string;
+  /** Inclusive `YYYY-MM` lower bound. */
+  sinceYearMonth?: string;
+  /** Inclusive `YYYY-MM` upper bound. */
+  untilYearMonth?: string;
+  maxLimit?: number;
+}
+
 class AllocationRepository extends BaseRepository<Allocation, [string, string?]> {
   private readonly collectionName = 'allocations';
 
@@ -69,18 +89,26 @@ class AllocationRepository extends BaseRepository<Allocation, [string, string?]>
     return allocations.filter((allocation): allocation is Allocation => allocation !== null);
   }
 
-  async listByProject(
-    householdId: string,
-    projectId: string,
-    yearMonth?: string,
-    sinceYearMonth?: string,
-  ): Promise<Allocation[]> {
-    const constraints = [where('projectIds', 'array-contains', projectId)];
+  async listByProject({
+    householdId,
+    projectId,
+    yearMonth,
+    sinceYearMonth,
+    untilYearMonth,
+    maxLimit,
+  }: ListAllocationsByProjectParams): Promise<Allocation[]> {
+    const constraints: QueryConstraint[] = [where('projectIds', 'array-contains', projectId)];
     if (yearMonth) {
       constraints.push(where('yearMonth', '==', yearMonth));
     }
     if (sinceYearMonth) {
       constraints.push(where('yearMonth', '>=', sinceYearMonth));
+    }
+    if (untilYearMonth) {
+      constraints.push(where('yearMonth', '<=', untilYearMonth));
+    }
+    if (maxLimit) {
+      constraints.push(limit(maxLimit));
     }
 
     return this.list([householdId], constraints);
