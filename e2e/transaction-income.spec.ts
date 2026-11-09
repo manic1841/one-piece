@@ -7,7 +7,7 @@ import {
   resetQaEnvironment,
   signInEmulatorUser,
 } from './support/qa';
-import { parseMoney, pickFirstDetailCategory } from './support/ui';
+import { parseMoney, pickFirstDetailCategory, readSettledMoney } from './support/ui';
 
 const TARGET_PROJECT_ID = 'proj_travel';
 const TARGET_PROJECT_NAME = '旅遊基金';
@@ -38,6 +38,9 @@ test.beforeAll(() => {
  * SUMMARY is a sliding 12-month window that shifts by (amount − the month
  * dropping out). The balance is anchored to the newest snapshot, so the
  * expectation is a delta against the page's own earlier reading.
+ *
+ * The hero counts up from zero on mount, so both readings wait for the figure to
+ * settle; a raw `innerText` would sample a mid-animation frame.
  */
 test('income with allocation raises the project balance', async ({ page }) => {
   const session = await signInEmulatorUser(QA_EMAIL, QA_PASSWORD);
@@ -46,7 +49,8 @@ test('income with allocation raises the project balance', async ({ page }) => {
   await page.goto(`/projects/${TARGET_PROJECT_ID}`);
   const balance = page.getByTestId('project-balance');
   await expect(balance).toBeVisible();
-  const before = parseMoney(await balance.innerText());
+  const before = await readSettledMoney(balance);
+  expect(before).toBeGreaterThan(0);
 
   await page.goto('/transactions');
   await page.getByRole('button', { name: '新增交易' }).first().click();
@@ -94,6 +98,6 @@ test('income with allocation raises the project balance', async ({ page }) => {
     .poll(async () => parseMoney(await monthRow.getByRole('cell').nth(2).innerText()))
     .toBeCloseTo(INCOME_AMOUNT, 2);
   await expect
-    .poll(async () => parseMoney(await page.getByTestId('project-balance').innerText()))
+    .poll(async () => readSettledMoney(page.getByTestId('project-balance')))
     .toBeCloseTo(before + INCOME_AMOUNT, 2);
 });
