@@ -22,7 +22,8 @@ ui
 │       ├─ viewmodels/ # UI-specific data representations
 │       ├─ types/      # Feature-local UI types (ViewModel tier)
 │       ├─ mappers/    # Domain/Application -> ViewModel transformation
-│       └─ utils/      # Feature-local presentation helpers
+│       ├─ utils/      # Feature-local presentation helpers
+│       └─ assets/     # Feature-local static assets (e.g. the pet export)
 ├─ components/         # Shared Design System components (Stateless, Pure)
 ├─ hooks/              # Shared UI hooks (application controllers and mechanisms)
 ├─ constants/          # Display labels: the only source of data-value display text
@@ -407,8 +408,36 @@ Pixel Pet 是唯一主導航,不使用傳統 bottom nav 作為主 Navigator(所�
 - **行動版**:tap pet 開啟 Navigator bottom sheet;再 tap pet 或 Close 關閉;不使用 hover。
 - **目的地**:清單內容、Dashboard 的 home 語意與 Quick Access 的獨立性見 §6.1 與 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md);本節只定互動行為,不重述。
 - **動畫**:panel／Sheet 進出場走 [`motion-system.md`](motion-system.md) 的動態 token。
-- **Phase 8 圖像**:以正式 pixel-art mascot 替換 placeholder 圖像,僅換圖,不改本互動契約。
-- **寵物反應**:`idle / happy / nod / alert` 為最近財務期間狀態的資料驅動顯示,不做情境式 context 管線。Layout 層 hook 讀最近財務期間狀態後映射:CLOSED → `happy`、NEEDS_REVIEW → `alert`、IN_PROGRESS → `nod`、其他(含無期間) → `idle`。Navigator 內目前的頁面以 accent 態高亮。取捨理由見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md)。
+- **美術素材**:遞交 sprite-forge 的 export,行為不動,契約見 §6.2.1。
+- **寵物心情**:見 §6.2.2。Navigator 內目前的頁面以 accent 態高亮。
+
+### 6.2.1 素材契約
+
+素材只以 sprite-forge 的 export 形式進 repo:`assets/pet/manifest.json` 加 `assets/pet/clips/*.png`。App 只讀 manifest,frame 尺寸、frame 數、每格時長、是否循環、可播清單與繪製方向一律取自 manifest,不從圖片推斷。
+
+選 manifest 而非沿用「一心情一資料夾、48px、由圖片長寬推斷格數、固定延遲、必定循環」:推斷邏輯會在 producer 每次改版時失效,而且 `loop: false`、facing、多變體、逐格時長四項演不出來。代價是 app 多一個要驗的格式與 facing 狀態;取捨選擇嚴格而非寬容——解析失敗整隻退回 placeholder,不做部分推斷,壞素材不會以扭曲比例留在畫面上。
+
+- `PetMood` 就是 consumer 的 Situation,只出現在 manifest 的 `bindings`;`bindings` 出現 app 沒有行為的 key 視為版本不合,解析失敗而非默默載入。
+- 進入情境時從其 binding 隨機抽一個動畫,只在**下一次進入**重抽,不隨 loop 重抽。
+- Facing 由 app 持有:只要 Facing ≠ `authoredFacing` 就鏡像,`flipsFacing` 的動畫播畢時翻轉。
+- 未綁定的情境、或 manifest 解析失敗時退回 emoji placeholder;單一動畫缺 sheet 只淘汰該動畫。
+- 以 `canvas` 尺寸 1:1 呈現、依 `canvas.anchor` 對位;frame 0 為靜止姿勢,也是 reduced-motion 的落點。
+- 素材入 repo 前必須先由 sprite-forge 匯出,手寫的 png 目錄不再可讀;repo 內的 manifest 允許暫時不封閉(未綁定的情境走 placeholder),正式素材仍以 closed export 為準。
+
+### 6.2.2 心情契約
+
+寵物是**吉祥物,不是狀態指示器**:它反映使用者正在做什麼,不代言財務資料,`usePetMood` 因此不讀任何 domain 資料。
+
+- 心情分兩層:`rest`、`sleep` 是常駐底層;`move`、`nod`、`celebrate`、`alert` 是一次性事件,播畢落回底層。
+- 優先序 `alert > celebrate > nod > move`;同級或更低的事件不打斷進行中的事件。事件不排隊,被打斷的動畫直接丟棄。
+- 冷卻因心情而異(`petMood.ts`);`celebrate` 無冷卻,每次成功都領獎。
+- 觸發:路由變更 → `move`;按下 pet → `nod`;一次成功的寫入命令(存檔、關帳工作流完成、還原、改名、啟停、刪除)→ `celebrate`;任何命令失敗或表單送出失敗 → `alert`。
+- 寫入是否成功才算 `celebrate`:`alert` 與 `celebrate` 只在命令回報結果後發出,先跳頁再判斷結果會讓失敗的刪除看起來像成功。
+- 無互動至 `SLEEP_AFTER_MS` 進 `sleep`;任何輸入醒回 `rest`;分頁隱藏時暫停計時,不累積,回到可見分頁直接醒回 `rest`。
+- 底層與事件的動畫由 manifest 的 `loop` 決定;`PetAvatar` 回報一次性動畫播畢,由 controller 決定下一個心情,元件不自行決定。
+- reduced-motion 固定在 frame 0,事件立即結束回到底層;會換邊的動畫仍照樣在進場時換邊,只省略播放。
+- 只買菜不喧嘩:初次載入、篩選、排序、換頁、背景重抓不觸發事件。
+- 跨 feature 的觸發點不經過 React context,而是 `hooks/notify` 的模組級函式:只有心情時用 `celebrate` / `alert`,要連 Toast 一起出時用 `notifySaved` / `notifyFailed`,兩者不會各走各的。同時只掛一隻寵物,後掛的訂閱者覆蓋前者。
 
 ## 6.3 Header 責任
 

@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { prefersReducedMotion } from '@/ui/hooks/useReducedMotion';
 import { DURATION } from '@/ui/motion';
 
 import { shouldDismiss } from './sheetDrag';
@@ -31,9 +32,6 @@ export type SheetDrag = {
     onPointerCancel: () => void;
   };
 };
-
-const prefersReducedMotion = (): boolean =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * Pointer gesture for a bottom sheet (motion-system §5.3, ADR-0091). The drag

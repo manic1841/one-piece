@@ -1,0 +1,32 @@
+{
+  "formatVersion": "1.0.0",
+  "target": "pixel-pet",
+  "character": "placeholder",
+  "authoredFacing": "right",
+  "canvas": { "width": 48, "height": 48, "anchor": { "x": 24, "y": 48 } },
+  "animations": {
+    "stand": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [120], "loop": true },
+    "inhale": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [160], "loop": true },
+    "sleep": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [320], "loop": true },
+    "walk": { "sheet": "clips/happy.png", "frameCount": 6, "delaysMs": [120], "loop": false },
+    "turn": {
+      "sheet": "clips/happy.png",
+      "frameCount": 6,
+      "delaysMs": [100],
+      "loop": false,
+      "flipsFacing": true
+    },
+    "nod": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [100], "loop": false },
+    "award": { "sheet": "clips/happy.png", "frameCount": 6, "delaysMs": [120], "loop": false },
+    "call-out": { "sheet": "clips/happy.png", "frameCount": 6, "delaysMs": [120], "loop": false }
+  },
+  "bindings": {
+    "rest": ["stand", "inhale"],
+    "sleep": ["sleep"],
+    "move": ["walk", "turn"],
+    "nod": ["nod"],
+    "celebrate": ["award"],
+    "alert": ["call-out"]
+  },
+  "lock": { "spriteForgeVersion": "0.1.0", "exportedAt": "2026-11-13T00:00:00Z" }
+}

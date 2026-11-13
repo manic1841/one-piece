@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { prefersReducedMotion } from '@/ui/hooks/useReducedMotion';
+
 import { MAX_DPR, RADIUS, SPEED, particleCount } from './particleField';
 
 type Particle = { x: number; y: number; vx: number; vy: number; r: number; alpha: number };
@@ -29,7 +31,7 @@ export const GalleryParticleField: React.FC = () => {
     const context = canvas.getContext('2d');
     if (context === null) return;
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduced = prefersReducedMotion();
     const color = getComputedStyle(canvas).color;
     let particles: Particle[] = [];
     let width = 0;

@@ -26,6 +26,7 @@ import {
   mapTransactionVMToDomain,
   parseTransactionFormVM,
 } from '@/ui/features/transaction/viewmodels/transaction.vm';
+import { alert } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
@@ -185,6 +186,7 @@ export const useTransactionForm = (
       transactionWithAllocationAttemptRef.current = null;
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
+      alert();
       if (err instanceof z.ZodError) {
         setError(err.issues[0]?.message || 'Invalid transaction form input.');
       } else {
@@ -246,6 +248,7 @@ export const useTransactionForm = (
       onClose();
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
+      alert();
       if (err instanceof z.ZodError) {
         setError(err.issues[0]?.message || 'Invalid transaction form input.');
       } else {

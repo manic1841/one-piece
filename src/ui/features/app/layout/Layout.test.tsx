@@ -52,10 +52,6 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
   }),
 }));
 
-vi.mock('../hooks/usePetReaction', () => ({
-  usePetReaction: () => 'idle',
-}));
-
 vi.mock('./HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
 }));
@@ -335,12 +331,21 @@ describe('Layout pixel pet and navigator', () => {
     expect(pet.className).toContain('rounded-full');
   });
 
-  it('renders the pet expression from the reaction API prop, idle by default', () => {
+  it('renders the pet at rest by default', () => {
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
-    expect(pet.dataset.reaction).toBe('idle');
+    expect(pet.dataset.mood).toBe('rest');
     expect(screen.getByTestId('pet-face')).toBeInTheDocument();
+  });
+
+  it('nods when the pet is pressed', () => {
+    renderLayout();
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: /pixel pet/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pixel pet/i }));
+
+    expect(screen.getByRole('button', { name: /pixel pet/i }).dataset.mood).toBe('nod');
   });
 
   it('opens the navigator as a floating panel listing the eight navigator destinations', () => {

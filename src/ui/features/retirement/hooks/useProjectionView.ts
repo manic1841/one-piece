@@ -12,6 +12,7 @@ import {
   mapProjectionViewToVM,
 } from '@/ui/features/retirement/viewmodels/projectionView.vm';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { alert } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
@@ -99,10 +100,14 @@ export function useProjectionView(
     submitSaveAsPlan: (onSuccess?: () => void) =>
       saveAsPlanForm.submit(async (name) => {
         const task = await saveAsPlan(name);
-        if (!task.ok) return { ok: false, messages: [getTaskErrorMessage(task)] };
+        if (!task.ok) {
+          alert();
+          return { ok: false, messages: [getTaskErrorMessage(task)] };
+        }
 
         const outcome = task.value;
         if (!outcome.ok) {
+          alert();
           const code = outcome.code as keyof typeof SAVE_AS_PLAN_ERROR_LABELS;
           return {
             ok: false,

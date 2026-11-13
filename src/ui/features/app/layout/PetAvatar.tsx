@@ -1,119 +1,158 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import type { PetReaction } from './petReaction';
+import type { PetMood } from '@/ui/hooks/petMood';
+import { useReducedMotion } from '@/ui/hooks/useReducedMotion';
+
+import {
+  type PetFacing,
+  flippedFacing,
+  petManifest,
+  petSheetUrl,
+  pickAnimation,
+} from './petManifest';
 
 /**
- * Pixel Pet art seam — the single place that decides *how a reaction is drawn*.
+ * Pixel Pet art seam — the single place that decides *how a mood is drawn*.
  *
- * Behaviour (which reaction is active) belongs to `petReaction.ts` +
- * `usePetReaction`; this component only maps a reaction to pixels. `PixelPet`
- * passes a `reaction` and stays unaware of assets.
+ * Behaviour (which mood is active) belongs to `petMood.ts` + `usePetMood`; this
+ * component only draws the animation the current mood binds to. `PixelPet`
+ * passes a `mood` and stays unaware of art.
  *
- * Art contract — drop one sheet per reaction into `./assets/pet/<reaction>/`
- * (the folder picks the reaction, so the filename is free; Vite imports it, so
- * it is fingerprinted and only the used ones ship):
- *   - the sheet is a strip of 48x48 frames laid out along one axis; the **number
- *     of frames is free** (`288x48` = 6 left-to-right, `48x288` = 6 top-to-bottom,
- *     `480x48` = 10, ...);
- *   - 48px matches the render size exactly, so the art is a 1:1 pixel match
- *     (crisp, no resampling);
- *   - transparent background, and a shared frame centre so reactions do not jump;
- *   - **frame 0 is the resting pose.** The global `prefers-reduced-motion` rule in
- *     `index.css` collapses the animation onto that frame, so no still frame is
- *     needed.
- * Reactions without a sheet fall back to the emoji placeholders below.
+ * The manifest owns frame size, count, timing, looping and facing:
+ *   - frames are `canvas` sized and laid out left to right, so frame 0 is the
+ *     resting pose the reduced-motion rule settles on;
+ *   - the sheet is drawn at 1:1 (no resampling), positioned by the canvas
+ *     anchor so moods do not jump relative to each other;
+ *   - a `flipsFacing` animation flips the held Facing when it ends, and every
+ *     animation is mirrored whenever Facing ≠ `authoredFacing`;
+ *   - a mood picks one bound animation per entry (`seq`), never per loop;
+ *   - a one-shot animation reports `onEnd` so the controller can fall back.
+ * Moods a manifest does not bind fall back to the emoji placeholders below.
+ *
+ * Asset contract: sprite-forge `docs/export-contract.md`; app-side rules in
+ * `docs/ui/ui-layer-architecture.md` §6.2.
  */
-const PET_FACES: Record<PetReaction, string> = {
-  idle: '◡',
-  happy: '◡‿◡',
-  nod: '◠‿◠',
-  alert: '⊙',
-};
-
-const PET_ALT: Record<PetReaction, string> = {
-  idle: 'Pixel Pet 待機',
-  happy: 'Pixel Pet 開心',
-  nod: 'Pixel Pet 點頭',
-  alert: 'Pixel Pet 注意',
-};
-
-/** How long one sprite frame is shown, in ms. */
-const FRAME_MS = 120;
-
-const PET_SHEETS = import.meta.glob('./assets/pet/*/*.png', {
-  eager: true,
-  query: '?url',
-  import: 'default',
-}) as Record<string, string>;
-
-function sheetSource(reaction: PetReaction): string | undefined {
-  const prefix = `./assets/pet/${reaction}/`;
-  const match = Object.keys(PET_SHEETS)
-    .filter((key) => key.startsWith(prefix))
-    .sort()[0];
-  return match ? PET_SHEETS[match] : undefined;
-}
-
-type Sprite = {
-  src: string;
-  frames: number;
-  axis: 'x' | 'y';
+const PET_LABELS: Record<PetMood, { face: string; alt: string }> = {
+  rest: { face: '◡', alt: 'Pixel Pet 待機' },
+  sleep: { face: '–', alt: 'Pixel Pet 睡著' },
+  move: { face: '→', alt: 'Pixel Pet 移動' },
+  nod: { face: '◠', alt: 'Pixel Pet 點頭' },
+  celebrate: { face: '★', alt: 'Pixel Pet 領獎' },
+  alert: { face: '⊙', alt: 'Pixel Pet 注意' },
 };
 
 type PetAvatarProps = {
-  reaction: PetReaction;
+  mood: PetMood;
+  /** Changes on every accepted notification; replays the same animation. */
+  seq: number;
+  /** A one-shot animation finished; the controller returns to the base mood. */
+  onEnd: () => void;
 };
 
-const PetAvatar: React.FC<PetAvatarProps> = ({ reaction }) => {
-  const sheet = sheetSource(reaction);
-  const [sprite, setSprite] = useState<Sprite | null>(null);
+const PetAvatar: React.FC<PetAvatarProps> = ({ mood, seq, onEnd }) => {
+  const reduced = useReducedMotion();
 
-  if (sheet) {
-    // Always 48x48 frames; only the count varies, and the sheet states it: the
-    // short side is one frame, the long side is the run of frames. That keeps the
-    // art authoritative — a longer strip simply plays longer, with no code change.
-    const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
-      const { naturalWidth, naturalHeight } = event.currentTarget;
-      if (naturalWidth <= 0 || naturalHeight <= 0) return;
-      const axis = naturalHeight > naturalWidth ? 'y' : 'x';
-      const frame = Math.min(naturalWidth, naturalHeight);
-      const run = Math.max(naturalWidth, naturalHeight);
-      setSprite({ src: sheet, frames: Math.max(1, Math.round(run / frame)), axis });
+  // Each entry (`seq`) picks a fresh binding; a loop does not, because nothing
+  // changes the key while it plays.
+  const entryKey = `${mood}:${seq}`;
+  const [entry, setEntry] = useState({
+    key: entryKey,
+    animation: pickAnimation(petManifest, mood),
+  });
+  if (entry.key !== entryKey) {
+    setEntry({ key: entryKey, animation: pickAnimation(petManifest, mood) });
+  }
+  const animation = entry.animation;
+
+  // Frame 0 is the entry pose and the reduced-motion pose, so a change of
+  // animation or motion preference resets playback during render (not in an
+  // effect) and the timer only advances from there.
+  const playbackKey = `${animation?.id ?? 'none'}:${entryKey}:${reduced}`;
+  const [playback, setPlayback] = useState({ key: playbackKey, frame: 0 });
+  if (playback.key !== playbackKey) setPlayback({ key: playbackKey, frame: 0 });
+
+  const [facing, setFacing] = useState<PetFacing>(petManifest?.authoredFacing ?? 'right');
+
+  // Reduced motion never reaches the end of a one-shot, so the flip it would
+  // have applied on completion is applied on entry instead.
+  const [flippedFor, setFlippedFor] = useState<string | null>(null);
+  if (reduced && flippedFor !== playbackKey) {
+    setFlippedFor(playbackKey);
+    if (animation !== null && animation.flipsFacing) {
+      setFacing(flippedFacing);
+    }
+  }
+
+  useEffect(() => {
+    // Nothing left to play: hand straight back so the mood cannot get stuck.
+    if (animation === null || reduced || animation.frameCount < 2) {
+      onEnd();
+      return;
+    }
+
+    let index = 0;
+    let timer = 0;
+    const advance = (frame: number) =>
+      setPlayback((prev) => (prev.key === playbackKey ? { key: playbackKey, frame } : prev));
+    const schedule = () => {
+      const delay = animation.delaysMs[index] ?? animation.delaysMs[animation.delaysMs.length - 1];
+      timer = window.setTimeout(() => {
+        const next = index + 1;
+        if (next >= animation.frameCount) {
+          if (!animation.loop) {
+            if (animation.flipsFacing) setFacing(flippedFacing);
+            onEnd();
+            return;
+          }
+          index = 0;
+        } else {
+          index = next;
+        }
+        advance(index);
+        schedule();
+      }, delay);
     };
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, [animation, reduced, playbackKey, onEnd]);
 
-    const active = sprite && sprite.src === sheet ? sprite : null;
-    // Until the sheet loads we still show frame 0, clipped from the natural-size
-    // image (48px art, so that is already the render size).
-    const frameClass = active === null ? '' : active.axis === 'y' ? 'w-12 h-auto' : 'h-12 w-auto';
+  const label = PET_LABELS[mood];
 
+  if (animation === null || petManifest === null) {
     return (
-      <span data-testid="pet-face" className="flex h-12 w-12 overflow-hidden">
-        <img
-          src={sheet}
-          alt={PET_ALT[reaction]}
-          draggable={false}
-          onLoad={handleLoad}
-          style={{
-            imageRendering: 'pixelated',
-            ...(active && active.frames > 1
-              ? {
-                  animationName: `pet-strip-${active.axis}`,
-                  animationDuration: `${active.frames * FRAME_MS}ms`,
-                  animationTimingFunction: `steps(${active.frames})`,
-                  animationIterationCount: 'infinite',
-                }
-              : {}),
-          }}
-          className={`max-w-none select-none ${frameClass}`}
-        />
+      <span
+        data-testid="pet-face"
+        role="img"
+        aria-label={label.alt}
+        className="text-primary text-xl leading-none select-none"
+      >
+        {label.face}
       </span>
     );
   }
 
+  const { canvas, authoredFacing } = petManifest;
+  const frame = playback.frame;
+
   return (
-    <span data-testid="pet-face" className="text-primary text-xl leading-none select-none">
-      {PET_FACES[reaction]}
-    </span>
+    <span
+      data-testid="pet-face"
+      role="img"
+      aria-label={label.alt}
+      className="absolute select-none"
+      style={{
+        width: canvas.width,
+        height: canvas.height,
+        left: `calc(50% - ${canvas.anchor.x}px)`,
+        top: `calc(50% - ${canvas.anchor.y}px)`,
+        backgroundImage: `url(${petSheetUrl(animation)})`,
+        backgroundSize: `${animation.frameCount * canvas.width}px ${canvas.height}px`,
+        backgroundPosition: `-${frame * canvas.width}px 0`,
+        backgroundRepeat: 'no-repeat',
+        imageRendering: 'pixelated',
+        transform: facing === authoredFacing ? undefined : 'scaleX(-1)',
+      }}
+    />
   );
 };
 

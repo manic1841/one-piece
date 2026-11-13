@@ -1,69 +1,200 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import PetAvatar from './PetAvatar';
+import type { PetManifest } from './petManifest';
 
 /**
- * Pixel Pet art seam contract: the reaction picker decides *which* drawing to
- * show, and the sheet decides *how many* frames it has. These tests pin the
- * second half — that a strip is walked one step per frame, along whichever axis
- * the art uses, and that a reaction without art falls back to the placeholder.
+ * Pixel Pet art seam: the mood picks an animation, and the manifest alone says
+ * how it is drawn and timed. These tests pin the drawing half — frame 0 on
+ * entry, one step per `delaysMs`, `loop` honoured, Facing mirrored and flipped,
+ * `onEnd` reported for one-shots — and that an unbound mood falls back to the
+ * placeholder.
  */
 
-const sheetImage = () => screen.getByTestId('pet-face').querySelector('img') as HTMLImageElement;
+const { FIXTURE } = vi.hoisted(() => ({
+  FIXTURE: {
+    canvas: { width: 48, height: 48, anchor: { x: 24, y: 48 } },
+    authoredFacing: 'right',
+    animations: new Map([
+      [
+        'loop',
+        {
+          id: 'loop',
+          sheet: 'clips/idle.png',
+          frameCount: 3,
+          delaysMs: [100],
+          loop: true,
+          flipsFacing: false,
+        },
+      ],
+      [
+        'one-shot',
+        {
+          id: 'one-shot',
+          sheet: 'clips/happy.png',
+          frameCount: 2,
+          delaysMs: [100],
+          loop: false,
+          flipsFacing: true,
+        },
+      ],
+      [
+        'still',
+        {
+          id: 'still',
+          sheet: 'clips/happy.png',
+          frameCount: 1,
+          delaysMs: [100],
+          loop: true,
+          flipsFacing: false,
+        },
+      ],
+    ]),
+    bindings: { rest: ['loop'], celebrate: ['still'], alert: ['one-shot'] },
+  } satisfies PetManifest,
+}));
 
-const loadWith = (img: HTMLImageElement, width: number, height: number) => {
-  Object.defineProperty(img, 'naturalWidth', { value: width, configurable: true });
-  Object.defineProperty(img, 'naturalHeight', { value: height, configurable: true });
-  fireEvent.load(img);
+vi.mock('./petManifest', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./petManifest')>();
+  return { ...actual, petManifest: FIXTURE, petSheetUrl: () => 'fixture-sheet.png' };
+});
+
+const face = () => screen.getByTestId('pet-face');
+
+const position = () => face().style.backgroundPosition;
+
+const tick = (ms: number) =>
+  act(() => {
+    vi.advanceTimersByTime(ms);
+  });
+
+const renderPet = (mood: 'rest' | 'sleep' | 'move' | 'nod' | 'celebrate' | 'alert', seq = 0) => {
+  const onEnd = vi.fn();
+  render(<PetAvatar mood={mood} seq={seq} onEnd={onEnd} />);
+  return onEnd;
 };
 
 describe('PetAvatar', () => {
-  it('falls back to the emoji placeholder when a reaction has no sheet', () => {
-    render(<PetAvatar reaction="nod" />);
-
-    expect(sheetImage()).toBeNull();
-    expect(screen.getByTestId('pet-face')).toHaveTextContent('◠‿◠');
+  beforeEach(() => {
+    vi.useFakeTimers();
+    // Deterministic pick: always the first bound animation.
+    vi.spyOn(Math, 'random').mockReturnValue(0);
   });
 
-  it('labels the art with the reaction it shows', () => {
-    render(<PetAvatar reaction="happy" />);
-
-    expect(screen.getByAltText('Pixel Pet 開心')).toBeInTheDocument();
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
-  it('holds on frame 0 until the sheet reports its size', () => {
-    render(<PetAvatar reaction="idle" />);
+  it('falls back to the emoji placeholder when a mood is unbound', () => {
+    renderPet('nod');
 
-    expect(sheetImage().style.animationName).toBe('');
+    expect(face().style.backgroundImage).toBe('');
+    expect(face()).toHaveTextContent('◠');
   });
 
-  it('walks a horizontal strip, one step per frame', () => {
-    render(<PetAvatar reaction="idle" />);
-    const img = sheetImage();
+  it('labels the art with the mood it shows', () => {
+    renderPet('celebrate');
 
-    loadWith(img, 288, 48);
-
-    expect(img.style.animationName).toBe('pet-strip-x');
-    expect(img.style.animationTimingFunction).toBe('steps(6)');
+    expect(screen.getByRole('img', { name: 'Pixel Pet 領獎' })).toBeInTheDocument();
   });
 
-  it('walks a vertical strip, one step per frame', () => {
-    render(<PetAvatar reaction="happy" />);
-    const img = sheetImage();
+  it('draws the sheet at canvas size and anchors it', () => {
+    renderPet('celebrate');
+    const style = face().style;
 
-    loadWith(img, 48, 288);
-
-    expect(img.style.animationName).toBe('pet-strip-y');
-    expect(img.style.animationTimingFunction).toBe('steps(6)');
+    expect(style.width).toBe('48px');
+    expect(style.height).toBe('48px');
+    expect(style.left).toBe('calc(50% - 24px)');
+    expect(style.top).toBe('calc(50% - 48px)');
+    expect(style.backgroundSize).toBe('48px 48px');
   });
 
-  it('does not animate a single-frame sheet', () => {
-    render(<PetAvatar reaction="idle" />);
-    const img = sheetImage();
+  it('rests on frame 0 before the first delay elapses', () => {
+    renderPet('rest');
 
-    loadWith(img, 48, 48);
+    expect(position()).toBe('0px 0px');
+  });
 
-    expect(img.style.animationName).toBe('');
+  it('walks one frame per delay', () => {
+    renderPet('rest');
+
+    tick(100);
+    expect(position()).toBe('-48px 0px');
+
+    tick(100);
+    expect(position()).toBe('-96px 0px');
+  });
+
+  it('wraps a looping animation back to frame 0 without reporting an end', () => {
+    const onEnd = renderPet('rest');
+
+    tick(300);
+
+    expect(position()).toBe('0px 0px');
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('reports the end of a one-shot and holds its last frame', () => {
+    const onEnd = renderPet('alert');
+
+    tick(200);
+    expect(position()).toBe('-48px 0px');
+
+    tick(400);
+    expect(position()).toBe('-48px 0px');
+    expect(onEnd).toHaveBeenCalledOnce();
+  });
+
+  it('mirrors after a flipsFacing animation ends', () => {
+    renderPet('alert');
+    expect(face().style.transform).toBe('');
+
+    tick(200);
+
+    expect(face().style.transform).toBe('scaleX(-1)');
+  });
+
+  it('replays the same animation when the sequence advances', () => {
+    const { rerender } = render(<PetAvatar mood="alert" seq={1} onEnd={vi.fn()} />);
+    tick(200);
+    expect(position()).toBe('-48px 0px');
+
+    rerender(<PetAvatar mood="alert" seq={2} onEnd={vi.fn()} />);
+
+    expect(position()).toBe('0px 0px');
+  });
+
+  it('reports the end immediately for a single-frame animation', () => {
+    const onEnd = renderPet('celebrate');
+
+    expect(onEnd).toHaveBeenCalled();
+  });
+
+  it('stays on frame 0 under reduced motion and ends the mood', () => {
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+
+    const onEnd = renderPet('alert');
+    tick(500);
+
+    expect(position()).toBe('0px 0px');
+    expect(onEnd).toHaveBeenCalled();
+  });
+
+  it('still applies the facing flip under reduced motion', () => {
+    vi.spyOn(window, 'matchMedia').mockReturnValue({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as MediaQueryList);
+
+    renderPet('alert');
+
+    expect(face().style.transform).toBe('scaleX(-1)');
   });
 });

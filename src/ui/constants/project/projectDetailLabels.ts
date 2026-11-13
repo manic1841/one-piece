@@ -1,5 +1,7 @@
 export const PROJECT_DETAIL_LABELS = {
   CRUMB: 'PROJECTS',
+  RENAME_FAILED: '無法重新命名專案。',
+  UPDATE_FAILED: '無法更新專案狀態。',
   BACK_LABEL: '返回專案清單',
   DEACTIVATE_ACTION: '停用專案',
   ACTIVATE_ACTION: '啟用專案',
@@ -30,6 +32,7 @@ export const PROJECT_DANGER_LABELS = {
   DELETE_TITLE: '刪除專案？',
   DELETE_CONSEQUENCE: '刪除後無法復原。',
   CONFIRM: '刪除',
+  DELETE_FAILED: '無法刪除專案。',
 } as const;
 
 export const PROJECT_SUMMARY_LABELS = {

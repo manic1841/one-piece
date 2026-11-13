@@ -17,6 +17,8 @@ import {
   type PortfolioSnapshot,
   mapPortfolioToDetailVM,
 } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 /** Owns the detail page's data and commands; the page keeps only rendering. */
@@ -91,14 +93,20 @@ export const usePortfolioDetailPage = () => {
   const handleRename = useCallback(
     async (name: string) => {
       if (!portfolio) return;
-      await updatePortfolio(portfolio.id, { name });
+      const task = await updatePortfolio(portfolio.id, { name });
+      if (!task.ok) {
+        notifyFailed(getTaskErrorMessage(task, PORTFOLIO_DETAIL_LABELS.RENAME_FAILED));
+      }
     },
     [portfolio, updatePortfolio],
   );
 
   const handleActivate = useCallback(async () => {
     if (!portfolio) return;
-    await updatePortfolio(portfolio.id, { isActive: true });
+    const task = await updatePortfolio(portfolio.id, { isActive: true });
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, PORTFOLIO_DETAIL_LABELS.UPDATE_FAILED));
+    }
   }, [portfolio, updatePortfolio]);
 
   const handleDeactivate = useCallback(async () => {
@@ -110,7 +118,10 @@ export const usePortfolioDetailPage = () => {
       confirmLabel: PORTFOLIO_LIFECYCLE_LABELS.DEACTIVATE,
     });
     if (!confirmed) return;
-    await updatePortfolio(portfolio.id, { isActive: false });
+    const task = await updatePortfolio(portfolio.id, { isActive: false });
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, PORTFOLIO_DETAIL_LABELS.UPDATE_FAILED));
+    }
   }, [portfolio, confirm, updatePortfolio]);
 
   const handleDelete = useCallback(async () => {
@@ -121,7 +132,12 @@ export const usePortfolioDetailPage = () => {
       confirmLabel: PORTFOLIO_DANGER_LABELS.CONFIRM,
     });
     if (!confirmed) return;
-    await deletePortfolio(portfolio.id);
+    const task = await deletePortfolio(portfolio.id);
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, PORTFOLIO_DANGER_LABELS.DELETE_FAILED));
+      return;
+    }
+    celebrate();
     navigate('/portfolios');
   }, [portfolio, confirm, deletePortfolio, navigate]);
 

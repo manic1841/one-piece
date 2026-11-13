@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { exportHouseholdBackupUseCase } from '@/application/household/use_cases/exportHouseholdBackupUseCase';
 import { importHouseholdBackupUseCase } from '@/application/household/use_cases/importHouseholdBackupUseCase';
 import { useAuthState } from '@/ui/contexts/useAuthState';
+import { alert, celebrate } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 /**
@@ -76,8 +77,10 @@ export function useBackupSettingsPage() {
       setRestoreSuccess(
         `還原完成：已清除 ${summary.deletedDocuments} 筆，並匯入 ${summary.restoredDocuments} 筆資料。`,
       );
+      celebrate();
     } catch (err) {
       setRestoreError(err instanceof Error ? err.message : '還原備份失敗');
+      alert();
     } finally {
       setRestoreLoading(false);
     }

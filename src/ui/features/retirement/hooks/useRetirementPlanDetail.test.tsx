@@ -7,6 +7,7 @@ import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/get
 import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
 import { useRetirementPlanDetail } from './useRetirementPlanDetail';
@@ -23,6 +24,7 @@ vi.mock('@/application/retirement/use_cases/deleteRetirementPlanUseCase', () => 
 
 vi.mock('@/ui/components/confirm/useConfirm');
 vi.mock('@/ui/hooks/useAuthIdentity');
+vi.mock('@/ui/hooks/notify', () => ({ celebrate: vi.fn(), notifyFailed: vi.fn() }));
 vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
   useLedgerCodes: () => ({ items: [], loading: false, errorMessage: null, reload: vi.fn() }),
 }));
@@ -130,12 +132,10 @@ describe('useRetirementPlanDetail', () => {
       await result.current.reload();
     });
 
-    let deleted: unknown;
     await act(async () => {
-      deleted = await result.current.remove();
+      await result.current.remove();
     });
 
-    expect(deleted).toBeNull();
     expect(mockDelete).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
@@ -158,5 +158,38 @@ describe('useRetirementPlanDetail', () => {
       auth: { uid: 'u1', email: 'user@example.com' },
     });
     expect(navigate).toHaveBeenCalledWith('/retirement/plans');
+  });
+
+  it('stays on the page and reports when the delete fails', async () => {
+    mockDelete.mockRejectedValue(new Error('boom'));
+
+    const { result } = renderDetail();
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    await act(async () => {
+      await result.current.remove();
+    });
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(celebrate).not.toHaveBeenCalled();
+    expect(notifyFailed).toHaveBeenCalledWith('boom');
+  });
+
+  it('celebrates a delete that lands', async () => {
+    mockDelete.mockResolvedValue();
+
+    const { result } = renderDetail();
+    await act(async () => {
+      await result.current.reload();
+    });
+
+    await act(async () => {
+      await result.current.remove();
+    });
+
+    expect(celebrate).toHaveBeenCalledTimes(1);
+    expect(notifyFailed).not.toHaveBeenCalled();
   });
 });

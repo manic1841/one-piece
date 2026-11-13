@@ -2,7 +2,6 @@ import { type ReactNode } from 'react';
 
 import { renderHook, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useNameField } from '@/ui/features/retirement/hooks/useNameField';
@@ -10,10 +9,11 @@ import { usePlanDrafts } from '@/ui/features/retirement/hooks/usePlanDrafts';
 import { usePlanResource } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
 import { draftGroup } from '@/ui/features/retirement/testing/planFormFixture';
+import { notifySaved } from '@/ui/hooks/notify';
 
 import { usePlanForm } from './usePlanForm';
 
-vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
+vi.mock('@/ui/hooks/notify', () => ({ notifySaved: vi.fn() }));
 vi.mock('@/ui/features/retirement/hooks/usePlanResource');
 vi.mock('@/ui/features/retirement/hooks/useRetirementPlanAccess');
 vi.mock('@/ui/features/retirement/hooks/useNameField');
@@ -205,7 +205,7 @@ describe('usePlanForm', () => {
     expect(submit).toHaveBeenCalledWith('Retire early', parsed);
     await waitFor(() => expect(result.current.saved).toBe(true));
     expect(mockNavigate).toHaveBeenCalledWith('/retirement/plans/plan-1', { replace: true });
-    expect(toast.success).toHaveBeenCalledWith('Plan saved.');
+    expect(notifySaved).toHaveBeenCalledWith('Plan saved.');
   });
 
   it('lands on the plan it just created when the route named none', async () => {

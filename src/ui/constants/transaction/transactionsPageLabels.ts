@@ -20,6 +20,7 @@ export const TRANSACTIONS_PAGE_EDIT_MISSING_TITLE = '找不到要編輯的交易
 export const TRANSACTIONS_PAGE_EDIT_UNSUPPORTED_TITLE = '目前不支援編輯此交易。';
 export const TRANSACTIONS_PAGE_SAVED_TOAST = '交易已儲存';
 export const TRANSACTIONS_PAGE_DELETED_TOAST = '交易已刪除';
+export const TRANSACTIONS_PAGE_DELETE_FAILED = '無法刪除交易。';
 
 export const TRANSACTION_FILTER_ALL = 'ALL';
 

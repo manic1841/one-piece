@@ -291,4 +291,8 @@ Final Net Worth 是投影期末（life expectancy 年）的淨資產，回答「
 
 ## Pixel Pet
 
-Pixel Pet 是主導航的唯一所有者；寵物反應是最近財務期間狀態的資料驅動顯示，不是 assistant。導航與互動契約見 `docs/ui/ui-layer-architecture.md`。
+Pixel Pet 是主導航的唯一所有者；它是吉祥物，心情反映使用者正在做什麼，不代言財務資料。導航與互動契約見 `docs/ui/ui-layer-architecture.md`。
+
+**心情 (Mood)** 是寵物當下畫出來的姿態，也是本專案唯一的 Situation。常駐心情是背景，事件心態是對使用者動作的反應，播完就退回背景。避免詞：反應、狀態（易與財務狀態混淆）。
+
+**Situation** 是 manifest 把動畫綁給 consumer 時用的詞；寵物以外沒有第二種 Situation。

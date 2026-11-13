@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { toast } from 'sonner';
 
 import { DangerZone } from '@/ui/components/DangerZone';
 import { EmptyState } from '@/ui/components/EmptyState';
@@ -23,6 +22,7 @@ import { ProjectionTrendTab } from '@/ui/features/retirement/components/Projecti
 import { SaveAsPlanDialog } from '@/ui/features/retirement/components/SaveAsPlanDialog';
 import { useProjectionView } from '@/ui/features/retirement/hooks/useProjectionView';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed, notifySaved } from '@/ui/hooks/notify';
 
 type ViewTab = 'overview' | 'projection' | 'settings';
 
@@ -56,18 +56,21 @@ export default function ProjectionViewPage() {
 
   const handleSaveAsPlanSuccess = () => {
     saveAsPlanForm.close();
-    toast.success(PROJECTION_VIEW_LABELS.PLAN_SAVED);
+    notifySaved(PROJECTION_VIEW_LABELS.PLAN_SAVED);
   };
 
   const handleRename = async (name: string) => {
     const task = await rename(name);
     if (!task.ok) {
-      toast.error(getTaskErrorMessage(task));
+      notifyFailed(getTaskErrorMessage(task));
       return;
     }
-    if (task.value.ok) return;
+    if (task.value.ok) {
+      celebrate();
+      return;
+    }
 
-    toast.error(
+    notifyFailed(
       RENAME_ERROR_LABELS[task.value.code as keyof typeof RENAME_ERROR_LABELS] ??
         RENAME_ERROR_LABELS.WRITE_FAILED,
     );
@@ -86,14 +89,14 @@ export default function ProjectionViewPage() {
     try {
       const task = await remove();
       if (!task.ok) {
-        toast.error(getTaskErrorMessage(task));
+        notifyFailed(getTaskErrorMessage(task));
         return;
       }
       navigate('/retirement');
     } catch {
       // `run` reports failures instead of throwing; keep a guard for the
       // navigation itself.
-      toast.error(PROJECTION_VIEW_LABELS.DELETE_FAILED);
+      notifyFailed(PROJECTION_VIEW_LABELS.DELETE_FAILED);
     }
   };
 

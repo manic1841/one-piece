@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { Search } from 'lucide-react';
 import { NavLink, Outlet, useMatches, useNavigate } from 'react-router-dom';
@@ -9,7 +9,7 @@ import { Button } from '@/ui/components/ui/button';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
-import { usePetReaction } from '../hooks/usePetReaction';
+import { usePetMood } from '../hooks/usePetMood';
 import CommandPalette from './CommandPalette';
 import HouseholdSwitcher from './HouseholdSwitcher';
 import PixelPet from './PixelPet';
@@ -22,7 +22,8 @@ const Layout: React.FC = () => {
   const { userProfile, logout } = useAuthState();
   const navigate = useNavigate();
   const { familyName, loadingHousehold } = useHouseholdGuard();
-  const petReaction = usePetReaction(userProfile?.householdId);
+  const pet = usePetMood();
+  const notifyPet = pet.notify;
   const [today, setToday] = useState(() => new Date());
   useBottomOverlayInset();
 
@@ -30,6 +31,16 @@ const Layout: React.FC = () => {
   // when only a param does — `/reports/:period` must not replay the entry when
   // the period changes (motion-system.md §5.2).
   const routeKey = useMatches().at(-1)?.id ?? 'root';
+
+  // Navigating makes the pet walk; the first render is not a navigation.
+  const firstRoute = useRef(true);
+  useEffect(() => {
+    if (firstRoute.current) {
+      firstRoute.current = false;
+      return;
+    }
+    notifyPet('move');
+  }, [routeKey, notifyPet]);
 
   useEffect(() => {
     const scheduleNextTick = () => {
@@ -146,7 +157,12 @@ const Layout: React.FC = () => {
 
       <SiteFooter />
 
-      <PixelPet reaction={petReaction} />
+      <PixelPet
+        mood={pet.mood}
+        seq={pet.seq}
+        onEnd={pet.endEvent}
+        onActivate={() => notifyPet('nod')}
+      />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );

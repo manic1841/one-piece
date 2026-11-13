@@ -5,14 +5,18 @@ import { NavLink } from 'react-router-dom';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/ui/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
+import { type PetMood } from '@/ui/hooks/petMood';
 
 import PetAvatar from './PetAvatar';
 import { NAVIGATOR_ITEMS } from './navigation';
-import { PET_REACTIONS, type PetReaction } from './petReaction';
 import { useIsDesktop } from './useIsDesktop';
 
 type PixelPetProps = {
-  reaction?: PetReaction;
+  mood?: PetMood;
+  seq?: number;
+  onEnd?: () => void;
+  /** The pet was pressed, before the navigator opens. */
+  onActivate?: () => void;
 };
 
 const NAVIGATOR_LINK_CLASS =
@@ -21,8 +25,11 @@ const NAVIGATOR_LINK_CLASS =
 const navigatorLinkClassName = ({ isActive }: { isActive: boolean }) =>
   isActive ? clsx(NAVIGATOR_LINK_CLASS, 'text-primary bg-primary/10') : NAVIGATOR_LINK_CLASS;
 
+/** Shared no-op so the default prop is one stable identity across renders. */
+const NOOP = (): void => {};
+
 const FAB_CLASS =
-  'fixed bottom-24 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full transition-transform duration-fast ease-out-quint hover:scale-105 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:bottom-8 md:right-8';
+  'fixed bottom-24 right-4 z-[60] h-14 w-14 rounded-full transition-transform duration-fast ease-out-quint hover:scale-105 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background md:bottom-8 md:right-8';
 
 const NavigatorPanel: React.FC<{ gridClassName?: string; onNavigate: () => void }> = ({
   gridClassName,
@@ -41,11 +48,14 @@ const NavigatorPanel: React.FC<{ gridClassName?: string; onNavigate: () => void 
   </>
 );
 
-const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
+const PixelPet: React.FC<PixelPetProps> = ({
+  mood = 'rest',
+  seq = 0,
+  onEnd = NOOP,
+  onActivate,
+}) => {
   const [open, setOpen] = useState(false);
   const isDesktop = useIsDesktop();
-
-  const activeReaction = PET_REACTIONS.includes(reaction) ? reaction : 'idle';
 
   if (isDesktop) {
     return (
@@ -55,10 +65,11 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
             type="button"
             aria-label="Pixel Pet"
             aria-expanded={open}
-            data-reaction={activeReaction}
+            data-mood={mood}
+            onClick={onActivate}
             className={FAB_CLASS}
           >
-            <PetAvatar reaction={activeReaction} />
+            <PetAvatar mood={mood} seq={seq} onEnd={onEnd} />
           </button>
         </PopoverTrigger>
         <PopoverContent
@@ -84,11 +95,14 @@ const PixelPet: React.FC<PixelPetProps> = ({ reaction = 'idle' }) => {
         type="button"
         aria-label="Pixel Pet"
         aria-expanded={open}
-        data-reaction={activeReaction}
-        onClick={() => setOpen((prev) => !prev)}
+        data-mood={mood}
+        onClick={() => {
+          onActivate?.();
+          setOpen((prev) => !prev);
+        }}
         className={FAB_CLASS}
       >
-        <PetAvatar reaction={activeReaction} />
+        <PetAvatar mood={mood} seq={seq} onEnd={onEnd} />
       </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent

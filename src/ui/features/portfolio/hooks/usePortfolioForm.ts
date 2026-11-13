@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { type SelectFieldOption } from '@/ui/components/form';
+import { alert, celebrate } from '@/ui/hooks/notify';
 
 import {
   type Account,
@@ -77,6 +78,7 @@ export const usePortfolioForm = ({
       const parsed = PortfolioFormSchema.parse(form.getValues());
       await onSubmit(parsed);
       onClose();
+      celebrate();
     } catch (err) {
       const message =
         err instanceof z.ZodError
@@ -85,6 +87,7 @@ export const usePortfolioForm = ({
             ? err.message
             : '儲存投資組合失敗';
       form.setError('root', { message });
+      alert();
     }
   });
 
