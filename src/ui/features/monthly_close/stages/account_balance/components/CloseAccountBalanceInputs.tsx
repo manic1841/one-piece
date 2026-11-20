@@ -14,6 +14,7 @@ import {
   TableHeader,
   parseOptionalAmount,
 } from '@/ui/components/data-table';
+import { subSectionTitleClass } from '@/ui/components/eyebrow';
 import { Label } from '@/ui/components/ui/label';
 import {
   ACCOUNT_BALANCE_FIELD_LABELS,
@@ -41,8 +42,6 @@ import {
 import { AccountNameCell } from './AccountNameCell';
 import { ForeignMobileList, TwdMobileList } from './CloseAccountBalanceMobileLists';
 import { SecuritiesAccountRow } from './SecuritiesAccountRow';
-
-const sectionTitleClass = 'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
 
 const sectionNoteClass =
   'text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
@@ -319,7 +318,7 @@ export const CloseAccountBalanceInputs: React.FC<CloseAccountBalanceInputsProps>
           className="space-y-4 border-b border-border pb-[30px] pt-[30px] first:pt-0 last:border-b-0 last:pb-0"
         >
           <div className="flex items-baseline justify-between">
-            <p className={sectionTitleClass}>{ACCOUNT_BALANCE_SECTIONS[section.kind].label}</p>
+            <p className={subSectionTitleClass}>{ACCOUNT_BALANCE_SECTIONS[section.kind].label}</p>
             <p className={sectionNoteClass}>{ACCOUNT_BALANCE_SECTIONS[section.kind].note}</p>
           </div>
           {section.kind === 'twd' && section.accounts.length > 0 && (

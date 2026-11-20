@@ -71,7 +71,9 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
           aria-controls="close-pipeline-stages"
           data-testid="close-pipeline-toggle"
           className={cn(
-            'inline-flex h-8 shrink-0 items-center gap-1.5 border-0 bg-transparent px-0 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-[color,transform] duration-fast ease-out-quint',
+            // A real 44px box, not a 32px visual box with an invisible halo:
+            // the padding is what makes the target reachable on a phone.
+            'inline-flex min-h-11 shrink-0 items-center gap-1.5 border-0 bg-transparent px-2 -mr-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-[color,transform] duration-fast ease-out-quint',
             'hover:text-foreground active:scale-[0.97]',
             'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           )}
@@ -88,7 +90,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
       {isExpanded && (
         <ol
           id="close-pipeline-stages"
-          aria-label="Close workflow pipeline"
+          aria-label="關帳流程"
           className="grid grid-cols-1 gap-[7px] border-b border-border py-4 md:gap-[7px] md:[grid-template-columns:repeat(var(--pipeline-cols),minmax(0,1fr))]"
           style={{ '--pipeline-cols': stages.length } as React.CSSProperties}
         >
@@ -112,7 +114,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
                   onClick={() => onSelectStage(stage.stageId)}
                   aria-current={status === 'CURRENT' ? 'step' : undefined}
                   className={cn(
-                    'group flex h-11 w-full items-center gap-2 rounded px-2 text-left text-xs transition-colors',
+                    'group flex h-12 w-full items-center gap-2 rounded px-2 text-left text-xs transition-colors',
                     'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                     isViewing
                       ? 'bg-elevated text-foreground'

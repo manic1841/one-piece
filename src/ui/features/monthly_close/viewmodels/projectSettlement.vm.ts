@@ -1,5 +1,5 @@
 /**
- * PROJECT_SETTLEMENT 階段的列形狀。
+ * PROJECT_SETTLEMENT 步驟的列形狀。
  *
  * 四個金額保持原始 number：格式化屬於呈現層（`NumberCell format={formatCurrency}`），
  * 預先轉字串會失去右對齊等寬與空值語意。

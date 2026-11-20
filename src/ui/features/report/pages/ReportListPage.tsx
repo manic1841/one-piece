@@ -9,7 +9,6 @@ import { PageHeader } from '@/ui/components/PageHeader';
 import { PageSection } from '@/ui/components/PageSection';
 import { Skeleton } from '@/ui/components/Skeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import {
   REPORT_LIST_LABELS,
@@ -21,7 +20,6 @@ import { ReportHistoryTable } from '@/ui/features/report/components/ReportHistor
 import { useReportHistory } from '@/ui/features/report/hooks/useReportHistory';
 import { useReportSummary } from '@/ui/features/report/hooks/useReportSummary';
 import { type ReportGranularity } from '@/ui/features/report/viewmodels/reportHistory.vm';
-import { cn } from '@/ui/utils/cn';
 
 const MODE_ITEMS = [
   { id: 'MONTHLY', label: REPORT_LIST_LABELS.MODE_MONTHLY },
@@ -105,19 +103,18 @@ const ReportListPage: React.FC = () => {
 
       {!loading && !errorMessage && (
         <>
-          <PageSection>
+          <PageSection
+            title={REPORT_LIST_LABELS.HISTORY_SECTION_TITLE}
+            action={
+              <FilterStrip
+                items={MODE_ITEMS}
+                value={granularity}
+                onValueChange={(id) => setGranularity(id as ReportGranularity)}
+                ariaLabel={REPORT_LIST_LABELS.MODE_LABEL}
+              />
+            }
+          >
             <div className="space-y-6">
-              <div className="flex items-end justify-between gap-4 border-b border-border">
-                <p className={cn(sectionTitleClass, 'pb-2')}>
-                  {REPORT_LIST_LABELS.HISTORY_SECTION_TITLE}
-                </p>
-                <FilterStrip
-                  items={MODE_ITEMS}
-                  value={granularity}
-                  onValueChange={(id) => setGranularity(id as ReportGranularity)}
-                  ariaLabel={REPORT_LIST_LABELS.MODE_LABEL}
-                />
-              </div>
               {vm.rows.length === 0 ? (
                 <EmptyState
                   title={REPORT_LIST_LABELS.EMPTY_TITLE}

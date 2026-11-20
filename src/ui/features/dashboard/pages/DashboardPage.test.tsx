@@ -90,7 +90,7 @@ describe('DashboardPage financial snapshot row', () => {
     // The tiles count up from zero on mount (M07), so the settled figure is awaited.
     const assets = await screen.findByTestId('stat-totalAssets');
     expect(assets.textContent).toContain('總資產');
-    expect(assets.textContent).toContain('ANCHORED 2026-08');
+    expect(assets.textContent).toContain('錨定：2026-08');
 
     const expected: Array<[testId: string, text: string]> = [
       ['stat-totalAssets', 'NT$600'],

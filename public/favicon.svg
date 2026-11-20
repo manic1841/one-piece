@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="ONE PIECE">
+  <rect width="32" height="32" rx="7" fill="#090b0e" />
+  <!-- A closed ring with one gap: the month's ledger, complete but for the step
+       still being confirmed. -->
+  <circle cx="16" cy="16" r="8.5" fill="none" stroke="#5cc8c0" stroke-width="3" stroke-linecap="round" stroke-dasharray="42 11" transform="rotate(-90 16 16)" />
+</svg>

@@ -81,3 +81,8 @@ export const CHART_CATEGORICAL_COLORS = [
  */
 export const chartCategoricalColor = (index: number) =>
   CHART_CATEGORICAL_COLORS[index % CHART_CATEGORICAL_COLORS.length] ?? CHART_CATEGORICAL_COLORS[0];
+/**
+ * Tick and axis-label typography. The single home for the 11px axis size, so a
+ * y tick and an x label cannot end up one size apart.
+ */
+export const chartAxisLabelClass = 'font-mono text-[11px] tabular-nums text-muted-foreground';

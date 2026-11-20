@@ -55,7 +55,7 @@ describe('dashboardStatRow.vm', () => {
       '3.91%',
       '1.20x',
     ]);
-    expect(vm.metrics[0].detailText).toBe('ANCHORED 2026-08');
+    expect(vm.metrics[0].detailText).toBe('錨定：2026-08');
   });
 
   it('emphasizes the cash flow sign with semantic classes', () => {
@@ -73,6 +73,23 @@ describe('dashboardStatRow.vm', () => {
     );
 
     expect(vm.metrics[2].tone).toBe('positive');
+  });
+
+  it('keeps a flat month neutral instead of painting it as a gain', () => {
+    const vm = mapDashboardOverviewToStatRowVM(
+      buildOverview(
+        { assets: 600, liabilities: 150 },
+        {
+          netCashFlow: 0,
+          investmentReturn: 0,
+          investmentLeverage: 1.2,
+          monthlyDebtPayment: 13500,
+          investmentGain: 0,
+        },
+      ),
+    );
+
+    expect(vm.metrics[2].tone).toBe('zero');
   });
 
   it('renders em-dashes when no anchor is closed', () => {

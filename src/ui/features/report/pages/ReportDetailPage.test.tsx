@@ -121,12 +121,10 @@ describe('ReportDetailPage', () => {
     expect(
       screen.getByTestId('statement-metric-net-cash-change').querySelector('.text-positive'),
     ).toBeNull();
-    // 三張表在行動版堆疊時各帶標題（桌機由 tabs 承擔）。
+    // 三張表各帶標題；tabs 在每個寬度都能切換，兩者不互相取代。
     for (const title of ['損益表', '資產負債表', '現金流量表']) {
-      const mobileTitles = screen
-        .getAllByText(title)
-        .filter((node) => node.classList.contains('md:hidden'));
-      expect(mobileTitles).toHaveLength(1);
+      const titles = screen.getAllByText(title).filter((node) => node.tagName === 'P');
+      expect(titles).toHaveLength(1);
     }
   });
 
@@ -142,6 +140,12 @@ describe('ReportDetailPage', () => {
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
 
     expect((await screen.findAllByText('負債 + 權益')).length).toBeGreaterThan(0);
+    // Only the active panel renders; the phone used to stack all three.
+    const incomePanel = document.getElementById(
+      screen.getByRole('tab', { name: '損益表' }).getAttribute('aria-controls') ?? '',
+    );
+    expect(incomePanel).toHaveAttribute('data-state', 'inactive');
+    expect(incomePanel).toHaveClass('hidden');
   });
 
   it('shows an empty state when the period has no persisted report', async () => {

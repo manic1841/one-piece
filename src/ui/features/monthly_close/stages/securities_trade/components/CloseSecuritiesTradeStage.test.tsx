@@ -46,6 +46,18 @@ describe('CloseSecuritiesTradeStage', () => {
     expect(screen.getByText('融資紀錄')).toBeInTheDocument();
   });
 
+  it('explains an empty step inline instead of gating the confirm', () => {
+    renderStage();
+
+    expect(screen.getByText(/確認後仍會完成這個步驟/)).toBeInTheDocument();
+  });
+
+  it('drops the empty note once any row exists', () => {
+    renderStage({ securities: { buys: [tradeInput], sells: [] } });
+
+    expect(screen.queryByText(/確認後仍會完成這個步驟/)).not.toBeInTheDocument();
+  });
+
   it('opens the securities drawer from the add button and row click', () => {
     const onOpenTradeDrawer = vi.fn();
     renderStage({

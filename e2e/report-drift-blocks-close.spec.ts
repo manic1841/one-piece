@@ -14,7 +14,7 @@ const PERIOD = '2026-09';
 const TARGET_PROJECT_NAME = '旅遊基金';
 const EXPENSE_AMOUNT = 250;
 /** The summary row the booked expense moves; its drift delta must be −250. */
-const MOVED_FIGURE = '本期淨利';
+const MOVED_FIGURE = 'netIncome';
 
 /**
  * Journey 4 — report drift blocks the close, and the shortcut out of the block
@@ -86,7 +86,7 @@ test('a late expense drifts the reports and blocks the close until they are rege
   await page.reload();
   await expect(driftBlock).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('close-period-confirm')).toBeDisabled();
-  await expect(page.getByText('CLOSED')).toHaveCount(0);
+  await expect(page.getByText('已關帳')).toHaveCount(0);
 
   // 5. Take the shortcut the block offers. The completed reports stage keeps its
   //    action while it drifts, so the instruction is followable.
@@ -113,5 +113,5 @@ test('a late expense drifts the reports and blocks the close until they are rege
   await closeAction.click();
   await page.getByRole('dialog').getByRole('button', { name: '正式關帳' }).click();
 
-  await expect(page.getByText('CLOSED').first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('已關帳').first()).toBeVisible({ timeout: 20_000 });
 });

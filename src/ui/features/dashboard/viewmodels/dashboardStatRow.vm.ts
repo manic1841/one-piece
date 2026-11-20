@@ -1,5 +1,5 @@
 import type { DashboardOverview } from '@/application/dashboard/use_cases/getDashboardOverviewUseCase';
-import { type MoneyTone } from '@/ui/components/moneyTone';
+import { type MoneyTone, signTone } from '@/ui/components/moneyTone';
 import { DASHBOARD_STAT_ROW_LABELS } from '@/ui/constants/dashboard/statRowLabels';
 import { formatCurrency, formatPercentage } from '@/ui/utils';
 
@@ -24,7 +24,7 @@ const pulseText = (value: number | null | undefined, format: (value: number) => 
   value === null || value === undefined ? '—' : format(value);
 
 const pulseTone = (value: number | null | undefined): MoneyTone =>
-  value === null || value === undefined ? 'default' : value >= 0 ? 'positive' : 'negative';
+  value === null || value === undefined ? 'default' : signTone(value);
 
 export const mapDashboardOverviewToStatRowVM = (
   overview: DashboardOverview | null,
@@ -37,7 +37,7 @@ export const mapDashboardOverviewToStatRowVM = (
     label: DASHBOARD_STAT_ROW_LABELS.TOTAL_ASSETS,
     valueText: anchor ? formatCurrency(anchor.assets) : '—',
     value: anchor?.assets ?? null,
-    detailText: anchor ? `${DASHBOARD_STAT_ROW_LABELS.ANCHOR_PREFIX} ${anchor.yearMonth}` : null,
+    detailText: anchor ? `${DASHBOARD_STAT_ROW_LABELS.ANCHOR_PREFIX}：${anchor.yearMonth}` : null,
     tone: 'default',
   };
 

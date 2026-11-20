@@ -53,6 +53,21 @@ Project detail and report UIs must also follow this rule:
 
 實際的 code 與 wording 對照以 `displayLabels.test.ts` 的高風險 wording 與 ledger code wording 為準。
 
+## Language (localization policy)
+
+UI 的顯示語言是**繁體中文**。英文只出現在兩種地方，兩者都不是「另一半中文」：
+
+1. **全大寫 mono 的結構標籤**——section eyebrow、模組標籤、`CLOSE SUMMARY` 這類段落名，本身就是排版元素（寬字距、全大寫）。
+2. **量測單位與代碼**——`TWD`、`x`、`%`、`MoM`、`YTD`、日期格式。
+
+規則：
+
+- **一句話裡不混語言**。同一個片語只用一種語言寫完：`Close Period` 這種「英文借詞」若已經有中文同義詞（`正式關帳`），就整組換成中文，不要一半留英文。`Portfolio 金流` 這類專有名詞可以保留英文詞幹，但同一句中不再夾其他英文。
+- **數量單位跟著名詞走**：`3 筆`、`0 筆`，不要把單位留成 `transactions`。
+- **註記也是句子**：`標籤：值` 的兩邊同語言（`錨定：2026-08`），不要 `ANCHORED 2026-08`。
+- **退休領域的「階段」不改**：`階段` 是人生事件的 `Phase`；關帳的 step 一律叫 `步驟`，兩者不共用同一個詞。
+- `lang` 屬性維持 `en`（整份文件沒有逐句標記語言），文件實際內容是中文——這是已知落差，不是遺漏。
+
 ## Scope (2026-09 decision)
 
 Managed display labels cover the four families below. 路徑、識別字與實際字串以 code 為準，本節只界定哪些資料值歸 label 層管：

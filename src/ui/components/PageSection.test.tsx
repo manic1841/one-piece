@@ -40,4 +40,20 @@ describe('PageSection', () => {
 
     expect(container.firstElementChild).not.toHaveTextContent('ignored without a heading');
   });
+
+  it('renders the title as an h2, never a second h1', () => {
+    render(<PageSection title="BASELINE">body</PageSection>);
+
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('BASELINE');
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+  });
+
+  it('rules off a titled band but leaves a content-only band unruled', () => {
+    const { container, rerender } = render(<PageSection title="BASELINE">body</PageSection>);
+
+    expect(container.firstElementChild?.className).toContain('border-b');
+
+    rerender(<PageSection>body</PageSection>);
+    expect(container.firstElementChild?.className).not.toContain('border-b');
+  });
 });

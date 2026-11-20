@@ -225,12 +225,13 @@
   - 範例：`src/ui/features/retirement/components/ProjectionSnapshotTab.tsx`、`src/ui/features/retirement/components/AnnualYearPanel.tsx`、`src/ui/features/retirement/components/LifeEventTimeline.tsx`、`src/ui/features/retirement/components/RetirementPlanDetail.tsx`；gallery section 04。
 
 - **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
-  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`animatedValue?`、`animateFormat?`、`tone?`、`change?`、`changeTone?`、`action?`（尾端動作，例如跳至該年）、`testId?`、`layout?`（`column` 預設；`stacked` 為手機 label 左／值右的單列，供已放棄格線的表面使用）、`className?`。
+  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`animatedValue?`、`animateFormat?`、`tone?`、`change?`、`changeTone?`、`captionLabel?`、`action?`（尾端動作，例如跳至該年）、`testId?`、`layout?`（`column` 預設；`stacked` 為手機 label 左／值右的單列，供已放棄格線的表面使用）、`className?`。
+  - **`change` 與 `captionLabel` 是兩件事**：`change` 是這個數字自己的變動（`+6.8% MoM`）；`captionLabel` 是**關於**這個數字的註記，寫成「標籤：值」（`錨定：2026-08`），muted、排在 change 之下。把註記塞進 `change` 會讓它偽裝成變動。
   - 分割線只在列首重置：每個欄位數各自記錄 md 的列首節奏，5 欄在 md 降為 3 欄（mono 數字先碰撞），`lg` 才回到 5。`lastSpansFull` 在該降階段的末列把**倒數第二格**撐成兩格、最後一格維持單格，寬的一邊留在閱讀方向；`lg` 兩格都回到 1。呼叫端若把整組收窄（如 `md:max-w-[42rem]`），欄數要跟著降，不要留一手機寬的 5 欄在窄容器裡。
   - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，3 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，3 欄）、`src/ui/features/account/pages/AccountList.tsx`（SUMMARY，2 欄且整組收窄）。
 
-- **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 section 標題（14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band。
+- **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。title 為選用的 section 標題（`h2`、14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band，且**不畫 `border-b`**——分隔線只在分帶被標題命名時有意義。
   - **band 狀態**：`status` 在標題前放 `StatusGlyph`（並補 `sr-only` 狀態字），`hint` 在標題下掛一行 muted 原因。呼叫端只在值得回報時才傳——驗證錯誤用 `status="error"`，單純「還沒填」只給 `hint`，避免每頁排版都長滿字形。
   - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`status?`（`StatusGlyph` 狀態）、`hint?`（標題下的單行原因）、`testId?`、`ariaLabel?`（具名的 `<section>` 成為 landmark）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
   - **不要用於**：同一段落的第二層標題（用 `Module`）；section 內的個別單元；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
@@ -540,12 +541,12 @@
 
 ## statement
 
-- **`StatementPanel`** — 一張報表的排版外框：標題（僅行動版 `statementTitleClass`）＋ 摘要指標列 ＋ 表格內容。`title` 與 `metrics` 皆可缺席：空狀態保留標題、省略指標列（不顯示歸零假象）；`testId` 掛在外框根節點。報表檢視與月度關帳共用同一份外框。行動版把指標列改為堆疊的 label / 值列（`statement-metrics-stacked`），因為三個 mono 合計在手機寬塞不進單列。
+- **`StatementPanel`** — 一張報表的排版外框：標題（`subSectionTitleClass`）＋ 摘要指標列 ＋ 表格內容。`title` 與 `metrics` 皆可缺席：空狀態保留標題、省略指標列（不顯示歸零假象）；`testId` 掛在外框根節點。報表檢視與月度關帳共用同一份外框。行動版把指標列改為堆疊的 label / 值列（`${testId}-metrics-stacked`），因為三個 mono 合計在手機寬塞不進單列。
 - **不要用於**：一般頁面區塊（用 `PageSection`）；需要卡片式 KPI 時。
 - **`statementMetrics`**（`statementMetrics.ts`）— 報表摘要指標的**身分定義**：`incomeMetrics`／`balanceMetrics`／`cashFlowMetrics` 各回傳該表固定三個 `StatementMetric`（`key`／`testId`／`label` 內定，值由呼叫端提供）。標籤取自 `@/ui/constants/report/reportMetricLabels` 的 `REPORT_METRIC_LABELS`；月度關帳在值之上另帶漂移變化行（`change`／`changeTone`）。指標陣容只定義一次，兩個表面因此不會各自漂移。
-- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`amountChange?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上（行動版另掛 `${testId}-mobile`）。行動版不沿用兩欄表：一列一筆、label 左金額右，語意角色與縮排沿用，chevron 撐到 44px 命中區；`amountChange`（`{ fromText, toText }`，由呼叫端格式化）折成值下方的「期初 → 期末」第二行。選填的 `data-testid` 兩邊都在，測試以 `within` 分開讀。同模組另匯出 `statementTitleClass`：行動版堆疊時每張表上方的標題表面（桌機由 tabs 承擔），由 `StatementPanel` 使用。
+- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`amountDetail?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上（行動版另掛 `${testId}-mobile`）。行動版不沿用兩欄表：一列一筆、label 左金額右，語意角色與縮排沿用，chevron 撐到 44px 命中區。`amountDetail`（已格式化的字串，例如「期初 → 期末」的邊界行）在**兩個表面都**折成值下方的第二行：桌面不靠右緣欄位塞比較資訊，行動版也不必另走一份渲染。選填的 `data-testid` 兩邊都在，測試以 `within` 分開讀。
 - **`buildStatementRows`**（`statementRows.ts`）— 把「區塊 + 資料」排成 `StatementRow[]`：指派縮排層級與語意角色、以路徑組出穩定 key（同層同名不互撞）、把每個區塊收成「標題列 → 資料列 → 合計列」並補上 terminus。呼叫端只提供已解析的金額欄（`StatementAmountCell`）與標籤；月度關帳（漂移比對）與報表檢視（已產生報表）共用同一份列結構。
-- 語意角色由 `tone`（`section`／`group`／`detail`／`deepDetail`／`subtotal`／`terminus`）決定，縮排由 `level` 決定（見 [`visual-standards.md`](visual-standards.md) 「財務報表語意階層」）。金額一律由呼叫端先格式化為 `amountText`（`null` 表示該列無金額），元件不感知任何 drift／比較邏輯。
+- 語意角色由 `tone`（`section`／`group`／`detail`／`deepDetail`／`subtotal`／`terminus`）決定，縮排由 `level` 決定（見 [`visual-standards.md`](visual-standards.md) 「財務報表語意階層」）。金額一律由呼叫端先格式化為 `amountText`（`null` 表示該列無金額），元件不感知任何 drift／比較邏輯：比較文字由呼叫端組成後當成 `amountDetail` 傳入。
 - **不要用於**：一般資料列表（用 `data-table` 套件）；需要多欄或可編輯欄位時。
 - 範例：`src/ui/features/monthly_close/stages/financial_reports/components/CloseFinancialReportViews.tsx`、`src/ui/features/report/pages/ReportDetailPage.tsx`
 

@@ -145,7 +145,7 @@ describe('ReportAnalysisPage', () => {
       'debt-leverage',
       'cash-coverage',
     ];
-    expect(ids.map((id) => document.getElementById(id)?.querySelector('p')?.textContent)).toEqual([
+    expect(ids.map((id) => document.getElementById(id)?.querySelector('h2')?.textContent)).toEqual([
       '淨資產趨勢',
       '資產類別構成',
       '投資績效',

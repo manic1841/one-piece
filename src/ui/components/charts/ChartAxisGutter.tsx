@@ -1,5 +1,7 @@
 import { cn } from '@/ui/utils/cn';
 
+import { chartAxisLabelClass } from './chartTheme';
+
 /**
  * Width of a y-axis gutter, in px. Fits the 6-character tick cap.
  *
@@ -31,7 +33,8 @@ export function ChartAxisGutter({ side, labels, height, viewBoxHeight }: ChartAx
         <span
           key={`${label.text}-${index}`}
           className={cn(
-            'absolute -translate-y-1/2 font-mono text-[11px] tabular-nums text-muted-foreground',
+            'absolute -translate-y-1/2',
+            chartAxisLabelClass,
             side === 'left' ? 'right-2' : 'left-2',
           )}
           style={{ top: `${(label.y / viewBoxHeight) * 100}%` }}

@@ -28,6 +28,17 @@ describe('MetricGroup', () => {
     expect(screen.getByText('+22.4% MoM')).toBeInTheDocument();
   });
 
+  it('renders a caption as a muted line, separate from the change', () => {
+    const { container } = render(
+      <Metric label="TOTAL ASSETS" value="NT$5,420,000" captionLabel="錨定：2026-08" />,
+    );
+
+    const caption = screen.getByText('錨定：2026-08');
+    expect(caption.className).toContain('text-muted-foreground');
+    // The caption comes after the figure, so it annotates rather than labels it.
+    expect(container.firstElementChild?.lastElementChild).toBe(caption);
+  });
+
   describe('stacked layout', () => {
     it('puts the label and the figure on one row, and the change under the figure', () => {
       const { container } = render(

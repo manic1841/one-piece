@@ -166,19 +166,17 @@ export const walkToCloseSummary = async (page: Page): Promise<void> => {
 };
 
 /**
- * Read one Close Period summary figure by its row label. A figure whose reports
- * drifted renders as `<persisted> -> <preview>`, so both operands come back in
+ * Read one Close Period summary figure by its row key. A figure whose reports
+ * drifted renders as `<persisted> → <preview>`, so both operands come back in
  * order; without drift both sides are the same single value.
  */
 export const readSummaryFigure = async (
   page: Page,
-  label: string,
+  rowKey: string,
 ): Promise<{ persisted: number; preview: number }> => {
-  const cell = page.getByTestId('close-summary-panel').getByText(label, { exact: true });
-  const [persisted, preview = persisted] = (
-    await cell.locator('..').locator('span').nth(1).innerText()
-  )
-    .split('->')
+  const cell = page.getByTestId(`close-summary-figure-${rowKey}`);
+  const [persisted, preview = persisted] = (await cell.innerText())
+    .split(/\s*(?:->|→)\s*/)
     .map((part) => parseMoney(part));
   return { persisted, preview };
 };

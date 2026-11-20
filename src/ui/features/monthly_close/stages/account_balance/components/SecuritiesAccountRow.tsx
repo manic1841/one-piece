@@ -22,7 +22,7 @@ import {
 import { Button } from '@/ui/components/ui/button';
 import { Input } from '@/ui/components/ui/input';
 import { Label } from '@/ui/components/ui/label';
-import { ACCOUNT_BALANCE_FIELD_LABELS } from '@/ui/constants/monthlyClose';
+import { ACCOUNT_BALANCE_FIELD_LABELS, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { cn } from '@/ui/utils/cn';
 
 import type { Account, AccountBalanceInput, Holding } from '../../../viewmodels/accountBalance.vm';
@@ -187,7 +187,8 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                           type="button"
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8"
+                          aria-label={MONTHLY_CLOSE_LABELS.REMOVE_HOLDING}
+                          className="h-8 w-8 after:-inset-1.5"
                           onClick={() => removeHolding(index)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -212,7 +213,8 @@ export const SecuritiesAccountRow: React.FC<SecuritiesAccountRowProps> = ({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      aria-label={MONTHLY_CLOSE_LABELS.REMOVE_HOLDING}
+                      className="h-8 w-8 after:-inset-1.5"
                       onClick={() => removeHolding(index)}
                     >
                       <Trash2 className="h-4 w-4" />

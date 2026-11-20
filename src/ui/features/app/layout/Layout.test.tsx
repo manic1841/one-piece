@@ -108,6 +108,21 @@ describe('Layout system status bar', () => {
     expect(screen.getByTestId('header-today')).toBeInTheDocument();
   });
 
+  it('offers a skip link that targets the main landmark', () => {
+    renderLayout();
+
+    const skip = screen.getByRole('link', { name: '跳至主要內容' });
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('leaves the page title to the route, so the brand is not a heading', () => {
+    renderLayout();
+
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    expect(screen.getByRole('banner')).toHaveTextContent('ONE PIECE');
+  });
+
   it('renders a site footer with brand, version, and tagline', () => {
     renderLayout();
 

@@ -25,7 +25,7 @@ const summaryVM: CloseSummaryVM = {
       status: CLOSE_ACTIVITY_STATUS.NOT_CONFIRMED,
       dataText: null,
     },
-    { stepText: '09 Close Period', status: CLOSE_ACTIVITY_STATUS.NOT_CONFIRMED, dataText: null },
+    { stepText: '09 正式關帳', status: CLOSE_ACTIVITY_STATUS.NOT_CONFIRMED, dataText: null },
   ],
   financial: {
     totalAssets: 10_500_000,
@@ -53,6 +53,7 @@ const renderPanel = (props?: Partial<Parameters<typeof CloseSummaryPanel>[0]>) =
   render(
     <CloseSummaryPanel
       summary={summaryVM}
+      periodTitle="2026 年 9 月"
       hasDrift={false}
       onReviewReports={() => {}}
       onClose={() => {}}
@@ -79,7 +80,7 @@ describe('CloseSummaryPanel', () => {
 
     expect(desktop().getByText('01 帳戶餘額')).toBeInTheDocument();
     expect(desktop().getByText('02 證券買入／賣出')).toBeInTheDocument();
-    expect(desktop().getByText('09 Close Period')).toBeInTheDocument();
+    expect(desktop().getByText('09 正式關帳')).toBeInTheDocument();
   });
 
   it('shows unfinished stages as neutral placeholders without fabricated data', () => {
@@ -132,6 +133,8 @@ describe('CloseSummaryPanel', () => {
 
     fireEvent.click(screen.getByTestId('close-period-confirm'));
     await vi.waitFor(() => expect(confirmMock).toHaveBeenCalledTimes(1));
+    // The dialog names the period it will close, not just the action.
+    expect(confirmMock.mock.calls[0][0].title).toContain('2026 年 9 月');
   });
 
   it('only calls onClose after the dialog is confirmed', async () => {

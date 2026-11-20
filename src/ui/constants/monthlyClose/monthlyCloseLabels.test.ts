@@ -47,7 +47,7 @@ describe('monthlyCloseLabels', () => {
     for (const section of Object.values(ACCOUNT_BALANCE_SECTIONS)) {
       expect(section.note).toBeTruthy();
     }
-    expect(ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE).toBe('前期餘額');
+    expect(ACCOUNT_BALANCE_FIELD_LABELS.PREVIOUS_MONTH_BALANCE).toBe('期初餘額');
     expect(ACCOUNT_BALANCE_FIELD_LABELS.FOREIGN_AMOUNT).toBe('外幣金額');
     expect(ACCOUNT_BALANCE_FIELD_LABELS.EXCHANGE_RATE).toBe('匯率');
     expect(ACCOUNT_BALANCE_FIELD_LABELS.TWD_VALUE).toBe('TWD 價值');

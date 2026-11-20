@@ -10,6 +10,7 @@ import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 
+import { ClosePeriodMatrix } from '../components/ClosePeriodMatrix';
 import { useMonthlyClosePickerPage } from '../hooks/useMonthlyClosePickerPage';
 
 export const ClosePeriodPickerPage: React.FC = () => {
@@ -17,8 +18,20 @@ export const ClosePeriodPickerPage: React.FC = () => {
   const householdId = userProfile?.householdId ?? '';
   const userEmail = userProfile?.email ?? '';
   const navigate = useNavigate();
-  const { selectedYearMonth, year, month, title, setYear, setMonth, isStarting, error, start } =
-    useMonthlyClosePickerPage({ householdId, userEmail });
+  const {
+    selectedYearMonth,
+    year,
+    month,
+    title,
+    months,
+    setYear,
+    setMonth,
+    setSelectedYearMonth,
+    isStarting,
+    error,
+    periodsError,
+    start,
+  } = useMonthlyClosePickerPage({ householdId, userEmail });
 
   const handleStart = async () => {
     const started = await start(selectedYearMonth);
@@ -54,6 +67,16 @@ export const ClosePeriodPickerPage: React.FC = () => {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      <ClosePeriodMatrix
+        months={months}
+        selectedYearMonth={selectedYearMonth}
+        onSelect={setSelectedYearMonth}
+      />
+
+      {periodsError && (
+        <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.PERIODS_LOAD_ERROR}</p>
       )}
 
       <EmptyState

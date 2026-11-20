@@ -90,17 +90,17 @@ const summaryInput = {
     { stageId: 'DEBT_REPAYMENT', label: '債務還款', isCompleted: true, dataText: '2 筆' },
     {
       stageId: 'COMPLETENESS_CHECK',
-      label: 'Completeness Check',
+      label: '就緒檢查',
       isCompleted: true,
       dataText: null,
     },
     {
       stageId: 'FINANCIAL_REPORTS',
-      label: 'Financial Reports',
+      label: '財務報表',
       isCompleted: true,
       dataText: '3 張',
     },
-    { stageId: 'CLOSE_PERIOD', label: 'Close Period', isCompleted: false, dataText: null },
+    { stageId: 'CLOSE_PERIOD', label: '正式關帳', isCompleted: false, dataText: null },
   ],
   financialResult: {
     totalAssets: 10_500_000,
@@ -174,7 +174,7 @@ describe('mapCloseSummary', () => {
       },
     });
 
-    expect(vm.financialText.equity).toBe('NT$4,200,000 -> NT$4,300,000');
+    expect(vm.financialText.equity).toBe('期初 NT$4,200,000 → 期末 NT$4,300,000');
     expect(vm.financialText.netIncome).toBe('NT$117,000');
   });
 

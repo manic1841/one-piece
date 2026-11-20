@@ -25,6 +25,8 @@ import {
 
 interface CloseSummaryPanelProps {
   summary: CloseSummaryVM;
+  /** The period being closed, e.g. "2026 年 9 月"; names the dialog's target. */
+  periodTitle: string;
   /** Set when the report data CLOSE_PERIOD renders failed to load (#228). */
   loadErrorMessage?: string | null;
   /**
@@ -87,6 +89,7 @@ const SummaryRow: React.FC<{
 
 export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
   summary,
+  periodTitle,
   loadErrorMessage = null,
   hasDrift,
   onReviewReports,
@@ -128,7 +131,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
 
   const handleClose = async () => {
     const confirmed = await confirmDialog({
-      title: MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_TITLE,
+      title: `${MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_TITLE}：${periodTitle}`,
       context: MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_CONTEXT,
       consequence: MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_CONSEQUENCE,
       confirmLabel: MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_ACTION,
@@ -256,6 +259,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
                   label={row.label}
                   trailing={
                     <span
+                      data-testid={`close-summary-figure-${row.key}`}
                       className={cn(
                         'font-mono text-[13px] tabular-nums',
                         row.drifted ? 'text-warning' : 'text-muted-foreground',
@@ -286,7 +290,7 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
       </div>
 
       {!isReadOnly && (
-        <div className="space-y-3 border-t border-border pt-[26px]">
+        <div className="space-y-3 border-t border-border pt-[26px] pb-16 pr-20 md:pb-0 md:pr-24">
           {/* The backend close gate only checks that the reports are persisted,
               so a drift that appeared after FINANCIAL_REPORTS was confirmed
               would be frozen into the closed period. The block lives here, next
@@ -307,12 +311,18 @@ export const CloseSummaryPanel: React.FC<CloseSummaryPanelProps> = ({
               </AlertDescription>
             </Alert>
           )}
-          <div className="flex items-center justify-end">
+          {/* The close is the app's one irreversible step: it wears the
+              destructive tone, names the period and says what closing locks. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-muted-foreground">
+              {MONTHLY_CLOSE_LABELS.SUMMARY_CLOSE_LOCK_HINT}
+            </p>
             <Button
               data-testid="close-period-confirm"
+              variant="destructive"
               onClick={() => void handleClose()}
               disabled={confirming || !isConfirmable || hasDrift}
-              className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
+              className="min-h-11 w-full px-[18px] text-xs font-semibold uppercase tracking-[0.08em] sm:w-auto"
             >
               {confirming
                 ? MONTHLY_CLOSE_LABELS.LOADING

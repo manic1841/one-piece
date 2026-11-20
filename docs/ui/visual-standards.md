@@ -49,12 +49,15 @@ ONE PIECE 的視覺目標是：
 
 Page Header 規則：
 
-- Title：頁面唯一 H1。
+- Title：頁面唯一 H1（shell 的品牌不是 heading，見 [`states-and-a11y.md`](states-and-a11y.md)）。
 - Description：最多 1 行。
-- Action 放右側。
+- Action 放右側；多個 action 在手機改為**全寬堆疊**（`flex-col items-stretch`，`sm` 以上才轉回橫向）。主動作在上、次動作在下，同一個 action 不因寬度換位置。
 - 不要在 Header 再塞大量 Metric。
 - 不要把 Header 做成 Card。
 - 不使用大型 hero banner。
+- **不要重複已有導覽的入口**：nav 已經能去的地方（例如關帳的期間選擇）不再在 header 放第二個連結。
+
+文件外殼（`index.html`）也是頁面的一部分：`<title>` 寫「品牌 — 系統定位」、`<meta name="description">` 一句話、`theme-color` 取 `--background` 的實際色值（狀態列在 CSS 載入前就上色，不會白閃）、icon 指向專案自己的 `public/favicon.svg`。不要把樣板上預設的資源路徑留在 `<head>` 裡。
 
 ### 入口畫面 (Entry / Gate Surface)
 
@@ -91,6 +94,8 @@ Page Header 規則：
 上表的級距對應 design-system 級距由小到大的八個值；具體數字以該節為準，不在本節複述。
 
 **禁止**：級距外的任意值不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
+
+**分帶的層級**：`PageSection` 的 `border-b` 是 section 的分隔線，只有被標題命名的分帶才畫。section 內部的並列群組用子區塊標題（`subSectionTitleClass`，13px）＋ `Divider`／`Module` 記憶體分隔，**不再加 `border-b`**——一路加下去會出現三種粗細一樣、意思不同的線。標題與其內容之間靠間距拉開（告訴前 `pt-4`），不要讓標題與內容黏成同一塊。
 
 ## 狀態 (States)
 
@@ -136,8 +141,8 @@ Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立
 帳戶餘額階段依 Account Type 分區（現金／銀行／外幣／證券），所有必要輸入直接呈現在 Page 內（單一 Current Step 工作區），不使用 Dialog：
 
 - **缺漏輸入不做 inline 必填提示**，由狀態 glyph 單獨承擔；計算欄在缺漏輸入時顯示 0，不阻擋確認。操作錯誤仍以 inline 錯誤訊息就近呈現。
-- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／匯率／TWD 價值等數字欄的標籤與數字同軸右對齊（桌機佈局）。
-- **現金／銀行共用表頭的真表格**：一條 thead（帳戶／前期餘額／期末餘額），列內不重複欄位標籤；行動版維持卡片列（label 左、值右）。
+- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，期初餘額／外幣金額／匯率／TWD 價值等數字欄的標籤與數字同軸右對齊（桌機佈局）。
+- **現金／銀行共用表頭的真表格**：一條 thead（帳戶／期初餘額／期末餘額），列內不重複欄位標籤；行動版維持卡片列（label 左、值右）。
 - **證券表**：數字欄表頭與輸入框右緣同軸。
 
 欄寬、列高、內距與字級層級等表面規格見 [`design-system.md`](design-system.md) 的 `data-table` 與其「字體排印」節；具體欄寬常數與同軸對齊由程式碼承擔。
@@ -284,6 +289,7 @@ Mobile 不是 Desktop 縮小，而是相同資訊階層的不同排版。
 - Secondary information 可收進 Accordion。
 - 併排區塊在手機改為上下堆疊時，**每個區塊各自帶標題**，不靠另一半的欄寬暗示歸屬；只在桌機才有的欄（如沒有欄名的 `-` 佔位列）不帶到手機，改由列內既有文字承擔。
 - Primary action 保持容易觸及。
+- **分頁列（tabs）在手機照樣是分頁，不是堆疊**：面板 `forceMount` 時，面板與分頁列都不可以 `hidden md:*`——否則手機一次看到全部面板、而且永遠切不動。非選中的面板 `hidden`、選中的 `block`（每個寬度都一樣）；分頁列在一個寬度下放不下時自己橫向捲動（隱藏滾動條），不要靠推向下一層。
 - 底部固定列（sticky dock）以 `--bottom-overlay`（由 shell 量測系統級固定浮層髮布，無浮層時為 `0`）加上 `env(safe-area-inset-bottom)` 讓位，永不與固定浮層或 home indicator 重疊；高度不得寫死。
 - Reading order 與 Desktop 一致（見「響應式原則」）。
 
@@ -356,6 +362,7 @@ State change
 
 - 不要只靠紅色表達危險。
 - Confirmation 必須說清楚 **What will happen** / **What will not happen**，並提供 `[ Cancel ] [ Confirm ]`。
+- **觸發鈕本身就要有破壞性重量**：不可逆動作（關帳、刪除）的主按鈕用 `destructive` 變體，不用 `default`。按下前就該看出這一顆與旁邊的「上一步」不是同一種後果。後果說明以一行常駐文字掛在鈕旁（例「關帳後將鎖定，重開會牽連後續所有期間」），不把後果只留在確認框裡——前置說明讓人在按下去之前就決定。
 
 ## 通知 (Toast / Notification)
 

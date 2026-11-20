@@ -7,7 +7,7 @@ import PeriodBadge from '@/ui/components/PeriodBadge';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Badge } from '@/ui/components/ui/badge';
 
-import { GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
+import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
 const NumberSection: React.FC = () => (
   <GallerySection number="01" title="Financial Number">
@@ -32,6 +32,12 @@ const NumberSection: React.FC = () => (
       <GalleryModule label="MISSING DATA">
         <FinancialNumber value={null} change="No report available" />
       </GalleryModule>
+      <GalleryModule label="ZERO · NO DIRECTION">
+        <FinancialNumber value="NT$0" tone="zero" change="本月無淨現金流" />
+        <GalleryCaption>
+          零走 `zero` tone（muted），不畫成綠色——沒有結果不等於有收益。
+        </GalleryCaption>
+      </GalleryModule>
     </div>
   </GallerySection>
 );
@@ -52,7 +58,7 @@ const MetricSection: React.FC = () => (
     </MetricGroup>
     <GalleryModule label="5-COLUMN SNAPSHOT · md STEPS DOWN TO 3 + 2" className="mt-6">
       <MetricGroup columns={5} lastSpansFull>
-        <Metric label="TOTAL ASSETS" value="NT$5,420,000" change="ANCHORED 2026-08" />
+        <Metric label="TOTAL ASSETS" value="NT$5,420,000" captionLabel="錨定：2026-08" />
         <Metric label="TOTAL LIABILITIES" value="NT$598,680" />
         <Metric label="MONTHLY CASH FLOW" value="-NT$12,300" tone="negative" />
         <Metric label="PORTFOLIO RETURN" value="3.91%" change="損益 NT$3,000" />

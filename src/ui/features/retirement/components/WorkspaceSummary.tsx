@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { eyebrowClass, sectionTitleClass } from '@/ui/components/eyebrow';
+import { eyebrowClass, subSectionTitleClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { ASSUMPTION_LABELS } from '@/ui/constants/retirement/setupLabels';
@@ -44,7 +44,7 @@ function SummaryLine({
     <div className="border-b border-border py-3" data-testid={`summary-${number ?? title}`}>
       <div className="flex items-center gap-3">
         <span className={cn(eyebrowClass, 'w-6 shrink-0')}>{number}</span>
-        <span className={sectionTitleClass}>{title}</span>
+        <span className={subSectionTitleClass}>{title}</span>
         <span className="min-w-0 flex-1 truncate text-right text-xs text-muted-foreground">
           {text}
         </span>

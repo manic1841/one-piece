@@ -546,12 +546,9 @@ describe('useCloseStepRegistry', () => {
 
     render(<ClosePeriodHarness />);
 
-    await waitFor(() =>
-      expect(screen.getAllByText('NT$4,300,000').length).toBeGreaterThan(0),
-    );
-    // Deskop keeps the one-line arrow; the phone layout names both ends instead.
-    expect(screen.getAllByText('NT$4,200,000 -> NT$4,300,000')).toHaveLength(1);
-    expect(screen.getAllByText(/期初 NT\$4,200,000 → 期末 NT\$4,300,000/)).toHaveLength(1);
+    await waitFor(() => expect(screen.getAllByText('NT$4,300,000').length).toBeGreaterThan(0));
+    // Both surfaces name both ends instead of an unlabelled arrow.
+    expect(screen.getAllByText(/期初 NT\$4,200,000 → 期末 NT\$4,300,000/)).toHaveLength(2);
   });
 
   it('renders the persisted CLOSE_PERIOD record with no drift marks for a CLOSED period', async () => {

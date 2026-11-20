@@ -63,6 +63,7 @@ describe('transaction-list.vm', () => {
     expect(vm.signedAmount).toBe(-1200);
     expect(vm.amountText).toBe('NT$1,200');
     expect(vm.isPositive).toBe(false);
+    expect(vm.tone).toBe('negative');
     expect(vm.hasCashLedger).toBe(true);
   });
 
@@ -87,6 +88,7 @@ describe('transaction-list.vm', () => {
     expect(vm.signedAmount).toBe(3500);
     expect(vm.amountText).toBe('NT$3,500');
     expect(vm.isPositive).toBe(true);
+    expect(vm.tone).toBe('positive');
     expect(vm.hasCashLedger).toBe(false);
   });
 

@@ -54,7 +54,13 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {meta}
         </div>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        // On a phone the actions are the page's next step, not a toolbar, so
+        // they take the full row; `sm` puts them back beside the title.
+        <div className="flex flex-col items-stretch gap-2 [&>*]:w-full sm:flex-row sm:flex-wrap sm:items-center sm:[&>*]:w-auto">
+          {actions}
+        </div>
+      )}
     </div>
   );
 };

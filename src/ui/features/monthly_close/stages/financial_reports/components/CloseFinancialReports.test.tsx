@@ -214,7 +214,9 @@ describe('CloseFinancialReports', () => {
   it('resets collapsed groups when switching statement tabs', () => {
     renderReports();
 
-    fireEvent.click(within(desktopStatement('close-income-statement')).getByRole('button', { name: '薪資' }));
+    fireEvent.click(
+      within(desktopStatement('close-income-statement')).getByRole('button', { name: '薪資' }),
+    );
     expect(revealedText(desktopStatement('close-income-statement'))).not.toContain(
       '薪資 › Charles',
     );
@@ -475,7 +477,7 @@ describe('CloseFinancialReports', () => {
     const income = screen.getByTestId('statement-metric-income');
     expect(income).toHaveTextContent('收入');
     await waitFor(() => expect(income).toHaveTextContent('NT$50,000'));
-    expect(income).toHaveTextContent('NT$40,000 -> NT$50,000');
+    expect(income).toHaveTextContent('期初 NT$40,000 → 期末 NT$50,000');
 
     // 未漂移的指標不顯示變化行。
     expect(screen.getByTestId('statement-metric-expense')).not.toHaveTextContent('->');

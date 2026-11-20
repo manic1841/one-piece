@@ -1,6 +1,7 @@
 import { cn } from '@/ui/utils/cn';
 
 import { AXIS_GUTTER_CLASS } from './ChartAxisGutter';
+import { chartAxisLabelClass } from './chartTheme';
 
 type ChartXLabelRowProps = {
   /** Label positions as a 0–1 fraction of the plot width, first to last. */
@@ -27,7 +28,7 @@ export function ChartXLabelRow({ labels, leftGutter, rightGutter, testId }: Char
         {labels.map((label, index) => (
           <span
             key={`${label.text}-${index}`}
-            className="absolute whitespace-nowrap font-mono text-[11px] tabular-nums text-muted-foreground"
+            className={cn('absolute whitespace-nowrap', chartAxisLabelClass)}
             style={{
               left: `${label.xRatio * 100}%`,
               transform:

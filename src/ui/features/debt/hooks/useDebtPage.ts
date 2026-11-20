@@ -62,10 +62,7 @@ export function useDebtPage(householdId: string) {
     [debtAccounts],
   );
 
-  const totalMonthlyDue = useMemo(
-    () => sumActiveMonthlyDue(debtAccountViews),
-    [debtAccountViews],
-  );
+  const totalMonthlyDue = useMemo(() => sumActiveMonthlyDue(debtAccountViews), [debtAccountViews]);
 
   const getPaymentHistory = useCallback(
     async (debtAccountId: string) => {

@@ -136,6 +136,11 @@ test('preview compares retirement ages without changing the result until applied
 test('dragging a bar onto another row reparents the phase and Undo restores it', async ({
   page,
 }) => {
+  // The longest path in the suite: a second event, a reparenting drag, undo.
+  // On an idle machine it lands around 20s, so the 30s default only holds when
+  // nothing else is running.
+  test.slow();
+
   const { timeline, bar } = await setupWorkspace(page);
 
   // A second event of the opposite type gives the drag a different row.

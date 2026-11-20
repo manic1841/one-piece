@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { StatementTable, type StatementRow } from '@/ui/components/statement/StatementTable';
+import { type StatementRow, StatementTable } from '@/ui/components/statement/StatementTable';
 
 import { GalleryModule } from './GalleryScaffold';
 
@@ -48,7 +48,7 @@ const STATEMENT_ROWS: StatementRow[] = [
     label: '支出合計',
     amountText: 'NT$88,000',
     amountWarning: true,
-    amountChange: { fromText: 'NT$85,000', toText: 'NT$88,000' },
+    amountDetail: '期初 NT$85,000 → 期末 NT$88,000',
     tone: 'group',
     level: 1,
     children: [],

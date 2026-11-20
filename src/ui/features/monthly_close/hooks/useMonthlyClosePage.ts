@@ -229,7 +229,6 @@ export const useMonthlyClosePage = ({
   const handleConfirmStage = async (stageId: CloseStageId) => {
     // The registry is a complete record, so the stage is always present.
     const { control } = stepRegistry[stageId];
-    if (control.confirmGate && !(await control.confirmGate())) return;
     const result = await confirmStage(control.buildRequest());
     // A failed confirm writes nothing, so no view reset and no refresh may follow.
     if (!result) return;

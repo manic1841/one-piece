@@ -12,6 +12,12 @@ vi.mock('@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase', () 
     start: vi.fn(),
   },
 }));
+const { listPeriodsExecute } = vi.hoisted(() => ({ listPeriodsExecute: vi.fn() }));
+vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => ({
+  ListFinancialPeriodsUseCase: class {
+    execute = listPeriodsExecute;
+  },
+}));
 // Stable hoisted identity: a fresh one per render would change the callback identity.
 const { authIdentity } = vi.hoisted(() => ({
   authIdentity: { uid: 'user-1', email: 'user@test.com', isGlobalAdmin: false },
@@ -41,9 +47,10 @@ const renderPicker = () =>
 describe('useMonthlyClosePickerPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    listPeriodsExecute.mockResolvedValue([]);
   });
 
-  it('defaults the selected period to the current month', () => {
+  it('defaults the selected period to the current month', async () => {
     const { result } = renderPicker();
 
     const now = new Date();
@@ -51,6 +58,43 @@ describe('useMonthlyClosePickerPage', () => {
       formatYearMonth(now.getFullYear(), now.getMonth() + 1),
     );
     expect(result.current.error).toBeNull();
+  });
+
+  it('moves the default to the newest period that already has a record', async () => {
+    listPeriodsExecute.mockResolvedValue([
+      period(),
+      { ...period(), yearMonth: '2026-11', id: '2026-11' },
+      { ...period(), yearMonth: '2026-08', id: '2026-08' },
+    ]);
+
+    const { result } = renderPicker();
+
+    await act(async () => {});
+
+    expect(result.current.selectedYearMonth).toBe('2026-11');
+  });
+
+  it('keeps the current month when no period has a record', async () => {
+    const { result } = renderPicker();
+
+    await act(async () => {});
+
+    const now = new Date();
+    expect(result.current.selectedYearMonth).toBe(
+      formatYearMonth(now.getFullYear(), now.getMonth() + 1),
+    );
+  });
+
+  it('does not steal a month the user picked after the read settled', async () => {
+    const { result } = renderPicker();
+    await act(async () => {});
+
+    await act(async () => {
+      result.current.setYear('2025');
+      result.current.setMonth('02');
+    });
+
+    expect(result.current.selectedYearMonth).toBe('2025-02');
   });
 
   it('starts the picked month and reports success', async () => {

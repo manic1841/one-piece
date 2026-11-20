@@ -243,15 +243,21 @@ describe('StatementTable mobile list', () => {
     expect(row?.className).toContain('border-primary');
   });
 
-  it('gives the expand control a 44px hit area', () => {
+  it('gives the expand control a 44px hit area on both surfaces', () => {
     renderTable();
 
-    const chevron = within(mobileList()).getByRole('button', { name: '收入' });
-    expect(chevron.className).toContain('h-11');
-    expect(chevron.className).toContain('w-11');
+    const mobileChevron = within(mobileList()).getByRole('button', { name: '收入' });
+    expect(mobileChevron.className).toContain('h-11');
+    expect(mobileChevron.className).toContain('w-11');
+
+    const desktopChevron = within(screen.getByTestId('statement-table')).getByRole('button', {
+      name: '收入',
+    });
+    expect(desktopChevron.className).toContain('h-11');
+    expect(desktopChevron.className).toContain('w-11');
   });
 
-  it('shows a drifted figure on two lines: the current value, then opening → closing', () => {
+  it('prints the amount and its prepared second line on both surfaces', () => {
     renderTable({
       rows: [
         {
@@ -259,7 +265,7 @@ describe('StatementTable mobile list', () => {
           label: '負債',
           amountText: 'NT$8,146,124',
           amountWarning: true,
-          amountChange: { fromText: 'NT$8,199,124', toText: 'NT$8,146,124' },
+          amountDetail: '期初 NT$8,199,124 → 期末 NT$8,146,124',
           tone: 'group',
           level: 1,
           children: [],
@@ -267,32 +273,14 @@ describe('StatementTable mobile list', () => {
       ],
     });
 
-    const row = within(mobileList()).getByText('負債').closest('div')?.parentElement;
-    expect(row?.textContent).toContain('NT$8,146,124');
-    expect(row?.textContent).toContain('期初 NT$8,199,124 → 期末 NT$8,146,124');
-  });
-
-  // The deskop table prints the drift as one `a -> b` string, so that is what
-  // `amountText` carries; the list must not print the arrow line as well.
-  it('prints the current value, not the desktop arrow string, when the cell drifted', () => {
-    renderTable({
-      rows: [
-        {
-          key: 'drifted',
-          label: '負債',
-          amountText: 'NT$8,199,124 -> NT$8,146,124',
-          amountWarning: true,
-          amountChange: { fromText: 'NT$8,199,124', toText: 'NT$8,146,124' },
-          tone: 'group',
-          level: 1,
-          children: [],
-        },
-      ],
+    const surfaces = [
+      within(mobileList()).getByText('負債').closest('div')?.parentElement,
+      within(screen.getByTestId('statement-table')).getByText('負債').closest('tr'),
+    ];
+    surfaces.forEach((surface) => {
+      expect(surface?.textContent).toContain('NT$8,146,124');
+      expect(surface?.textContent).toContain('期初 NT$8,199,124 → 期末 NT$8,146,124');
     });
-
-    const row = within(mobileList()).getByText('負債').closest('div')?.parentElement;
-    expect(row?.textContent).not.toContain('->');
-    expect(row?.textContent).toContain('期初 NT$8,199,124 → 期末 NT$8,146,124');
   });
 
   it('collapses the children in the list, not only in the table', () => {

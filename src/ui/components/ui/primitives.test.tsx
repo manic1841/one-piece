@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
+import { Search } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 
 import { Alert, AlertDescription } from './alert';
@@ -42,5 +43,17 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', { name: 'View details' });
     expect(button.className).toContain('border-transparent');
+  });
+
+  it('gives an icon button a 44px hit area without growing its 40px box', () => {
+    render(
+      <Button size="icon" aria-label="Search">
+        <Search aria-hidden="true" />
+      </Button>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Search' });
+    expect(button.className).toContain('h-10');
+    expect(button.className).toContain('after:-inset-0.5');
   });
 });

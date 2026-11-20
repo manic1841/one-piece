@@ -87,6 +87,11 @@ type MetricProps = {
   /** Preformatted change line, e.g. "+6.8% YTD". */
   change?: string;
   changeTone?: MoneyChangeTone;
+  /**
+   * Muted note about the figure rather than a change to it, written
+   * `標籤：值` (e.g. "錨定：2026-08"). Sits under the change line.
+   */
+  captionLabel?: string;
   /** Optional trailing control, e.g. a jump link. */
   action?: React.ReactNode;
   /** Optional test id for the owning tile. */
@@ -99,6 +104,10 @@ type MetricProps = {
   className?: string;
 };
 
+/** The label under a figure: one size for both layouts, muted for a caption. */
+const captionClass = 'font-mono text-[11px] text-muted-foreground';
+const changeClass = 'font-mono text-[11px]';
+
 /** One metric inside MetricGroup: label over mono value over change line. */
 export function Metric({
   label,
@@ -109,6 +118,7 @@ export function Metric({
   tone = 'default',
   change,
   changeTone = 'muted',
+  captionLabel,
   action,
   testId,
   layout = 'column',
@@ -136,14 +146,12 @@ export function Metric({
           </span>
         </div>
         {change !== undefined && (
-          <span
-            className={cn(
-              'mt-1 text-right font-mono text-[11px]',
-              MONEY_CHANGE_TONE_CLASS[changeTone],
-            )}
-          >
+          <span className={cn('mt-1 text-right', changeClass, MONEY_CHANGE_TONE_CLASS[changeTone])}>
             {change}
           </span>
+        )}
+        {captionLabel !== undefined && (
+          <span className={cn('mt-1 text-right', captionClass)}>{captionLabel}</span>
         )}
         {action !== undefined && <span className="mt-2 self-end">{action}</span>}
       </div>
@@ -157,11 +165,12 @@ export function Metric({
         {figure}
       </span>
       {change !== undefined && (
-        <span
-          className={cn('mt-1.5 block font-mono text-[11px]', MONEY_CHANGE_TONE_CLASS[changeTone])}
-        >
+        <span className={cn('mt-1.5 block', changeClass, MONEY_CHANGE_TONE_CLASS[changeTone])}>
           {change}
         </span>
+      )}
+      {captionLabel !== undefined && (
+        <span className={cn('mt-1 block', captionClass)}>{captionLabel}</span>
       )}
       {action !== undefined && <span className="mt-2 block">{action}</span>}
     </div>

@@ -1,4 +1,4 @@
-import { type StatementAmountChange, type StatementRow, type StatementRowTone } from './StatementTable';
+import { type StatementRow, type StatementRowTone } from './StatementTable';
 
 /**
  * 報表語意階層的**列組裝**（角色語意見 `docs/ui/visual-standards.md` 的「財務報表語意階層」）。
@@ -13,11 +13,8 @@ import { type StatementAmountChange, type StatementRow, type StatementRowTone } 
 export interface StatementAmountCell {
   amountText: string | null;
   amountWarning?: boolean;
-  /**
-   * 漂移的兩端。桌機把兩端併成 `amountText` 的一行，行動版沒有欄寬可擠，改把
-   * 「期初 → 期末」排在金額下方的第二行，因此需要結構化的兩端。
-   */
-  amountChange?: StatementAmountChange;
+  /** 金額下方的第二行（已格式化，如漂移的「期初 → 期末」）；由呼叫端組字。 */
+  amountDetail?: string | null;
 }
 
 /**
@@ -56,7 +53,7 @@ const nodeRows = (nodes: StatementNode[], level: number, keyPath: string): State
       label: node.label,
       amountText: node.cell.amountText,
       amountWarning: node.cell.amountWarning,
-      amountChange: node.cell.amountChange,
+      amountDetail: node.cell.amountDetail,
       tone: toneForLevel(level),
       level,
       children: node.subItems?.length ? nodeRows(node.subItems, level + 1, key) : [],
@@ -85,7 +82,7 @@ export function buildStatementRows({ sections, terminus }: StatementRowsInput): 
       label: section.totalLabel,
       amountText: section.cell.amountText,
       amountWarning: section.cell.amountWarning,
-      amountChange: section.cell.amountChange,
+      amountDetail: section.cell.amountDetail,
       tone: 'subtotal',
       level: 0,
       children: [],
@@ -96,7 +93,7 @@ export function buildStatementRows({ sections, terminus }: StatementRowsInput): 
     label: terminus.label,
     amountText: terminus.cell.amountText,
     amountWarning: terminus.cell.amountWarning,
-    amountChange: terminus.cell.amountChange,
+    amountDetail: terminus.cell.amountDetail,
     tone: 'terminus',
     level: 0,
     children: [],

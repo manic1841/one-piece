@@ -22,7 +22,7 @@ import { CloseStageLoadError } from '@/ui/features/monthly_close/components/Clos
 import { type ProjectSettlementRow } from '@/ui/features/monthly_close/viewmodels/projectSettlement.vm';
 import { formatCurrency } from '@/ui/utils';
 
-/** 專案（含結算狀態）／上期餘額／收入／支出／期末餘額。 */
+/** 專案（含結算狀態）／期初餘額／收入／支出／期末餘額。 */
 const COLUMN_WIDTHS = [30, 18, 18, 18, 16] as const;
 
 interface CloseProjectSettlementStageProps {
@@ -52,7 +52,7 @@ const ProjectName: React.FC<{ row: ProjectSettlementRow }> = ({ row }) => (
 );
 
 /**
- * PROJECT_SETTLEMENT：無輸入的唯讀階段，列出每個 active 專案的結算狀態與四個
+ * PROJECT_SETTLEMENT：無輸入的唯讀步驟，列出每個 active 專案的結算狀態與四個
  * 即時 preview 金額。資料列不可點擊（沒有 detail 頁），因此不套用 interactive
  * 的 hover 呈現。
  */

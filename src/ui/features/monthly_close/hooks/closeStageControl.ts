@@ -11,8 +11,6 @@ export interface CloseStageControl<S extends CloseStageId = CloseStageId> {
   confirming: boolean;
   /** The per-stage payload the stage assembles at confirm time. */
   buildRequest: () => StageConfirmRequestBody<S>;
-  /** Ask before submitting (empty-stage warning); false aborts. */
-  confirmGate?: () => Promise<boolean>;
   /** Post-confirm side effects, given this stage's own authoritative slice. */
   afterConfirm: (data: StageConfirmData<S>) => void;
   /** Reloads the stage's own loaded data after an external change; unset when the stage loads nothing. */

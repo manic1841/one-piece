@@ -14,7 +14,7 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { eyebrowClass, sectionTitleClass } from '@/ui/components/eyebrow';
+import { eyebrowClass, subSectionTitleClass } from '@/ui/components/eyebrow';
 import { MONEY_TONE_CLASS, signTone } from '@/ui/components/moneyTone';
 import { PROJECTION_YEARLY_DETAIL_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_VIEW_LABELS } from '@/ui/constants/retirement/projectionLabels';
@@ -119,7 +119,7 @@ export function YearlyDetails({
         onClick={() => setIsDetailsOpen((prev) => !prev)}
         aria-expanded={isDetailsOpen}
       >
-        <h2 className={sectionTitleClass}>{title}</h2>
+        <h2 className={subSectionTitleClass}>{title}</h2>
         <span className="text-muted-foreground">
           {isDetailsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </span>
