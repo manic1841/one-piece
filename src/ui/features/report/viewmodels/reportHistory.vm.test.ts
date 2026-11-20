@@ -130,6 +130,6 @@ describe('buildReportHistoryVM', () => {
 
     const byPeriod = Object.fromEntries(vm.rows.map((row) => [row.period, row.status]));
     expect(byPeriod['2026-05']).toBeNull();
-    expect(byPeriod['2026-06']).toMatchObject({ text: 'IN PROGRESS' });
+    expect(byPeriod['2026-06']).toMatchObject({ text: '進行中' });
   });
 });

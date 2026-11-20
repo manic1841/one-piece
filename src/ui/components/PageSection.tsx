@@ -43,6 +43,11 @@ const HEADER_MARGIN_CLASS: Record<PageSectionSpacing, string> = {
  * over cards). Number + title is optional; content-only sections render as a
  * plain band. `status` and `hint` report the band's own state so a blocker is
  * explained where the work happens instead of only in the action bar.
+ *
+ * A titled band is a page-level region and rules itself off with `border-b`;
+ * a content-only band is usually a wrapper inside one, so it stays unruled and
+ * does not add a second line to the hierarchy. Titles are `<h2>` — the page's
+ * only `<h1>` belongs to `PageHeader`.
  */
 export function PageSection({
   number,
@@ -61,13 +66,13 @@ export function PageSection({
     <section
       data-testid={testId}
       aria-label={ariaLabel}
-      className={cn('border-b border-border', SPACING_CLASS[spacing], className)}
+      className={cn(hasHeading && 'border-b border-border', SPACING_CLASS[spacing], className)}
     >
       {(hasHeading || action !== undefined) && (
         <div className={cn(HEADER_MARGIN_CLASS[spacing])}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             {hasHeading && (
-              <p className={cn(sectionTitleClass, 'flex items-center gap-2')}>
+              <h2 className={cn(sectionTitleClass, 'flex items-center gap-2')}>
                 {status !== undefined && (
                   <>
                     <StatusGlyph type={status} label="" />
@@ -77,7 +82,7 @@ export function PageSection({
                 {number !== undefined && title !== undefined
                   ? `${number} / ${title}`
                   : (number ?? title)}
-              </p>
+              </h2>
             )}
             {action}
           </div>

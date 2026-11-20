@@ -49,7 +49,7 @@ const interactiveRowClass =
   'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';
 
 /**
- * 關帳階段的交易表格（證券與融資共用）：買入/賣出（或融資兩類）在同一表格，
+ * 關帳步驟的交易表格（證券與融資共用）：買入/賣出（或融資兩類）在同一表格，
  * 整列可點擊開 Drawer 編輯，表格不放列內動作按鈕（乾淨表格契約）。
  * 數值右對齊、文字左對齊；Summary 由系統計算。
  */

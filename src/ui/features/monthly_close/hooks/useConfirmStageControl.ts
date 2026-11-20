@@ -3,7 +3,6 @@ import {
   type StageConfirmRequestBody,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import { type CloseStageId } from '@/domains/financial_period/schemas';
-import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 
 import { type CloseStageControl } from './closeStageControl';
 
@@ -19,8 +18,6 @@ interface UseConfirmStageControlArgs<S extends CloseStageId> {
   stageId: S;
   confirmingStageId: string | null;
   buildRequest: CloseStageControl<S>['buildRequest'];
-  /** Ask before submitting (empty-stage warning); false aborts. */
-  confirmGate?: () => Promise<boolean>;
   afterConfirm?: CloseStageControl<S>['afterConfirm'];
   /** Reloads the stage's own loaded data after an external change; unset when it loads nothing. */
   refresh?: CloseStageControl<S>['refresh'];
@@ -33,7 +30,6 @@ export const useConfirmStageControl = <S extends CloseStageId>({
   stageId,
   confirmingStageId,
   buildRequest,
-  confirmGate,
   afterConfirm,
   refresh,
   keepsViewOnConfirm,
@@ -42,20 +38,11 @@ export const useConfirmStageControl = <S extends CloseStageId>({
     stageId,
     confirming: confirmingStageId === stageId,
     buildRequest,
-    confirmGate,
     afterConfirm: afterConfirm ?? (() => undefined),
     refresh,
     keepsViewOnConfirm,
   };
 };
-
-export const EMPTY_STAGE_CONFIRM_OPTIONS = {
-  title: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_TITLE,
-  context: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_CONTEXT,
-  consequence: MONTHLY_CLOSE_LABELS.EMPTY_STAGE_WARNING_CONSEQUENCE,
-  confirmLabel: MONTHLY_CLOSE_LABELS.RECONFIRM_ACTION,
-  cancelLabel: MONTHLY_CLOSE_LABELS.CANCEL,
-} as const;
 
 /** The empty control for stages with no draft state of their own. */
 export const useNoOpStageControl = <S extends NoPayloadStageId>(

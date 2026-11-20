@@ -45,30 +45,30 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
   const isPeriodLocked = pageVM.isClosed || pageVM.isCascadeDemoted;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-base">
+    <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-base">
       <PageHeader
         crumb={MONTHLY_CLOSE_LABELS.PAGE_TITLE}
         title={pageVM.periodTitle}
         badge={<PeriodBadge label={pageVM.periodLabel} period={pageVM.periodText} />}
+        meta={
+          <Link
+            to="/close"
+            className="mt-1 inline-flex min-h-11 items-center text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {MONTHLY_CLOSE_LABELS.SWITCH_PERIOD}
+          </Link>
+        }
         actions={
-          <>
-            <Link
-              to="/close"
-              className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          isPeriodLocked && (
+            <Button
+              variant="outline"
+              onClick={() => void handleReopen()}
+              disabled={isStarting}
+              className="active:scale-[0.97]"
             >
-              {MONTHLY_CLOSE_LABELS.SWITCH_PERIOD}
-            </Link>
-            {isPeriodLocked && (
-              <Button
-                variant="outline"
-                onClick={() => void handleReopen()}
-                disabled={isStarting}
-                className="active:scale-[0.97]"
-              >
-                {MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM}
-              </Button>
-            )}
-          </>
+              {MONTHLY_CLOSE_LABELS.REOPEN_CONFIRM}
+            </Button>
+          )
         }
       />
 
@@ -101,7 +101,7 @@ export const MonthlyClosePage: React.FC<MonthlyClosePageProps> = ({
         </Alert>
       )}
 
-      <div className="space-y-5">
+      <div className="space-y-4">
         <ClosePipeline
           stages={pageVM.stages}
           currentStageId={currentStageId}

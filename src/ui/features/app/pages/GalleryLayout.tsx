@@ -10,7 +10,7 @@ import { PageSection } from '@/ui/components/PageSection';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { Toolbar } from '@/ui/components/Toolbar';
 import { BarChart } from '@/ui/components/charts/BarChart';
-import { eyebrowClass } from '@/ui/components/eyebrow';
+import { eyebrowClass, sectionTitleClass, subSectionTitleClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import {
   Card,
@@ -74,6 +74,29 @@ const SectionModuleSection: React.FC = () => (
         </div>
       </GalleryModule>
     </div>
+    <GalleryModule label="HEADING TIERS">
+      <div className="space-y-5">
+        <div>
+          <p className={eyebrowClass}>SECTION EYEBROW · 11PX</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            最上層標籤。一段話的開頭，不帶分隔線。
+          </p>
+        </div>
+        <div>
+          <p className={subSectionTitleClass}>SUB-SECTION · 13PX</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            section 內的並列群組、表格標題、清單分組。不加 border-b，靠 Divider 或間距分隔。
+          </p>
+        </div>
+        <div>
+          <p className={sectionTitleClass}>SECTION TITLE · 14PX</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            唯一的 section 標題；只有這一層帶分隔線。
+          </p>
+        </div>
+      </div>
+      <GalleryCaption>三級只能依序使用，不得跳級或自寫尺寸。</GalleryCaption>
+    </GalleryModule>
     <GalleryModule label="SECTION STATE">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="border border-border">

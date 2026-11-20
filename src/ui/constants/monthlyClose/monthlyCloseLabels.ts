@@ -1,4 +1,8 @@
-import { CLOSE_STAGE_IDS, type CloseStageId } from '@/domains/financial_period/schemas';
+import {
+  CLOSE_STAGE_IDS,
+  type CloseStageId,
+  type FinancialPeriodStatus,
+} from '@/domains/financial_period/schemas';
 import { REPORT_METRIC_LABELS } from '@/ui/constants/report/reportMetricLabels';
 
 export const CLOSE_STAGE_LABELS: Record<CloseStageId, string> = {
@@ -7,9 +11,9 @@ export const CLOSE_STAGE_LABELS: Record<CloseStageId, string> = {
   PORTFOLIO_CASH_FLOW: 'Portfolio 金流',
   PROJECT_SETTLEMENT: '專案結算',
   DEBT_REPAYMENT: '債務還款',
-  COMPLETENESS_CHECK: 'Completeness Check',
-  FINANCIAL_REPORTS: 'Financial Reports',
-  CLOSE_PERIOD: 'Close Period',
+  COMPLETENESS_CHECK: '就緒檢查',
+  FINANCIAL_REPORTS: '財務報表',
+  CLOSE_PERIOD: '正式關帳',
 };
 
 export const getCloseStageLabel = (stageId: CloseStageId): string =>
@@ -29,7 +33,8 @@ export const ACCOUNT_BALANCE_SECTIONS = {
 
 /** ACCOUNT_BALANCE 欄位標籤：桌面表頭與行動版欄位共用。 */
 export const ACCOUNT_BALANCE_FIELD_LABELS = {
-  PREVIOUS_MONTH_BALANCE: '前期餘額',
+  // 與 `MONTHLY_CLOSE_LABELS.PREVIOUS_BALANCE` 同一個事實（期初／期末成對）。
+  PREVIOUS_MONTH_BALANCE: '期初餘額',
   FOREIGN_AMOUNT: '外幣金額',
   EXCHANGE_RATE: '匯率',
   TWD_VALUE: 'TWD 價值',
@@ -38,6 +43,8 @@ export const ACCOUNT_BALANCE_FIELD_LABELS = {
 export const MONTHLY_CLOSE_LABELS = {
   PAGE_TITLE: '月度關帳',
   PAGE_SUBTITLE: 'MONTHLY CLOSE WORKFLOW',
+  /** Header link back to the month picker, when the chosen month has no record. */
+  SWITCH_PERIOD: '切換期間',
   START: '開始關帳',
   BUY: '買入',
   SELL: '賣出',
@@ -56,7 +63,7 @@ export const MONTHLY_CLOSE_LABELS = {
   DRAWER_CANCEL: 'CANCEL',
   DRAWER_ADD: 'ADD',
   DRAWER_DELETE: 'DELETE',
-  TRANSACTIONS_COUNT: 'transactions',
+  TRANSACTIONS_COUNT: '筆',
   NET_INVESTMENT_CASH_FLOW: 'NET INVESTMENT CASH FLOW',
   NET_FINANCING_CASH_FLOW: 'NET FINANCING CASH FLOW',
   PORTFOLIO_BALANCE: 'PORTFOLIO BALANCE',
@@ -73,18 +80,17 @@ export const MONTHLY_CLOSE_LABELS = {
   TOTAL_RETURN: '本期合計報酬',
   EDIT_TRANSACTION: 'EDIT TRANSACTION',
   NO_TRANSACTIONS: '尚無紀錄',
+  REMOVE_HOLDING: '移除持倉',
   NO_PROJECTS: '沒有專案',
   UNSETTLED: '尚未結算',
-  PROJECT_OPENING_BALANCE: '上期餘額',
+  PROJECT_OPENING_BALANCE: '期初餘額',
   DEPOSIT: '存入',
   WITHDRAW: '領出',
   STARTED: '關帳進行中',
   CONTINUE: 'CONTINUE →',
-  RECONFIRM: '階段已完成',
+  RECONFIRM: '步驟已完成',
   RECONFIRM_ACTION: '重新確認，繼續關帳',
-  EMPTY_STAGE_WARNING_TITLE: '目前沒有任何交易紀錄',
-  EMPTY_STAGE_WARNING_CONTEXT: '證券交易紀錄與融資紀錄都是空的。',
-  EMPTY_STAGE_WARNING_CONSEQUENCE: '仍然要確認這個階段嗎?',
+  EMPTY_STAGE_NOTE: '本月沒有證券交易或融資紀錄，確認後仍會完成這個步驟。',
   REVIEWING: 'REVIEWING',
   CURRENT_STEP: '當前步驟',
   BACK_TO_CURRENT: '返回當前步驟',
@@ -107,24 +113,22 @@ export const MONTHLY_CLOSE_LABELS = {
   WALK_GUIDANCE: '已暫停：請按步驟順序一一確認，無法跳回後面的步驟。',
   SHOW_WORKFLOW: 'SHOW WORKFLOW',
   HIDE_WORKFLOW: 'HIDE WORKFLOW',
-  CLOSED: 'CLOSED',
-  IN_PROGRESS: 'IN PROGRESS',
-  NOT_STARTED: 'NOT STARTED',
   PERIOD_LABEL: '關帳期間',
-  EVIDENCE_LABEL: '階段證據',
-  INPUTS_LABEL: '階段輸入',
+  EVIDENCE_LABEL: '步驟證據',
+  INPUTS_LABEL: '步驟輸入',
   NO_DATA: '-',
-  STAGE_GUIDANCE: '階段順序僅為引導，可依需求調整確認順序。',
+  STAGE_GUIDANCE: '步驟順序僅為引導，可依需求調整確認順序。',
   LOADING: '載入中...',
   LOAD_ERROR: '無法載入關帳狀態。',
   CONFIRM_ERROR: '確認失敗，請稍後再試。',
-  STAGE_ALREADY_COMPLETED_ERROR: '此階段已完成確認，無法重新確認。',
-  STAGES_INCOMPLETE_ERROR: '尚有階段未確認，無法關帳。',
+  STAGE_ALREADY_COMPLETED_ERROR: '此步驟已完成確認，無法重新確認。',
+  STAGES_INCOMPLETE_ERROR: '尚有步驟未確認，無法關帳。',
   START_ERROR: '無法開始關帳。',
   REOPEN_ERROR: '無法重新開啟關帳。',
   SELECT_PERIOD: '選擇關帳期間',
   SELECT_PERIOD_HINT: '挑選年月後按「開始關帳」，即可建立該期間的關帳流程。',
-  SWITCH_PERIOD: '切換期間',
+  RECENT_PERIODS_LABEL: '最近六個月',
+  PERIODS_LOAD_ERROR: '無法讀取各月關帳狀態，以下月分一律視為未開始。',
   READY: '就緒',
   NOT_READY: '未就緒',
   PERSISTED: '已產生',
@@ -158,6 +162,7 @@ export const MONTHLY_CLOSE_LABELS = {
   NET_CASH_CHANGE: REPORT_METRIC_LABELS.NET_CASH_CHANGE,
   ACTUAL_BALANCE: '實際餘額',
   ADJUSTMENT_WARNING: '現金流調整超過 1,000，請先確認再產生報表。',
+  ADJUSTMENT_ACTION: '查看調整',
   READINESS_CHECK_TITLE: '就緒檢查',
   READINESS_CHECK_NOTE: '報表產生前，確認資料能否產生正確報表',
   READINESS_EXCEPTIONS: '例外項目',
@@ -169,8 +174,9 @@ export const MONTHLY_CLOSE_LABELS = {
   SUMMARY_FINANCIAL: '財務結果',
   SUMMARY_REPORTS: '產生報表',
   SUMMARY_CLOSE_ACTION: '正式關帳',
+  SUMMARY_CLOSE_LOCK_HINT: '關帳後此期間將鎖定，重開會牽連後續所有期間。',
   SUMMARY_CLOSE_TITLE: '確認正式關帳',
-  SUMMARY_CLOSE_CONTEXT: '關帳後此期間的報表與階段確認將固定為最終紀錄。',
+  SUMMARY_CLOSE_CONTEXT: '關帳後此期間的報表與步驟確認將固定為最終紀錄。',
   SUMMARY_CLOSE_CONSEQUENCE:
     '重開此期間會使其後所有已關帳期間轉為待審閱（NEEDS REVIEW），恢復須逐期手動處理。',
   GENERATE_REPORTS: 'GENERATE REPORTS',
@@ -184,3 +190,14 @@ export const MONTHLY_CLOSE_LABELS = {
   DRIFT_BLOCK_ACTION: `回到 ${CLOSE_STAGE_LABELS.FINANCIAL_REPORTS}`,
   PREVIEW_ERROR: '無法載入報表預覽。',
 } as const;
+
+/**
+ * 期間狀態的唯一顯示詞彙（關帳矩陣、Dashboard、報表歷史共用）。沒有任何期間紀錄
+ * 的月份是 `NOT_STARTED`——它是「缺一筆紀錄」，不是狀態機的狀態。
+ */
+export const PERIOD_STATUS_TEXT: Record<FinancialPeriodStatus | 'NOT_STARTED', string> = {
+  CLOSED: '已關帳',
+  IN_PROGRESS: '進行中',
+  NEEDS_REVIEW: '待審閱',
+  NOT_STARTED: '未開始',
+};

@@ -20,6 +20,7 @@ const baseItem = (overrides: Partial<TransactionListItemVM> = {}): TransactionLi
   amountText: '-100',
   signedAmountText: '-NT$100',
   isPositive: false,
+  tone: 'negative',
   hasCashLedger: true,
   entries: [],
   ...overrides,
@@ -285,6 +286,7 @@ describe('TransactionList mobile compact rows', () => {
             displayTitle: 'Groceries',
             signedAmountText: '-NT$1,800',
             isPositive: false,
+            tone: 'negative',
           }),
         ]}
         loading={false}

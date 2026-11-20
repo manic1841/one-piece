@@ -220,7 +220,7 @@ const Dashboard: React.FC = () => {
                       : formatCurrency
                 }
                 tone={metric.tone}
-                change={metric.detailText ?? undefined}
+                captionLabel={metric.detailText ?? undefined}
               />
             ))}
           </MetricGroup>

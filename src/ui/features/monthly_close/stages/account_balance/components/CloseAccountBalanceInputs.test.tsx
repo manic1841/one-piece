@@ -113,7 +113,7 @@ describe('CloseAccountBalanceInputs', () => {
     });
 
     expect(screen.getByText('現金 / 銀行')).toBeInTheDocument();
-    expect(screen.getAllByText('前期餘額').length).toBe(3);
+    expect(screen.getAllByText('期初餘額').length).toBe(3);
     expect(screen.getAllByText('NT$50,000').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText('期末餘額 現金帳戶')[0]).toHaveValue(52000);
     expect(screen.queryByText('WAITING')).toBeNull();
@@ -160,7 +160,7 @@ describe('CloseAccountBalanceInputs', () => {
     });
 
     expect(screen.getByText('外幣')).toBeInTheDocument();
-    expect(screen.getAllByText('前期餘額').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('期初餘額').length).toBeGreaterThan(0);
     expect(screen.getAllByText('US$10,000').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText('外幣金額 USD Account')[0]).toHaveValue(12000);
     expect(screen.getAllByLabelText('匯率 USD Account').length).toBe(2);

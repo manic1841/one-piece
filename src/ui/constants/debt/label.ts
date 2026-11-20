@@ -19,6 +19,7 @@ export const DEBT_NO_PROJECT_LABEL = '— 無 —';
 export const DEBT_SUMMARY_LABELS = {
   TOTAL_OUTSTANDING: '貸款總額',
   ACTIVE_ACCOUNTS: '啟用貸款',
+  TOTAL_MONTHLY_DUE: '每月應付',
 } as const;
 
 export const DEBT_FILTER_ALL = 'all';

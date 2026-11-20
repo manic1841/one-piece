@@ -90,13 +90,19 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-[60] focus:rounded focus:bg-elevated focus:px-3 focus:py-2 focus:text-sm focus:text-foreground focus:ring-1 focus:ring-ring"
+      >
+        跳至主要內容
+      </a>
       <header className="material-chrome sticky top-0 z-50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-3">
           <NavLink
             to="/"
             className="flex items-center gap-3 shrink-0 transition-opacity duration-fast ease-out-quint hover:opacity-80"
           >
-            <h1 className="text-lg font-bold tracking-heading text-foreground">{APP_BRAND}</h1>
+            <p className="text-lg font-bold tracking-heading text-foreground">{APP_BRAND}</p>
           </NavLink>
           <div className="hidden sm:flex items-center gap-3 shrink-0">
             <StatusGlyph type="active" label="SYSTEM ONLINE" />
@@ -138,7 +144,7 @@ const Layout: React.FC = () => {
 
       {/* The emulator banner is fixed at the viewport bottom; this reserves
           its height plus the safe area so the footer and sticky docks clear it. */}
-      <main className="flex-1 pb-[var(--bottom-overlay,0px)]">
+      <main id="main" tabIndex={-1} className="flex-1 pb-[var(--bottom-overlay,0px)]">
         <div key={routeKey} className="max-w-7xl mx-auto p-4 md:p-8 animate-page-enter">
           <Outlet />
         </div>

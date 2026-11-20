@@ -13,6 +13,8 @@ import { type StatementRow, type StatementRowTone } from './StatementTable';
 export interface StatementAmountCell {
   amountText: string | null;
   amountWarning?: boolean;
+  /** 金額下方的第二行（已格式化，如漂移的「期初 → 期末」）；由呼叫端組字。 */
+  amountDetail?: string | null;
 }
 
 /**
@@ -51,6 +53,7 @@ const nodeRows = (nodes: StatementNode[], level: number, keyPath: string): State
       label: node.label,
       amountText: node.cell.amountText,
       amountWarning: node.cell.amountWarning,
+      amountDetail: node.cell.amountDetail,
       tone: toneForLevel(level),
       level,
       children: node.subItems?.length ? nodeRows(node.subItems, level + 1, key) : [],
@@ -79,6 +82,7 @@ export function buildStatementRows({ sections, terminus }: StatementRowsInput): 
       label: section.totalLabel,
       amountText: section.cell.amountText,
       amountWarning: section.cell.amountWarning,
+      amountDetail: section.cell.amountDetail,
       tone: 'subtotal',
       level: 0,
       children: [],
@@ -89,6 +93,7 @@ export function buildStatementRows({ sections, terminus }: StatementRowsInput): 
     label: terminus.label,
     amountText: terminus.cell.amountText,
     amountWarning: terminus.cell.amountWarning,
+    amountDetail: terminus.cell.amountDetail,
     tone: 'terminus',
     level: 0,
     children: [],

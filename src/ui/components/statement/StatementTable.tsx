@@ -7,7 +7,10 @@ import {
   DataTableCell,
   DataTableColGroup,
   DataTableRow,
+  DataTableScrollArea,
+  MobileDataList,
   TableBody,
+  mobileDataRowClass,
 } from '@/ui/components/data-table';
 import { cn } from '@/ui/utils/cn';
 
@@ -33,6 +36,11 @@ export interface StatementRow {
   amountText: string | null;
   /** 以警示色渲染金額（如漂移的數字）。 */
   amountWarning?: boolean;
+  /**
+   * 金額下方的第二行（已格式化），例如漂移的「期初 → 期末」。呼叫端組字，
+   * 元件不認識漂移語彙（`docs/ui/component-catalog.md`）。
+   */
+  amountDetail?: string | null;
   tone: StatementRowTone;
   /** 報表階層中的層級（1 = 第一層資料）；驅動縮排。 */
   level: number;
@@ -44,13 +52,6 @@ const STATEMENT_COLUMN_WIDTHS = [74, 26] as const;
 
 /** Indentation per hierarchy level (design-system 間距級距). */
 const INDENT_CLASS: readonly string[] = ['', 'pl-4', 'pl-8', 'pl-12'];
-
-/**
- * 行動版堆疊時每張表上方的標題（桌機由 tabs 承擔）。共用同一份表面，讓關帳 stage
- * 與報表檢視的報表標題長得一樣。
- */
-export const statementTitleClass =
-  'text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground';
 
 const LABEL_TONE_CLASS: Record<StatementRowTone, string> = {
   section: 'text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground',
@@ -136,6 +137,57 @@ const CollapseCell: React.FC<{
   </DataTableCell>
 );
 
+/**
+ * 收合鈕（含無子列時的等寬預留位）。命中區固定 44px，桌機與行動版共用同一個盒子
+ * （`docs/ui/states-and-a11y.md` §命中區：滑鼠與觸控同一個數字）。
+ */
+const StatementDisclosure: React.FC<{
+  row: StatementRow;
+  isCollapsed: boolean;
+  onToggle: (key: string) => void;
+}> = ({ row, isCollapsed, onToggle }) =>
+  row.children.length > 0 ? (
+    <button
+      type="button"
+      onClick={() => onToggle(row.key)}
+      aria-expanded={!isCollapsed}
+      aria-label={row.label}
+      className="flex h-11 w-11 shrink-0 items-center justify-center text-muted-foreground transition-transform duration-fast ease-out-quint active:scale-[0.97]"
+    >
+      <ChevronRight
+        className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}
+      />
+    </button>
+  ) : (
+    <span className="h-11 w-11 shrink-0" aria-hidden />
+  );
+
+/** 金額欄：主值 + 選填的第二行（漂移的兩端），兩個表面同一套讀法。 */
+const StatementAmount: React.FC<{ row: StatementRow; className?: string }> = ({
+  row,
+  className,
+}) => (
+  <>
+    {row.amountText !== null && (
+      <span
+        className={cn(
+          AMOUNT_TONE_CLASS[row.tone],
+          'font-mono tabular-nums',
+          row.amountWarning && 'text-warning',
+          className,
+        )}
+      >
+        {row.amountText}
+      </span>
+    )}
+    {row.amountDetail != null && (
+      <span className="mt-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+        {row.amountDetail}
+      </span>
+    )}
+  </>
+);
+
 const StatementRowView: React.FC<{
   row: StatementRow;
   collapsed: ReadonlySet<string>;
@@ -156,33 +208,12 @@ const StatementRowView: React.FC<{
     >
       <CollapseCell hidden={hidden} minHeightClass={minHeightClass}>
         <div className={cn('flex items-center gap-1', INDENT_CLASS[row.level] ?? 'pl-12')}>
-          {hasChildren ? (
-            /* 32px 命中區，外層仍佔 20px，讓有／無子列的標籤起點對齊。 */
-            <span className="flex w-5 shrink-0 justify-center">
-              <button
-                type="button"
-                onClick={() => onToggle(row.key)}
-                aria-expanded={!isCollapsed}
-                aria-label={row.label}
-                className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-transform duration-fast ease-out-quint active:scale-[0.97]"
-              >
-                <ChevronRight
-                  className={cn('h-3.5 w-3.5 transition-transform', !isCollapsed && 'rotate-90')}
-                />
-              </button>
-            </span>
-          ) : (
-            <span className="h-5 w-5 shrink-0" aria-hidden />
-          )}
+          <StatementDisclosure row={row} isCollapsed={isCollapsed} onToggle={onToggle} />
           <span className={LABEL_TONE_CLASS[row.tone]}>{row.label}</span>
         </div>
       </CollapseCell>
       <CollapseCell hidden={hidden} align="number" minHeightClass={minHeightClass}>
-        {row.amountText !== null && (
-          <span className={cn(AMOUNT_TONE_CLASS[row.tone], row.amountWarning && 'text-warning')}>
-            {row.amountText}
-          </span>
-        )}
+        <StatementAmount row={row} />
       </CollapseCell>
     </DataTableRow>
   );
@@ -207,24 +238,99 @@ interface StatementTableProps {
  */
 const TERMINUS_FRAME_RULE = '[&_tbody>tr:last-child]:border-t-2 [&_tbody>tr:last-child]:border-b-2';
 
+/**
+ * 行動版列：`<md` 沒有欄寬可分配，74/26 的固定表會被擠壓，所以整張表改成一列一筆。
+ * 語意角色與縮排沿用桌面表（`LABEL_TONE_CLASS`／`AMOUNT_TONE_CLASS`／`INDENT_CLASS`），
+ * 只把「兩欄」換成「label 左、金額右」。漂移金額的主行放當期值，兩端折成下方的第二行，
+ * 列高因此自己長，不會再壓到下一列。
+ *
+ * 收合沿用桌機的約定：收合中的列**仍掛載**，靠 `disclosureBodyClass` 的高度插值收掉
+ * （padding 因此落在內層，外殼自己不能有高度），否則手機上按 chevron 只會翻 `aria-expanded`。
+ */
+const StatementMobileRow: React.FC<{
+  row: StatementRow;
+  collapsed: ReadonlySet<string>;
+  onToggle: (key: string) => void;
+  hidden: boolean;
+}> = ({ row, collapsed, onToggle, hidden }) => {
+  const hasChildren = row.children.length > 0;
+  const isCollapsed = hasChildren && collapsed.has(row.key);
+  // The amount column is content-sized; the label column takes the rest so a
+  // long label wraps instead of pushing the figure off the row.
+  return (
+    <div
+      data-state={hidden ? 'closed' : 'open'}
+      inert={hidden || undefined}
+      className={cn(
+        mobileDataRowClass,
+        disclosureBodyClass,
+        ROW_TONE_CLASS[row.tone],
+        // The shell carries no height of its own when closed, so its own border
+        // and padding have to go too — otherwise a collapsed branch still shows
+        // a rule and a gap under the clipping body.
+        hidden && 'border-t-0 pt-0',
+        // `TERMINUS_FRAME_RULE` only reaches `tbody` rows; the list is outside it.
+        row.tone === 'terminus' && 'border-b-2 border-primary',
+      )}
+    >
+      <div
+        className={cn('flex flex-col py-2', row.tone === 'terminus' && 'min-h-16 justify-center')}
+      >
+        <div className="flex items-start gap-1">
+          <div
+            className={cn(
+              'flex min-w-0 flex-1 items-start gap-1',
+              INDENT_CLASS[row.level] ?? 'pl-12',
+            )}
+          >
+            <StatementDisclosure row={row} isCollapsed={isCollapsed} onToggle={onToggle} />
+            <span className={cn(LABEL_TONE_CLASS[row.tone], 'min-w-0 py-2.5')}>{row.label}</span>
+          </div>
+          <div className="flex shrink-0 flex-col items-end py-2.5">
+            <StatementAmount row={row} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const StatementTable: React.FC<StatementTableProps> = ({
   rows,
   collapsed,
   onToggle,
   testId,
-}) => (
-  <DataTable data-testid={testId} className={TERMINUS_FRAME_RULE}>
-    <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
-    <TableBody>
-      {flattenRows(rows, collapsed).map(({ row, hidden }) => (
-        <StatementRowView
-          key={row.key}
-          row={row}
-          collapsed={collapsed}
-          onToggle={onToggle}
-          hidden={hidden}
-        />
-      ))}
-    </TableBody>
-  </DataTable>
-);
+}) => {
+  const visible = flattenRows(rows, collapsed);
+  return (
+    <>
+      <MobileDataList data-testid={`${testId}-mobile`} className="space-y-0">
+        {visible.map(({ row, hidden }) => (
+          <StatementMobileRow
+            key={row.key}
+            row={row}
+            collapsed={collapsed}
+            onToggle={onToggle}
+            hidden={hidden}
+          />
+        ))}
+      </MobileDataList>
+      <DataTableScrollArea>
+        <DataTable data-testid={testId} className={TERMINUS_FRAME_RULE}>
+          <DataTableColGroup widths={STATEMENT_COLUMN_WIDTHS} />
+          <TableBody>
+            {visible.map(({ row, hidden }) => (
+              <StatementRowView
+                key={row.key}
+                row={row}
+                collapsed={collapsed}
+                onToggle={onToggle}
+                hidden={hidden}
+              />
+            ))}
+          </TableBody>
+        </DataTable>
+      </DataTableScrollArea>
+    </>
+  );
+};

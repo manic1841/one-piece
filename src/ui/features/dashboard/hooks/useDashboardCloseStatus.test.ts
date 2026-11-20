@@ -41,7 +41,7 @@ describe('useDashboardCloseStatus', () => {
     const { result } = renderHook(() => useDashboardCloseStatus('household-1'));
 
     await waitFor(() => expect(result.current.vm.glyphType).toBe('verified'));
-    expect(result.current.vm.statusText).toBe('CLOSED');
+    expect(result.current.vm.statusText).toBe('已關帳');
     expect(result.current.vm.periodText).toBe('2026-08');
     expect(getFinancialPeriodMock).toHaveBeenCalledWith({
       householdId: 'household-1',
@@ -49,13 +49,13 @@ describe('useDashboardCloseStatus', () => {
     });
   });
 
-  it('renders NOT STARTED when no period record exists', async () => {
+  it('renders 未開始 when no period record exists', async () => {
     getFinancialPeriodMock.mockResolvedValue(null);
 
     const { result } = renderHook(() => useDashboardCloseStatus('household-1'));
 
     await waitFor(() => expect(result.current.vm?.glyphType).toBe('waiting'));
-    expect(result.current.vm?.statusText).toBe('NOT STARTED');
+    expect(result.current.vm?.statusText).toBe('未開始');
   });
 
   it('maps NEEDS_REVIEW to the review glyph', async () => {
@@ -64,7 +64,7 @@ describe('useDashboardCloseStatus', () => {
     const { result } = renderHook(() => useDashboardCloseStatus('household-1'));
 
     await waitFor(() => expect(result.current.vm.glyphType).toBe('review'));
-    expect(result.current.vm.statusText).toBe('NEEDS REVIEW');
+    expect(result.current.vm.statusText).toBe('待審閱');
   });
 
   it('maps IN_PROGRESS to the active glyph', async () => {
@@ -73,7 +73,7 @@ describe('useDashboardCloseStatus', () => {
     const { result } = renderHook(() => useDashboardCloseStatus('household-1'));
 
     await waitFor(() => expect(result.current.vm.glyphType).toBe('active'));
-    expect(result.current.vm.statusText).toBe('IN PROGRESS');
+    expect(result.current.vm.statusText).toBe('進行中');
   });
 
   it('does not load when householdId is missing', async () => {

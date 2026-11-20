@@ -5,6 +5,7 @@ import { RouterProvider, createMemoryRouter, useLocation } from 'react-router-do
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
+import { stubViewportWidth } from '@/ui/test/viewport';
 
 import Layout from './Layout';
 import { NAVIGATOR_ITEMS, NAV_ITEMS } from './navigation';
@@ -85,26 +86,10 @@ function renderLayout({ initialRoute = '/', withPageMarker = false } = {}) {
 
 /**
  * happy-dom implements `matchMedia` and reports a 1024px viewport, so the layout is
- * desktop by default. Force a mobile viewport (no `min-width: 768px` match) so the
- * bottom-sheet branch of `useIsDesktop` renders. Restored in `afterEach`.
+ * desktop by default. `stubViewportWidth` forces the mobile branch. Restored in
+ * `afterEach`.
  */
-let mobileViewportSpy: ReturnType<typeof vi.spyOn> | undefined;
-
-function stubMobileViewport() {
-  mobileViewportSpy = vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query) =>
-      ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-        dispatchEvent: () => false,
-      }) as unknown as MediaQueryList,
-  );
-}
+let restoreViewport: (() => void) | undefined;
 
 describe('Layout system status bar', () => {
   afterEach(() => {
@@ -121,6 +106,21 @@ describe('Layout system status bar', () => {
     expect(screen.getByRole('link', { name: /one piece/i })).toBeInTheDocument();
     expect(screen.getByText(/system online/i)).toBeInTheDocument();
     expect(screen.getByTestId('header-today')).toBeInTheDocument();
+  });
+
+  it('offers a skip link that targets the main landmark', () => {
+    renderLayout();
+
+    const skip = screen.getByRole('link', { name: '跳至主要內容' });
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('leaves the page title to the route, so the brand is not a heading', () => {
+    renderLayout();
+
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    expect(screen.getByRole('banner')).toHaveTextContent('ONE PIECE');
   });
 
   it('renders a site footer with brand, version, and tagline', () => {
@@ -322,8 +322,8 @@ describe('Layout content width', () => {
 
 describe('Layout pixel pet and navigator', () => {
   afterEach(() => {
-    mobileViewportSpy?.mockRestore();
-    mobileViewportSpy = undefined;
+    restoreViewport?.();
+    restoreViewport = undefined;
   });
 
   it('renders a round pet placeholder fixed bottom-right', () => {
@@ -436,7 +436,7 @@ describe('Layout pixel pet and navigator', () => {
   });
 
   it('exposes the navigator on mobile as a bottom sheet', async () => {
-    stubMobileViewport();
+    restoreViewport = stubViewportWidth(375);
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });

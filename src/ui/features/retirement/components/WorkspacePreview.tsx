@@ -1,5 +1,5 @@
 import { Metric, MetricGroup } from '@/ui/components/MetricGroup';
-import { sectionTitleClass } from '@/ui/components/eyebrow';
+import { subSectionTitleClass } from '@/ui/components/eyebrow';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PREVIEW_LABELS as LABELS } from '@/ui/constants/retirement/previewLabels';
@@ -70,7 +70,7 @@ export function WorkspacePreview({
       {calculated !== null && (
         <div className="grid gap-8" data-testid="projection-results">
           <section aria-label={LABELS.OUTCOME}>
-            <h2 className={sectionTitleClass}>{LABELS.OUTCOME}</h2>
+            <h2 className={subSectionTitleClass}>{LABELS.OUTCOME}</h2>
             <p
               className={cn(
                 'mt-2 text-2xl font-semibold tracking-heading',
@@ -145,7 +145,7 @@ export function WorkspacePreview({
             summary={calculated.summary}
           />
           <section>
-            <h2 className={cn(sectionTitleClass, 'mb-4')}>
+            <h2 className={cn(subSectionTitleClass, 'mb-4')}>
               {PROJECTION_RESULT_LABELS.TRAJECTORY_SECTION}
             </h2>
             <ProjectionTrajectory projection={calculated.projection} />
@@ -158,7 +158,7 @@ export function WorkspacePreview({
       )}
 
       <section className="border-t border-border pt-6">
-        <h2 className={sectionTitleClass}>{LABELS.SETTINGS}</h2>
+        <h2 className={subSectionTitleClass}>{LABELS.SETTINGS}</h2>
         {appliedPlanName && (
           <p className="mt-2 text-xs text-muted-foreground" data-testid="applied-plan-name">
             {LABELS.BASED_ON} <span className="text-foreground">{appliedPlanName}</span>

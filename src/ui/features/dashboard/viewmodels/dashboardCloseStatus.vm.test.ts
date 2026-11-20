@@ -20,11 +20,11 @@ const buildPeriod = (
 });
 
 describe('dashboardCloseStatus.vm', () => {
-  it('maps CLOSED to the verified glyph with the CLOSED label', () => {
+  it('maps CLOSED to the verified glyph with the 已關帳 label', () => {
     const vm = mapPeriodToCloseStatusVM(buildPeriod('CLOSED'), '2026-08');
 
     expect(vm.glyphType).toBe('verified');
-    expect(vm.statusText).toBe('CLOSED');
+    expect(vm.statusText).toBe('已關帳');
   });
 
   it('surfaces per-stage progress and the next pending stage', () => {
@@ -92,25 +92,25 @@ describe('dashboardCloseStatus.vm', () => {
     expect(mapNextMonthDueText(null)).toBeNull();
   });
 
-  it('maps NEEDS_REVIEW to the review glyph with the NEEDS REVIEW label', () => {
+  it('maps NEEDS_REVIEW to the review glyph with the 待審閱 label', () => {
     const vm = mapPeriodToCloseStatusVM(buildPeriod('NEEDS_REVIEW'), '2026-08');
 
     expect(vm.glyphType).toBe('review');
-    expect(vm.statusText).toBe('NEEDS REVIEW');
+    expect(vm.statusText).toBe('待審閱');
   });
 
-  it('maps IN_PROGRESS to the active glyph with the IN PROGRESS label', () => {
+  it('maps IN_PROGRESS to the active glyph with the 進行中 label', () => {
     const vm = mapPeriodToCloseStatusVM(buildPeriod('IN_PROGRESS'), '2026-08');
 
     expect(vm.glyphType).toBe('active');
-    expect(vm.statusText).toBe('IN PROGRESS');
+    expect(vm.statusText).toBe('進行中');
   });
 
-  it('maps a missing record to the waiting glyph with NOT STARTED', () => {
+  it('maps a missing record to the waiting glyph with 未開始', () => {
     const vm = mapPeriodToCloseStatusVM(null, '2026-08');
 
     expect(vm.glyphType).toBe('waiting');
-    expect(vm.statusText).toBe('NOT STARTED');
+    expect(vm.statusText).toBe('未開始');
   });
 
   it('formats the period text in mono style YYYY-MM', () => {

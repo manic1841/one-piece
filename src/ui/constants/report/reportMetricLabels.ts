@@ -14,3 +14,12 @@ export const REPORT_METRIC_LABELS = {
   ENDING_BALANCE: '期末餘額',
   NET_CASH_CHANGE: '現金淨變動',
 } as const;
+
+/**
+ * 漂移金額的兩端（行動版把「期初 → 期末」折成金額下方的第二行）。
+ * 短於上方的「期初餘額／期末餘額」：第二行是同一句裡的兩個詞，不是指標標籤。
+ */
+export const REPORT_DRIFT_EDGE_LABELS = {
+  FROM: '期初',
+  TO: '期末',
+} as const;

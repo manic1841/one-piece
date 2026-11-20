@@ -321,6 +321,7 @@ export const useCloseStepRegistry = ({
       render: (ctx) => (
         <CloseSummaryPanel
           summary={closeSummaryVM}
+          periodTitle={pageVM.periodTitle}
           loadErrorMessage={financialReportsStage.error}
           hasDrift={hasDrift}
           onReviewReports={() => ctx.onGoToStage('FINANCIAL_REPORTS')}

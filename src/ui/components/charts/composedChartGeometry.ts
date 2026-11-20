@@ -5,6 +5,7 @@
  * scales, column positions, bar rects, line paths and axis ticks are derived
  * here so every composed chart in the app shares one layout algorithm.
  */
+import { labelZeroBaseline } from './axisLabels';
 import { type ChartColorToken, type ChartTone } from './chartTheme';
 import { formatAxisValue } from './lineChartGeometry';
 
@@ -15,7 +16,6 @@ const PADDING_TOP = 16;
 const PADDING_BOTTOM = 16;
 const PADDING_SIDE = 10;
 const GRID_LINE_COUNT = 4;
-export const MAX_X_LABELS = 6;
 /** Fraction of a column slot the whole bar group occupies. */
 const COLUMN_FILL = 0.7;
 /** Fraction of each bar slot left as a gap between neighbouring bars. */
@@ -115,8 +115,10 @@ export type ComposedChartLayout = {
   gridLines: number[];
   leftLabels: { y: number; text: string }[];
   rightLabels: { y: number; text: string }[];
-  /** y position of the left-axis zero baseline, present when the left axis is used. */
+  /** y position of the left-axis zero baseline, present when the left axis spans 0. */
   zeroY?: number;
+  /** y position of the right-axis zero baseline, present when the right axis spans 0. */
+  rightZeroY?: number;
   referenceLines: { index: number; x: number; xRatio: number; tone: ChartTone; label?: string }[];
 };
 
@@ -380,16 +382,34 @@ export function buildComposedGeometry(
     Number((PADDING_TOP + (index / (tickCount - 1)) * innerHeight).toFixed(2)),
   );
 
+  const zeroY =
+    leftScale && leftScale.min <= 0 && leftScale.max >= 0
+      ? Number(yFor(0, leftScale).toFixed(2))
+      : undefined;
+  const rightZeroY =
+    rightScale && rightScale.min <= 0 && rightScale.max >= 0
+      ? Number(yFor(0, rightScale).toFixed(2))
+      : undefined;
+  // Same label fixing as the line chart: a padded scale can leave 0 between two
+  // gridlines, so the baseline gets its own label and its neighbours make room.
+  const leftLabels = labelZeroBaseline(
+    leftScale ? buildAxisLabels(leftScale, tickCount, formatTick) : [],
+    zeroY,
+  );
+  const rightLabels = labelZeroBaseline(
+    rightScale ? buildAxisLabels(rightScale, tickCount, formatTick) : [],
+    rightZeroY,
+  );
+
   return {
     columns,
     bars,
     lines,
     gridLines,
-    leftLabels: leftScale ? buildAxisLabels(leftScale, tickCount, formatTick) : [],
-    rightLabels: rightScale ? buildAxisLabels(rightScale, tickCount, formatTick) : [],
-    ...(leftScale && leftScale.min <= 0 && leftScale.max >= 0
-      ? { zeroY: Number(yFor(0, leftScale).toFixed(2)) }
-      : {}),
+    leftLabels,
+    rightLabels,
+    ...(zeroY === undefined ? {} : { zeroY }),
+    ...(rightZeroY === undefined ? {} : { rightZeroY }),
     referenceLines: referenceLines
       .filter((line) => line.index >= 0 && line.index < count)
       .map((line) => ({
@@ -400,14 +420,4 @@ export function buildComposedGeometry(
         ...(line.label !== undefined ? { label: line.label } : {}),
       })),
   };
-}
-
-/** Column indices to render as x-axis labels (subset, always including the last). */
-export function pickComposedXLabels(count: number, maxLabels: number = MAX_X_LABELS): number[] {
-  if (count === 0) return [];
-  const step = Math.max(1, Math.ceil(count / Math.max(2, maxLabels)));
-  const indices: number[] = [];
-  for (let index = 0; index < count; index += step) indices.push(index);
-  if (indices[indices.length - 1] !== count - 1) indices.push(count - 1);
-  return indices;
 }

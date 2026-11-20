@@ -339,7 +339,7 @@ const AccountList: React.FC = () => {
         spacing="compact"
         className="border-b-0"
       >
-        <MetricGroup columns={2} lastSpansFull>
+        <MetricGroup columns={2} className="md:max-w-[42rem]">
           <Metric
             testId="account-total-balance"
             label={ACCOUNT_SUMMARY_LABELS.TOTAL_BALANCE}

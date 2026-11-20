@@ -18,8 +18,9 @@ import { type RetirementPlan } from '@/domains/retirement/types';
 import ProjectionWorkspacePage from './ProjectionWorkspacePage';
 
 // 整頁工作區的每個案例都要真的填完 setup、送計算、等結果落地，最慢的幾個本機就
-// 要近 4 秒，CI runner 較慢會撞到 5 秒預設值。只放寬這個檔案，其餘維持預設。
-vi.setConfig({ testTimeout: 20_000 });
+// 要近 5 秒，而全套件平行跑時最慢的可到 16 秒（逾時值是 per-worker 的 wall clock
+// ，不只是這段程式碼的執行時間）。只放寬這個檔案，其餘維持預設：`it`／`describe`
+// 的第三引數是唯一入口，`vi.setConfig` 在這一層會被 describe 的值蓋掉。
 
 vi.mock('@/application/retirement/use_cases/getProjectionOpeningUseCase', () => ({
   getProjectionOpeningUseCase: { execute: vi.fn() },
@@ -1785,4 +1786,4 @@ describe('ProjectionWorkspacePage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
     expect(await screen.findByLabelText('Projection name')).toHaveValue('First projection');
   });
-}, 15_000);
+}, 30_000);

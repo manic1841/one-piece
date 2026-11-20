@@ -147,7 +147,7 @@ describe('ReportListPage', () => {
     expect(periods).toContain('report-history-row-2026-05');
 
     // Status badge shows only for the non-closed period.
-    expect(screen.getAllByText('IN PROGRESS').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('進行中').length).toBeGreaterThan(0);
     expect(screen.queryByText('CLOSED')).not.toBeInTheDocument();
 
     // The month/year toggle sits with the history table, not in the page header.

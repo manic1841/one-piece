@@ -109,6 +109,18 @@ describe('CloseFinancialReports', () => {
       .map((row) => row.textContent ?? '')
       .join(' ');
 
+  /**
+   * A statement renders twice: the phone list and the desktop table. The
+   * interactions under test (chevron, revealed rows) only exist in the table.
+   */
+  const desktopStatement = (testId: string): HTMLElement => {
+    const table = [...screen.getByTestId(testId).querySelectorAll<HTMLElement>('div.hidden')].find(
+      (element) => element.querySelector('table') !== null,
+    );
+    if (!table) throw new Error(`no desktop table under ${testId}`);
+    return table;
+  };
+
   it('renders the income statement section header, roll-up row, nested subItems and total rows', async () => {
     renderReports();
 
@@ -127,17 +139,19 @@ describe('CloseFinancialReports', () => {
   it('collapses and expands a statement row from the left chevron', () => {
     renderReports();
 
-    const toggle = screen.getByRole('button', { name: '薪資' });
+    const toggle = within(desktopStatement('close-income-statement')).getByRole('button', {
+      name: '薪資',
+    });
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.click(toggle);
-    expect(revealedText(screen.getByTestId('close-income-statement'))).not.toContain(
+    expect(revealedText(desktopStatement('close-income-statement'))).not.toContain(
       '薪資 › Charles',
     );
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(toggle);
-    expect(revealedText(screen.getByTestId('close-income-statement'))).toContain('薪資 › Charles');
+    expect(revealedText(desktopStatement('close-income-statement'))).toContain('薪資 › Charles');
   });
 
   // Pre-ADR-0074 persisted reports stored a redundant parent row inside the
@@ -200,15 +214,17 @@ describe('CloseFinancialReports', () => {
   it('resets collapsed groups when switching statement tabs', () => {
     renderReports();
 
-    fireEvent.click(screen.getByRole('button', { name: '薪資' }));
-    expect(revealedText(screen.getByTestId('close-income-statement'))).not.toContain(
+    fireEvent.click(
+      within(desktopStatement('close-income-statement')).getByRole('button', { name: '薪資' }),
+    );
+    expect(revealedText(desktopStatement('close-income-statement'))).not.toContain(
       '薪資 › Charles',
     );
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
     fireEvent.mouseDown(screen.getByRole('tab', { name: '損益表' }));
 
-    expect(revealedText(screen.getByTestId('close-income-statement'))).toContain('薪資 › Charles');
+    expect(revealedText(desktopStatement('close-income-statement'))).toContain('薪資 › Charles');
   });
 
   it('switches statement tabs on desktop', () => {
@@ -461,7 +477,7 @@ describe('CloseFinancialReports', () => {
     const income = screen.getByTestId('statement-metric-income');
     expect(income).toHaveTextContent('收入');
     await waitFor(() => expect(income).toHaveTextContent('NT$50,000'));
-    expect(income).toHaveTextContent('NT$40,000 -> NT$50,000');
+    expect(income).toHaveTextContent('期初 NT$40,000 → 期末 NT$50,000');
 
     // 未漂移的指標不顯示變化行。
     expect(screen.getByTestId('statement-metric-expense')).not.toHaveTextContent('->');

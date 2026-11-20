@@ -92,11 +92,11 @@ describe('ReportDetailPage', () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByText('薪資')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('薪資').length).toBeGreaterThan(0));
     expect(screen.getByRole('tab', { name: '損益表' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '資產負債表' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '現金流量表' })).toBeInTheDocument();
-    expect(screen.getByText('收入合計')).toBeInTheDocument();
+    expect(screen.getAllByText('收入合計').length).toBeGreaterThan(0);
     // 三張表各帶三個摘要指標，值為已產生報表的當期值；值從 0 起算（M07），等終值落定再斷言。
     await waitFor(() => {
       expect(screen.getByTestId('statement-metric-income')).toHaveTextContent('NT$50,000');
@@ -121,12 +121,10 @@ describe('ReportDetailPage', () => {
     expect(
       screen.getByTestId('statement-metric-net-cash-change').querySelector('.text-positive'),
     ).toBeNull();
-    // 三張表在行動版堆疊時各帶標題（桌機由 tabs 承擔）。
+    // 三張表各帶標題；tabs 在每個寬度都能切換，兩者不互相取代。
     for (const title of ['損益表', '資產負債表', '現金流量表']) {
-      const mobileTitles = screen
-        .getAllByText(title)
-        .filter((node) => node.classList.contains('md:hidden'));
-      expect(mobileTitles).toHaveLength(1);
+      const titles = screen.getAllByText(title).filter((node) => node.tagName === 'P');
+      expect(titles).toHaveLength(1);
     }
   });
 
@@ -141,7 +139,13 @@ describe('ReportDetailPage', () => {
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: '資產負債表' }));
 
-    expect(await screen.findByText('負債 + 權益')).toBeInTheDocument();
+    expect((await screen.findAllByText('負債 + 權益')).length).toBeGreaterThan(0);
+    // Only the active panel renders; the phone used to stack all three.
+    const incomePanel = document.getElementById(
+      screen.getByRole('tab', { name: '損益表' }).getAttribute('aria-controls') ?? '',
+    );
+    expect(incomePanel).toHaveAttribute('data-state', 'inactive');
+    expect(incomePanel).toHaveClass('hidden');
   });
 
   it('shows an empty state when the period has no persisted report', async () => {
@@ -178,7 +182,7 @@ describe('ReportDetailPage', () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByText('薪資')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('薪資').length).toBeGreaterThan(0));
     expect(screen.queryByRole('button', { name: /前往關帳/ })).not.toBeInTheDocument();
   });
 
@@ -202,7 +206,7 @@ describe('ReportDetailPage', () => {
 
     renderPage();
 
-    await waitFor(() => expect(screen.getByText('薪資')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('薪資').length).toBeGreaterThan(0));
     expect(
       screen.queryByRole('button', { name: REPORT_DETAIL_LABELS.VIEW_YEAR_ANALYSIS }),
     ).not.toBeInTheDocument();

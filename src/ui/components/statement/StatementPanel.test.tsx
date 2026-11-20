@@ -24,14 +24,14 @@ describe('StatementPanel', () => {
     expect(screen.getByText('body')).toBeInTheDocument();
   });
 
-  it('renders the title with the shared mobile-only surface', () => {
+  it('renders the title on every width, since the tabs alone name the panel', () => {
     render(
       <StatementPanel title="損益表" metrics={metrics}>
         <p>body</p>
       </StatementPanel>,
     );
 
-    expect(screen.getByText('損益表')).toHaveClass('md:hidden');
+    expect(screen.getByText('損益表')).not.toHaveClass('md:hidden');
   });
 
   it('omits the metrics row but keeps the title and body when metrics is absent', () => {
@@ -54,5 +54,20 @@ describe('StatementPanel', () => {
     );
 
     expect(screen.queryByText('損益表')).not.toBeInTheDocument();
+  });
+
+  it('stacks the metrics as label/value rows below md and keeps the row above it', () => {
+    render(
+      <StatementPanel testId="statement" metrics={metrics}>
+        <p>body</p>
+      </StatementPanel>,
+    );
+
+    const stacked = screen.getByTestId('statement-metrics-stacked');
+    expect(stacked.className).toContain('md:hidden');
+    expect(stacked).toHaveTextContent('本期淨利');
+    expect(stacked).toHaveTextContent('NT$30,000');
+
+    expect(screen.getByTestId('statement-metric-net-income').closest('div.hidden')).not.toBeNull();
   });
 });

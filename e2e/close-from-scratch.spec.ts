@@ -74,16 +74,41 @@ test('closing a period from scratch runs all eight stages', async ({ page }) => 
   await confirmStages(page, 2, 6);
   await generateReports(page);
 
-  // Stage 8: the summary's final action opens a confirmation dialog.
-  const closeAction = page.getByRole('button', { name: '正式關帳' }).first();
+  // Stage 8: the summary's final action opens a confirmation dialog. Scope it
+  // to the summary: the pipeline's step 08 carries the same label but is still
+  // disabled at this point, so `.first()` would hit an inert button.
+  const closeAction = page.getByTestId('close-period-confirm');
   await expect(closeAction).toBeVisible({ timeout: 20_000 });
   await closeAction.click();
   await page.getByRole('dialog').getByRole('button', { name: '正式關帳' }).click();
 
   // Closed, and the period shows up in the report history with figures.
-  await expect(page.getByText('CLOSED').first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('已關帳').first()).toBeVisible({ timeout: 20_000 });
   await page.goto('/reports');
   const closedRow = page.getByRole('row', { name: new RegExp(PERIOD) });
   await expect(closedRow).toBeVisible();
   await expect(closedRow).not.toContainText('—');
+});
+
+/**
+ * The phone keeps the report statements as tabs. The list used to be
+ * `hidden md:inline-flex` while every panel was force-mounted, so the phone
+ * stacked all three statements and had nothing to switch with. Runs after the
+ * close above: it reads the period that run just closed.
+ */
+test('the phone switches report statements instead of stacking them', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  const session = await signInEmulatorUser(QA_EMAIL, QA_PASSWORD);
+  await installEmulatorSession(page, session);
+
+  await page.goto(`/reports/${PERIOD}`);
+
+  const balanceTab = page.getByRole('tab', { name: '資產負債表' });
+  await expect(balanceTab).toBeVisible({ timeout: 20_000 });
+  // The tab list scrolls inside itself rather than widening the page.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(391);
+
+  await balanceTab.click();
+  await expect(page.getByText('負債 + 權益').first()).toBeVisible();
 });

@@ -3,7 +3,7 @@ import { type DriftAmount } from '@/domains/report/reportDrift';
 import { CLOSE_STAGE_LABELS, MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { formatCurrency } from '@/ui/utils';
 
-import { formatDriftDelta } from '../viewmodels/reportDrift.vm';
+import { formatDriftEdgeLine, formatDriftEdges, isDrifted } from '../viewmodels/reportDrift.vm';
 
 export const READINESS_CHECK_IDS = [
   'ACCOUNT_BALANCE',
@@ -127,7 +127,13 @@ const formatFinancialResult = (
     FINANCIAL_RESULT_KEYS.map((key) => {
       const value = result[key];
       if (value === null) return [key, MONTHLY_CLOSE_LABELS.NO_DATA];
-      const delta = drift?.[key] !== undefined ? formatDriftDelta(drift[key]) : null;
+      const driftFor = drift?.[key];
+      // A bare `a -> b` under 負債 does not say which end is which; the labelled
+      // line does, on both surfaces.
+      const delta =
+        driftFor !== undefined && isDrifted(driftFor)
+          ? formatDriftEdgeLine(formatDriftEdges(driftFor))
+          : null;
       return [key, delta ?? formatCurrency(value)];
     }),
   ) as FinancialResultText;

@@ -3,13 +3,15 @@
  * the geometry (path, gridlines, labels) is derived here so every line chart in
  * the app shares one scale and label algorithm.
  */
+import { labelZeroBaseline } from './axisLabels';
+import { MAX_X_LABELS, pickXLabels, shortenXLabels } from './xLabels';
+
 export const LINE_CHART_WIDTH = 700;
 export const LINE_CHART_HEIGHT = 150;
 
 const PADDING_TOP = 12;
 const PADDING_BOTTOM = 12;
 const DEFAULT_GRID_LINES = 4;
-const DEFAULT_MAX_X_LABELS = 6;
 
 export interface LinePoint {
   /** SVG x, in viewBox units. */
@@ -33,13 +35,22 @@ export interface LineChartGeometry {
   points: LinePoint[];
   path: string;
   areaPath: string;
-  /** Horizontal gridline positions, in viewBox units. */
+  /** Horizontal gridline positions, in viewBox units, top to bottom. */
   gridLines: number[];
   xLabels: { x: number; text: string }[];
-  /** y-axis value labels aligned to the gridlines (top to bottom). */
+  /** y-axis value labels, one per gridline, ordered **top to bottom** (largest first). */
   yLabels: { y: number; text: string }[];
   /** y position of value 0, present only when 0 falls inside the value range. */
   zeroLineY?: number;
+}
+
+export interface LineChartOptions {
+  /** Number of gridlines and tick labels. Defaults to 4; never fewer than 2. */
+  yTicks?: number;
+  /** Most x labels to keep. Defaults to `MAX_X_LABELS`; never fewer than 2. */
+  maxXLabels?: number;
+  /** Pin the y range to include 0 (0-baseline charts). */
+  includeZero?: boolean;
 }
 
 const EMPTY_GEOMETRY: LineChartGeometry = {
@@ -51,12 +62,36 @@ const EMPTY_GEOMETRY: LineChartGeometry = {
   yLabels: [],
 };
 
-/** Compact axis tick (1.2M / 850K / 42). */
+/**
+ * Compact axis tick (1.2M / 850K / 42), capped at 6 characters for the gutter.
+ *
+ * Every bucket rounds before it divides, so a value just under 10× the unit
+ * prints as the next integer (999.6K is `1000K`) instead of `1000.0K`. The
+ * decimal is dropped from 10M up, where the sign plus the decimal would
+ * overflow the cap.
+ */
 export const formatAxisValue = (value: number): string => {
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${Math.round(value / 1_000)}K`;
+  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 10_000_000) return `${Math.round(value / 1_000_000)}M`;
+  if (abs >= 999_950) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (abs >= 999.95) return `${Math.round(value / 1_000)}K`;
   return `${Math.round(value)}`;
+};
+
+/**
+ * Drop interior ticks that repeat the previous label. The first and last always
+ * survive: an axis needs both ends even when the scale is flat enough to repeat.
+ */
+const dropRepeatedLabels = (labels: { y: number; text: string }[]) => {
+  const kept: { y: number; text: string }[] = [];
+  labels.forEach((label, index) => {
+    const isEdge = index === 0 || index === labels.length - 1;
+    const previous = kept[kept.length - 1];
+    if (!isEdge && previous !== undefined && previous.text === label.text) return;
+    kept.push(label);
+  });
+  return kept;
 };
 
 /**
@@ -68,11 +103,11 @@ export const formatAxisValue = (value: number): string => {
 export function buildLineGeometry(
   values: number[],
   labels: string[] = [],
-  gridLineCount = DEFAULT_GRID_LINES,
-  maxXLabels = DEFAULT_MAX_X_LABELS,
-  includeZero = false,
+  options: LineChartOptions = {},
 ): LineChartGeometry {
   if (values.length === 0) return EMPTY_GEOMETRY;
+
+  const { yTicks = DEFAULT_GRID_LINES, maxXLabels = MAX_X_LABELS, includeZero = false } = options;
 
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -117,30 +152,39 @@ export function buildLineGeometry(
   const last = points[points.length - 1];
   const areaPath = `${path} L${last.x} ${LINE_CHART_HEIGHT} L${first.x} ${LINE_CHART_HEIGHT} Z`;
 
-  const lineCount = Math.max(2, gridLineCount);
+  // Top to bottom, like `composedChartGeometry`: index 0 is the highest value's
+  // line. Every axis reader (labels, overlay anchors) relies on that order.
+  const lineCount = Math.max(2, yTicks);
   const gridLines = Array.from({ length: lineCount }, (_, index) => {
     const ratio = index / (lineCount - 1);
-    return Number((PADDING_TOP + (1 - ratio) * innerHeight).toFixed(2));
+    return Number((PADDING_TOP + ratio * innerHeight).toFixed(2));
   });
 
   const xLabels: { x: number; text: string }[] = [];
   if (labels.length === values.length) {
-    const step = Math.max(1, Math.ceil(values.length / maxXLabels));
-    values.forEach((_, index) => {
-      const isLast = index === values.length - 1;
-      if (!isLast && index % step !== 0) return;
-      xLabels.push({ x: points[index].x, text: labels[index] });
-    });
+    xLabels.push(
+      ...shortenXLabels(labels, pickXLabels(values.length, maxXLabels)).map(({ index, text }) => ({
+        x: points[index].x,
+        text,
+      })),
+    );
   }
 
-  const yLabels = gridLines.map((y, index) => ({
-    y,
-    text: formatAxisValue(yMin + (1 - index / (lineCount - 1)) * ySpan),
-  }));
   const zeroLineY =
     0 >= yMin && 0 <= yMax
       ? Number((PADDING_TOP + (1 - (0 - yMin) / ySpan) * innerHeight).toFixed(2))
       : undefined;
+
+  // The value at gridline `index` mirrors the point mapping: index 0 is `yMax`.
+  const yLabels = labelZeroBaseline(
+    dropRepeatedLabels(
+      gridLines.map((y, index) => ({
+        y,
+        text: formatAxisValue(yMax - (index / (lineCount - 1)) * ySpan),
+      })),
+    ),
+    zeroLineY,
+  );
 
   return { points, path, areaPath, gridLines, xLabels, yLabels, zeroLineY };
 }

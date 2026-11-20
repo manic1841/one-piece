@@ -212,6 +212,23 @@ describe('DataTableRow', () => {
     expect(row.className).toContain('cursor-pointer');
     expect(row).toHaveAttribute('data-interactive');
   });
+
+  it('marks an interactive row with a hover chevron and room for it', () => {
+    render(
+      <DataTable>
+        <TableBody>
+          <DataTableRow data-testid="row" interactive onClick={() => {}}>
+            <DataTableCell>a</DataTableCell>
+          </DataTableRow>
+        </TableBody>
+      </DataTable>,
+    );
+
+    const row = screen.getByTestId('row');
+    expect(row.className).toContain('after:content-');
+    expect(row.className).toContain('[&>td:last-child]:pr-5');
+    expect(row.className).toContain('hover:border-border-strong');
+  });
 });
 
 describe('NumberCell', () => {
@@ -275,13 +292,13 @@ describe('MobileDataList', () => {
     render(
       <MobileDataList data-testid="list">
         <MobileDataRow>
-          <MobileDataField label="前期餘額">$50,000</MobileDataField>
+          <MobileDataField label="期初餘額">$50,000</MobileDataField>
         </MobileDataRow>
       </MobileDataList>,
     );
 
     expect(screen.getByTestId('list').className).toContain('md:hidden');
-    const field = screen.getByText('前期餘額').parentElement;
+    const field = screen.getByText('期初餘額').parentElement;
     expect(field?.className).toContain('justify-between');
     expect(screen.getByText('$50,000')).toBeInTheDocument();
   });
