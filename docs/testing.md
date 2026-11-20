@@ -111,7 +111,7 @@ emulator 相關設定散在多個檔案;動到任何一項前,先確認它的單
 | integration 專案 id        | `src/test/emulatorEnv.ts` 的 `INTEGRATION_FIREBASE_PROJECT_ID`(程式常數)         | 整庫 DELETE 的 namespace,**不讀** `FIREBASE_PROJECT_ID`(#208)                                                                                  |
 | dev/QA/E2E 專案 id         | `docker-compose.yml`(`FIREBASE_PROJECT_ID` / `VITE_FIREBASE_PROJECT_ID`)         | 預設 `demo-project`;E2E 另於 `test.yml` 顯式注入                                                                                               |
 | QA 身分(帳號/家戶/api key) | `scripts/qa/qa-identity.ts`(`QA_EMAIL` / `QA_HOUSEHOLD_ID` / `EMULATOR_API_KEY`) | `qa:init`、`qa:seed`、E2E session installer 共用                                                                                               |
-| app 的 emulator 開關       | `.env.development` 的 `VITE_FIRESTORE_EMULATOR`(compose app service 亦設 `true`) | 決定 `src/firebase.ts` 是否連 emulator                                                                                                         |
+| app 的 emulator 開關       | `.env.development` 的 `VITE_FIRESTORE_EMULATOR`(compose app service 亦設 `true`) | 決定 `src/firebase.ts`(auth)與 `src/infra/firestore.ts`(db)是否連 emulator                                                                     |
 | app 的 api key             | `.env.development` 的 `VITE_FIREBASE_API_KEY`                                    | 必須等於 `EMULATOR_API_KEY`;由 `src/test/emulatorConfigGuard.test.ts` 鎖定                                                                     |
 
 ### Firestore security rules 測試

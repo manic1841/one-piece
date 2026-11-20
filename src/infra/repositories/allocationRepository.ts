@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 
 import { type Allocation, AllocationSchema } from '@/domains/allocation/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 
 /**

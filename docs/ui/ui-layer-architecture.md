@@ -423,6 +423,24 @@ Global Header(sticky 系統狀態列)只負責:
 
 不得放入:主導航(見 §6.1)、大量 shortcuts、Period selector、domain actions。Settings 收在 Avatar menu,header 無獨立 Settings 鈕(亦見 [ADR-0056](../adr/0056-workflow-first-surfaces.md))。Header 為 L1 浮動 chrome,材質契約見 [`design-system.md`](design-system.md)。
 
+## 6.4 路由切分
+
+`src/App.tsx` 靜態 import 的只有 shell 本身——provider、router、`AuthGate`、`Layout`——以及
+`/login` 與 `/access-denied` 兩個入口頁;其餘每一條路由一律 `React.lazy()`,首屏因此不
+下載任何 feature(Gallery 在 DEV 才存在,同樣是 lazy)。
+
+- chunk 下載的等待一律用 `Suspense` 邊界,fallback 固定為 `PageSkeleton`
+  (見 [`component-catalog.md`](component-catalog.md));不使用 `null`,也不使用整頁
+  `LoadingLine`。
+- `Layout` 的邊界掛在 `Outlet` 外側,因此 chunk 下載期間 header、footer 與 Pet 保持掛載,
+  只有內容區換成骨架。
+- 路由樹外的頁面(`/onboarding`、DEV 的 `/gallery`)各自帶自己的 `Suspense`,不得讓等待
+  區塊冒泡到 `ErrorBoundary`。
+- 會被 shell 恆常呼叫、且需要 Firestore 的 controller(`useHouseholdGuard`、
+  `useHouseholdSwitcher`、`useDashboardCloseStatus`、`useRouteAuthorization` 的授權
+  workflow、`AuthStateProvider` 的 profile 讀取)以動態 `import()` 取得 use case,讓啟動
+  路徑只留 auth。新增同類 hook 時比照辦理。
+
 以下為四檔視窗的手動 QA 清單,項目均為可觀察行為,作為版面變更的驗收面:
 
 ### 360px(手機直式)

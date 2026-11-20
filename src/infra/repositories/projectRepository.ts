@@ -7,7 +7,7 @@ import {
   type ProjectSnapshot,
   type ProjectSnapshotCreate,
 } from '@/domains/project/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
 

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionRepository } from './transactionRepository';
 
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),

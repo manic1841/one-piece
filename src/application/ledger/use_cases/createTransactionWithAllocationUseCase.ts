@@ -16,7 +16,7 @@ import {
   createTransactionWithAllocationFingerprint,
 } from '@/domains/operation/fingerprint';
 import { type OperationResultReference } from '@/domains/operation/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { operationRepository } from '@/infra/repositories/operationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';

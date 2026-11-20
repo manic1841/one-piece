@@ -1,7 +1,7 @@
 import { collection, doc } from 'firebase/firestore';
 
 import { type Household, HouseholdSchema } from '@/domains/household/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 
 class HouseholdRepository extends BaseRepository<Household, [string?]> {

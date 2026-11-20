@@ -59,6 +59,8 @@ Page Header 規則：
 
 文件外殼（`index.html`）也是頁面的一部分：`<title>` 寫「品牌 — 系統定位」、`<meta name="description">` 一句話、`theme-color` 取 `--background` 的實際色值（狀態列在 CSS 載入前就上色，不會白閃）、icon 指向專案自己的 `public/favicon.svg`。不要把樣板上預設的資源路徑留在 `<head>` 裡。
 
+外殼另外帶一段 inline style 與置中的 `Loading...` 骨架，放在 `#root` 內：JS 與 app CSS 都是外掛資源，這段讓第一個畫格就是深色底而不是白屏，首渲染時由 `createRoot` 一併清掉。骨架只在 `#root` 內，不進 `<head>` 的其他位置。
+
 ### 入口畫面 (Entry / Gate Surface)
 
 登入、拒絕存取、Onboarding 與啟動失敗（`AppFallback`）**不套用 Page Shell**：它們在主介面之外，只完成單一任務，因此共用置中窄欄、鋪滿視窗高度的版面殼 `GateSurface`（見 [`component-catalog.md`](component-catalog.md)）。

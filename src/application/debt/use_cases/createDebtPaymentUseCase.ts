@@ -16,7 +16,7 @@ import {
 } from '@/domains/operation/fingerprint';
 import { type OperationResultReference } from '@/domains/operation/schemas';
 import { type OperationRecord } from '@/domains/operation/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { operationRepository } from '@/infra/repositories/operationRepository';

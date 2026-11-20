@@ -22,7 +22,7 @@ vi.mock('firebase/firestore', async (importOriginal) => {
   };
 });
 
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 
 vi.mock('@/application/household/householdPermissionService', () => ({
   householdPermissionService: {

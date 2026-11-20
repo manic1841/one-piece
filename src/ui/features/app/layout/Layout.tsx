@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 
 import { Search } from 'lucide-react';
 import { NavLink, Outlet, useMatches, useNavigate } from 'react-router-dom';
 
+import { PageSkeleton } from '@/ui/components/PageSkeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
@@ -146,7 +147,10 @@ const Layout: React.FC = () => {
           its height plus the safe area so the footer and sticky docks clear it. */}
       <main id="main" tabIndex={-1} className="flex-1 pb-[var(--bottom-overlay,0px)]">
         <div key={routeKey} className="max-w-7xl mx-auto p-4 md:p-8 animate-page-enter">
-          <Outlet />
+          {/* Page chunks are lazy; the shell (header, footer, pet) stays mounted while one loads. */}
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 
