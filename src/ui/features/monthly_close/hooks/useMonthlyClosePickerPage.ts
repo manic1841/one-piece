@@ -57,7 +57,8 @@ export const useMonthlyClosePickerPage = ({
         if (!autoSelected.current) {
           autoSelected.current = true;
           const newest = result.reduce<string | null>(
-            (latest, period) => (latest === null || period.yearMonth > latest ? period.yearMonth : latest),
+            (latest, period) =>
+              latest === null || period.yearMonth > latest ? period.yearMonth : latest,
             null,
           );
           if (newest !== null) setSelectedYearMonth(newest);

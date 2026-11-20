@@ -239,9 +239,10 @@ describe('MonthlyClosePage (closed period)', () => {
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'CONTINUE →' })).toBeInTheDocument(),
     );
-    expect(
-      screen.getByRole('link', { name: MONTHLY_CLOSE_LABELS.SWITCH_PERIOD }),
-    ).toHaveAttribute('href', '/close');
+    expect(screen.getByRole('link', { name: MONTHLY_CLOSE_LABELS.SWITCH_PERIOD })).toHaveAttribute(
+      'href',
+      '/close',
+    );
   });
 });
 

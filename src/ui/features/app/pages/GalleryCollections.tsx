@@ -352,7 +352,8 @@ const EditableListSection: React.FC = () => (
       </div>
     </GalleryModule>
     <GalleryCaption>
-      可編輯列的清單：`ListSectionHeader`（標題、計數、動作）搭配 `RowActions`（編輯與刪除）。標題列樣式與列尾動作由共用元件決定，垂直間距由呼叫端提供。
+      可編輯列的清單：`ListSectionHeader`（標題、計數、動作）搭配
+      `RowActions`（編輯與刪除）。標題列樣式與列尾動作由共用元件決定，垂直間距由呼叫端提供。
     </GalleryCaption>
   </GallerySection>
 );
