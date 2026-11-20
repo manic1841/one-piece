@@ -24,6 +24,8 @@ export const ACCOUNT_DETAIL_LABELS = {
   TREND_EMPTY_HINT: '尚無結算資料，完成本月關帳後顯示趨勢',
   HISTORY_EMPTY_HINT: '目前尚無結算紀錄，完成本月關帳後顯示歷史。',
   HOLDINGS_EMPTY_HINT: '此期間沒有持倉紀錄。',
+  RENAME_FAILED: '無法重新命名帳戶。',
+  UPDATE_FAILED: '無法更新帳戶狀態。',
 } as const;
 
 export const ACCOUNT_DANGER_LABELS = {
@@ -31,6 +33,7 @@ export const ACCOUNT_DANGER_LABELS = {
   DELETE_TITLE: '刪除帳戶？',
   DELETE_CONSEQUENCE: '刪除後無法復原。',
   CONFIRM: '刪除',
+  DELETE_FAILED: '無法刪除帳戶。',
 } as const;
 
 /** History columns: expand affordance, period, closing balance, change, holdings count. */

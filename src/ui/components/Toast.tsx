@@ -1,6 +1,5 @@
-import { toast } from 'sonner';
-
 import { Button } from '@/ui/components/ui/button';
+import { notifyFailed, notifySaved } from '@/ui/hooks/notify';
 import { cn } from '@/ui/utils/cn';
 
 export type ToastTone = 'success' | 'error';
@@ -55,5 +54,6 @@ export const LIVE_TOAST_OPTIONS = { unstyled: true, style: { width: '356px' } } 
 
 /** Emit a live toast rendered from the shared `Toast` surface. */
 export function showToast(message: string, tone: ToastTone = 'success'): void {
-  toast.custom(() => <Toast message={message} tone={tone} />, LIVE_TOAST_OPTIONS);
+  if (tone === 'error') notifyFailed(message);
+  else notifySaved(message);
 }

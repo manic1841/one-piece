@@ -16,6 +16,7 @@ import {
   mapDebtFormZodErrorToFieldErrors,
   parseDebtAccountFormVM,
 } from '@/ui/features/debt/viewmodels/debtAccountForm.vm';
+import { alert, celebrate } from '@/ui/hooks/notify';
 
 export interface DebtAccountFormViewModel extends DebtAccountFormHook {
   projects: Project[];
@@ -70,12 +71,15 @@ export const useDebtAccountFormViewModel = ({
         await updateDebtAccount(initialAccount.id, payload);
       }
       onSubmitSuccess();
+      celebrate();
     } catch (err: unknown) {
       if (err instanceof z.ZodError) {
         form.setValidationErrors(mapDebtFormZodErrorToFieldErrors<keyof DebtFormValues>(err));
+        alert();
         return;
       }
       setError(err instanceof Error ? err.message : '操作失敗');
+      alert();
     }
   }, [form, initialAccount, createDebtAccount, updateDebtAccount, onSubmitSuccess]);
 

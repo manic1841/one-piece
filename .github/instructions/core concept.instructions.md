@@ -18,17 +18,13 @@ Act as a chief architect focused on correctness, simplicity, and maintainability
 - If a better approach conflicts with existing docs, stop and ask the user for a Design Review before changing architecture or contracts.
 - Write facts in exactly one place. The ownership matrix and the "one fact, one home" rules live in `docs/development-guide.md` §3 — follow them instead of restating them here.
 
-## 1.1) Staging Rules (summary; canonical text in the guide)
+## 1.1) Staging Rules
 
-- Design discussion does not stage files in the repo. Decisions in progress go to GitHub issues; throwaway prototypes go to a `prototype/<name>` branch that is never merged to `main`.
-- When a feature lands, merge its content in the same task: behavior into the owning `docs/` topic file, tradeoffs into `docs/adr/`, canonical terms into `CONTEXT.md`. Then delete the consumed material. Never keep one fact in two places.
-- No permanent file may reference a staging path or a spec document name. `pnpm docs:check` fails otherwise, and it also fails if the retired staging folder reappears.
+Canonical text: `docs/development-guide.md` §3.2 (spec lives in the issue tracker) and §3.3 (prototypes). Read them before deciding where material belongs.
 
-## 1.2) ADR Threshold (summary; canonical text in the guide)
+## 1.2) ADR Threshold
 
-- Write an ADR only when the decision is hard to reverse, surprising without context, and the result of a real tradeoff. If any one is missing, skip it. Format lives in `.agents/skills/domain-modeling/ADR-FORMAT.md`.
-- If the decision was settled ad hoc and never stress-tested, ask 「這個決定還沒被 grill 過，要照現況記錄嗎？」 and write only after confirmation. The gate covers new ADRs and revisions.
-- ADRs record why, never contract detail; keep one `規範來源` pointer instead of restating field lists, enums or error tables.
+Canonical text: `docs/development-guide.md` §3.2. The threshold is hard-to-reverse **and** surprising without context **and** a real tradeoff — all three, or no ADR. The un-grilled gate and the `規範來源` pointer rule live in the same section; the format lives in `.agents/skills/domain-modeling/ADR-FORMAT.md`.
 
 ## 2) Engineering Standards
 

@@ -19,6 +19,8 @@ import {
   toLatestSettledText,
   toProjectSummaryVM,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { formatCurrency } from '@/ui/utils';
 
@@ -123,7 +125,11 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const handleRename = useCallback(
     async (name: string) => {
       if (!activeProject) return;
-      await updateProject(activeProject.id, { name });
+      const result = await updateProject(activeProject.id, { name });
+      if (!result.ok) {
+        notifyFailed(getTaskErrorMessage(result, PROJECT_DETAIL_LABELS.RENAME_FAILED));
+        return;
+      }
       setNameOverride(name);
     },
     [activeProject, updateProject],
@@ -133,7 +139,10 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     if (!activeProject) return;
     const nextActive = !isActive;
     const result = await updateProject(activeProject.id, { isActive: nextActive });
-    if (!result.ok) return;
+    if (!result.ok) {
+      notifyFailed(getTaskErrorMessage(result, PROJECT_DETAIL_LABELS.UPDATE_FAILED));
+      return;
+    }
     setStatusOverride(nextActive);
   }, [activeProject, isActive, updateProject]);
 
@@ -153,7 +162,12 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
       confirmLabel: PROJECT_DANGER_LABELS.CONFIRM,
     });
     if (!confirmed) return;
-    await deleteProject(activeProject.id);
+    const task = await deleteProject(activeProject.id);
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, PROJECT_DANGER_LABELS.DELETE_FAILED));
+      return;
+    }
+    celebrate();
     navigate('/projects');
   }, [activeProject, confirm, deleteProject, navigate]);
 

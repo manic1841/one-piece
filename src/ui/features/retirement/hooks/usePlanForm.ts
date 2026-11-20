@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
 import { type PlanDraft } from '@/application/retirement/types';
 import { PLAN_EDIT_LABELS } from '@/ui/constants/retirement/planLabels';
@@ -11,6 +10,7 @@ import { PLAN_LIST_HREF, usePlanResource } from '@/ui/features/retirement/hooks/
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
 import { useWorkspaceLeaveGuard } from '@/ui/features/retirement/hooks/useWorkspaceLeaveGuard';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { notifySaved } from '@/ui/hooks/notify';
 import { type LoadingTaskResult } from '@/ui/hooks/useLoadingTask';
 
 /** What a plan write answers: an id when it created one, a code when it refused. */
@@ -100,7 +100,7 @@ export function usePlanForm({
 
       // Marked first: the leave guard reads `saved`, so navigating would block itself.
       setSaved(true);
-      toast.success(successMessage);
+      notifySaved(successMessage);
       // A create has no route plan to return to, so it lands on the one it just made.
       navigate(routePlanId === null ? `${PLAN_LIST_HREF}/${task.value.id ?? ''}` : back, {
         replace: true,
