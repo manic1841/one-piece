@@ -1,32 +1,151 @@
 {
-  "formatVersion": "1.0.0",
+  "formatVersion": "2.0.0",
   "target": "pixel-pet",
-  "character": "placeholder",
+  "character": "kirby",
   "authoredFacing": "right",
-  "canvas": { "width": 48, "height": 48, "anchor": { "x": 24, "y": 48 } },
+  "canvas": {
+    "width": 188,
+    "height": 96,
+    "anchor": {
+      "x": 94,
+      "y": 96
+    }
+  },
   "animations": {
-    "stand": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [120], "loop": true },
-    "inhale": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [160], "loop": true },
-    "sleep": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [320], "loop": true },
-    "walk": { "sheet": "clips/happy.png", "frameCount": 6, "delaysMs": [120], "loop": false },
-    "turn": {
-      "sheet": "clips/happy.png",
-      "frameCount": 6,
-      "delaysMs": [100],
+    "award": {
+      "sheet": "clips/award.png",
+      "frameCount": 26,
       "loop": false,
-      "flipsFacing": true
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "18": 60
+        }
+      }
     },
-    "nod": { "sheet": "clips/idle.png", "frameCount": 6, "delaysMs": [100], "loop": false },
-    "award": { "sheet": "clips/happy.png", "frameCount": 6, "delaysMs": [120], "loop": false },
-    "call-out": { "sheet": "clips/happy.png", "frameCount": 6, "delaysMs": [120], "loop": false }
+    "call": {
+      "sheet": "clips/call.png",
+      "frameCount": 40,
+      "loop": false,
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "5": 60
+        }
+      }
+    },
+    "idle-right": {
+      "sheet": "clips/idle-right.png",
+      "frameCount": 67,
+      "loop": false,
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "21": 60,
+          "65": 60
+        }
+      }
+    },
+    "run": {
+      "sheet": "clips/run.png",
+      "frameCount": 31,
+      "loop": false,
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "3": 60
+        }
+      }
+    },
+    "jump": {
+      "sheet": "clips/jump.png",
+      "frameCount": 23,
+      "loop": false,
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "8": 60
+        }
+      }
+    },
+    "sleep": {
+      "sheet": "clips/sleep.png",
+      "frameCount": 138,
+      "loop": true,
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "39": 60,
+          "83": 60,
+          "126": 60
+        }
+      }
+    },
+    "swallow-in": {
+      "sheet": "clips/swallow-in.png",
+      "frameCount": 67,
+      "loop": false,
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "37": 60
+        }
+      }
+    },
+    "turn": {
+      "sheet": "clips/turn.png",
+      "frameCount": 8,
+      "loop": false,
+      "flipsFacing": true,
+      "timing": {
+        "frameMs": 50
+      }
+    },
+    "swallow-out": {
+      "sheet": "clips/swallow-out.png",
+      "frameCount": 61,
+      "loop": false,
+      "timing": {
+        "frameMs": 50,
+        "overrideMs": {
+          "9": 60,
+          "53": 60
+        }
+      }
+    },
+    "balloon": {
+      "sheet": "clips/balloon.png",
+      "frameCount": 26,
+      "loop": false,
+      "timing": {
+        "frameMs": 50
+      }
+    }
   },
   "bindings": {
-    "rest": ["stand", "inhale"],
+    "rest": [
+      "idle-right",
+      "idle-right",
+      "idle-right",
+      "idle-right",
+      "idle-right",
+      "idle-right",
+      "swallow-in",
+      "swallow-in",
+      "swallow-out",
+      "swallow-out",
+      "balloon",
+      "balloon",
+      "turn"
+    ],
     "sleep": ["sleep"],
-    "move": ["walk", "turn"],
-    "nod": ["nod"],
+    "move": ["run"],
+    "nod": ["jump"],
     "celebrate": ["award"],
-    "alert": ["call-out"]
+    "alert": ["call"]
   },
-  "lock": { "spriteForgeVersion": "0.1.0", "exportedAt": "2026-11-13T00:00:00Z" }
+  "lock": {
+    "spriteForgeVersion": "0.1.0",
+    "exportedAt": "2026-11-20T13:56:52.970Z"
+  }
 }

@@ -331,6 +331,16 @@ describe('Layout pixel pet and navigator', () => {
     expect(pet.className).toContain('rounded-full');
   });
 
+  it('gives the pet the 44px touch target instead of the art size', () => {
+    renderLayout();
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    expect(pet.className).toMatch(/(^|\s)h-11(\s|$)/);
+    expect(pet.className).toMatch(/(^|\s)w-11(\s|$)/);
+    // The art hangs above the box, so the box is aligned to its bottom edge.
+    expect(pet.className).toContain('items-end');
+  });
+
   it('renders the pet at rest by default', () => {
     renderLayout();
 

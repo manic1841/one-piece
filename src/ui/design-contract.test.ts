@@ -27,6 +27,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   // Bottom-sheet drag handle (design-system §7 `sheet`).
   'components/ui/sheet.tsx',
   'features/app/layout/PixelPet.tsx',
+  // Pixel Pet hit area: a 44px circle, mirrored by the gallery probe.
+  'features/app/layout/petChrome.ts',
   'features/dashboard/components/AssetCompositionBlock.tsx',
   // Retiring event axis: single-year nodes are dots, span bars are capsules.
   'features/retirement/components/LifeEventTimeline.tsx',
