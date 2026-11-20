@@ -4,24 +4,47 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="家庭財務作業系統：記帳、關帳與財務報表，資料留在自己的 Firebase 專案。"
-    />
+    <meta name="description" content="偉大的航道" />
     <!-- The shell paints this colour before any CSS loads, so the status bar and
          splash match the app instead of flashing white. -->
     <meta name="theme-color" content="#090b0e" />
+    <!-- 認證與資料的 API host 在首屏就會用到；先開連線，省下兩次 TLS handshake。 -->
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="ONE PIECE — 家庭財務作業系統" />
-    <meta
-      property="og:description"
-      content="家庭財務作業系統：記帳、關帳與財務報表，資料留在自己的 Firebase 專案。"
-    />
-    <title>ONE PIECE — 家庭財務作業系統</title>
+    <meta property="og:title" content="ONE PIECE — 偉大的航道" />
+    <meta property="og:description" content="偉大的航道" />
+    <title>ONE PIECE — 偉大的航道</title>
+    <!-- 冷啟期間的外殼。CSS 與 JS 都還是外掛資源，這段 inline style 讓第一個畫格就是
+         app 的深色底與置中載入字，而不是白屏。骨架放在 #root 內，`createRoot().render()`
+         第一次渲染就會清掉它，因此不需要額外的移除程式碼。 -->
+    <style>
+      html {
+        background: #090b0e;
+      }
+      #boot {
+        margin: 0;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        color: #8b949e;
+        font-family:
+          ui-sans-serif,
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        font-size: 0.875rem;
+        letter-spacing: 0.05em;
+      }
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <p id="boot">Loading...</p>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

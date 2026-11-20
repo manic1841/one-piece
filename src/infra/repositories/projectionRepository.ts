@@ -23,7 +23,7 @@ import {
   ProjectionSourceSchema,
   type ProjectionWriteResult,
 } from '@/domains/retirement/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import {
   fromFirestore,
   isDocumentTooLarge,

@@ -371,11 +371,24 @@ Use Case
 - **UI provider 聚合**：`ui/contexts/AuthStateProvider.tsx` 把 gateway 的觀測值組成 `AuthState`。
   失敗時 `loading` 保持 true（初始化從未落定），因此該狀態讀作「仍在初始化，而且失敗了」。
 - **Controller 查表**：`features/app/hooks/useAuthGate.ts` 是 gate 唯一讀取 auth 的層（規則 6）。
-- **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback`、等待，或放行 children。
+- **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback` 或放行 children。
 
 `AuthGate` 掛在路由樹之外，`/login`、`/access-denied` 等不在 `ProtectedRoute` 底下的路由同樣受同一個失敗畫面保護。
 `Toaster` 掛在 gate 外側，作為 system-level notification surface，載入期間仍可顯示通知。
 infra 不得 import `src/ui/**`（見 §2 規則 10）。
+
+### 5.2 gate 只擋失敗，等待屬於受保護路由
+
+`AuthGate` **不因 `loading` 而擋住整個 app**。認證初始化期間路由樹照常 render：
+`/login`、`/access-denied` 與認證回呼無關，立刻可見。
+
+等待只發生在真的需要它的地方——`ProtectedRoute` 的 `pending` 分支。該分支 render
+`GateSurface` ＋ Skeleton（`aria-busy`）而不是單行 `Loading...`，因為它撐的是整頁；
+`LoadingLine` 只留給區塊內或非頁面的等待。
+
+代價是未登入者直接開 `/` 會先看到一次骨架、再被導到 `/login`。這是刻意的：骨架比整頁
+空白誠實，也比讓登入頁跟著等一個與它無關的 SDK 回呼好。`pending` 不導向，因此不會
+在快取回呼抵達前後產生跳轉迴圈。
 
 ## 6. RWD 斷點契約
 
@@ -457,6 +470,27 @@ Global Header(sticky 系統狀態列)只負責:
 - User(Avatar menu:Settings、Log out)。
 
 不得放入:主導航(見 §6.1)、大量 shortcuts、Period selector、domain actions。Settings 收在 Avatar menu,header 無獨立 Settings 鈕(亦見 [ADR-0056](../adr/0056-workflow-first-surfaces.md))。Header 為 L1 浮動 chrome,材質契約見 [`design-system.md`](design-system.md)。
+
+## 6.4 路由切分
+
+`src/App.tsx` 靜態 import 的只有 shell 本身——provider、router、`AuthGate`、`Layout`——以及
+`/login` 與 `/access-denied` 兩個入口頁;其餘每一條路由一律 `React.lazy()`,首屏因此不
+下載任何 feature(Gallery 在 DEV 才存在,同樣是 lazy)。
+
+- chunk 下載的等待一律用 `Suspense` 邊界,fallback 固定為 `PageSkeleton`
+  (見 [`component-catalog.md`](component-catalog.md));不使用 `null`,也不使用整頁
+  `LoadingLine`。
+- `Layout` 的邊界掛在 `Outlet` 外側,因此 chunk 下載期間 header、footer 與 Pet 保持掛載,
+  只有內容區換成骨架。
+- 路由樹外的頁面(`/onboarding`、DEV 的 `/gallery`)各自帶自己的 `Suspense`,不得讓等待
+  區塊冒泡到 `ErrorBoundary`。
+- 會被 shell 恆常呼叫、且需要 Firestore 的 controller(`useHouseholdGuard`、
+  `useHouseholdSwitcher`、`useDashboardCloseStatus`、`useRouteAuthorization` 的授權
+  workflow、`AuthStateProvider` 的 profile 讀取)以動態 `import()` 取得 use case,讓啟動
+  路徑只留 auth。新增同類 hook 時比照辦理。
+- 閒置預取由 `features/app/prefetchRoutes.ts` 統一集中,只在 `Layout` 內觸發——那時
+  使用者已登入,預取才不會把 Firestore 帶給登入頁訪客。預取用 `import()` 暖快取,
+  不做 prerender。
 
 以下為四檔視窗的手動 QA 清單,項目均為可觀察行為,作為版面變更的驗收面:
 

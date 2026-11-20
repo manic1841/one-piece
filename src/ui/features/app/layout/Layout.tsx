@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import { Search } from 'lucide-react';
 import { NavLink, Outlet, useMatches, useNavigate } from 'react-router-dom';
 
+import { PageSkeleton } from '@/ui/components/PageSkeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
@@ -10,6 +11,7 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
 import { usePetMood } from '../hooks/usePetMood';
+import { prefetchLikelyNextRoutes } from '../prefetchRoutes';
 import CommandPalette from './CommandPalette';
 import HouseholdSwitcher from './HouseholdSwitcher';
 import PixelPet from './PixelPet';
@@ -26,6 +28,12 @@ const Layout: React.FC = () => {
   const notifyPet = pet.notify;
   const [today, setToday] = useState(() => new Date());
   useBottomOverlayInset();
+
+  // Layout 只在已登入且有家戶時掛載，因此這裡是「使用者真的會繼續用」的第一個
+  // 時機；預取不會發生在登入頁訪客身上。
+  useEffect(() => {
+    prefetchLikelyNextRoutes();
+  }, []);
 
   // Route ids are positional tree paths, so they change between routes but not
   // when only a param does — `/reports/:period` must not replay the entry when
@@ -157,7 +165,10 @@ const Layout: React.FC = () => {
           its height plus the safe area so the footer and sticky docks clear it. */}
       <main id="main" tabIndex={-1} className="flex-1 pb-[var(--bottom-overlay,0px)]">
         <div key={routeKey} className="max-w-7xl mx-auto p-4 md:p-8 animate-page-enter">
-          <Outlet />
+          {/* Page chunks are lazy; the shell (header, footer, pet) stays mounted while one loads. */}
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 

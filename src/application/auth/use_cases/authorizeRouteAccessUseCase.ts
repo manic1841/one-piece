@@ -28,10 +28,20 @@ export class AuthorizeRouteAccessUseCase {
     const { auth, householdId, requireHousehold } = request;
     const isGlobalAdmin = auth.isGlobalAdmin ?? false;
 
+    // The two reads are independent, so they start together instead of queueing:
+    // the route guard sits in front of every page mount, and a serial pair doubles
+    // the time to first paint. A global admin skips both; membership is only
+    // meaningful once a household exists.
+    const isAuthorizedPromise = isGlobalAdmin
+      ? Promise.resolve(true)
+      : isUserAuthorizedUseCase.execute({ email: auth.email ?? null });
+    const isMemberPromise =
+      requireHousehold && householdId !== null && !isGlobalAdmin
+        ? householdPermissionService.isUserMember(householdId, auth.uid)
+        : Promise.resolve(false);
+
     // A global admin bypasses the whitelist, matching `assertReadPermission`'s early return.
-    const isAuthorized =
-      isGlobalAdmin || (await isUserAuthorizedUseCase.execute({ email: auth.email ?? null }));
-    if (!isAuthorized) return 'access-denied';
+    if (!(await isAuthorizedPromise)) return 'access-denied';
 
     if (!requireHousehold) return 'allow';
 
@@ -41,8 +51,7 @@ export class AuthorizeRouteAccessUseCase {
 
     if (isGlobalAdmin) return 'allow';
 
-    const isMember = await householdPermissionService.isUserMember(householdId, auth.uid);
-    return isMember ? 'allow' : 'onboarding';
+    return (await isMemberPromise) ? 'allow' : 'onboarding';
   }
 }
 

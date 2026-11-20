@@ -2,9 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import { getHouseholdsByUserUseCase } from '@/application/household/use_cases/getHouseholdsByUserUseCase';
-import { leaveHouseholdUseCase } from '@/application/household/use_cases/leaveHouseholdUseCase';
-import { switchHouseholdUseCase } from '@/application/household/use_cases/switchHouseholdUseCase';
 import { type Household } from '@/domains/household/schemas';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { useAuthState } from '@/ui/contexts/useAuthState';
@@ -25,15 +22,25 @@ export function useHouseholdSwitcher(
   const loadHouseholds = useCallback(async () => {
     if (!uid || !isOpen) return;
 
-    await run(async () => getHouseholdsByUserUseCase.execute({ uid }), {
-      writeBack: (result) => {
-        if (result.ok) {
-          setHouseholds(result.value);
-        } else {
-          console.error('Error fetching households:', result.error);
-        }
+    // The header switcher is part of the eager shell; importing the use case on
+    // demand keeps Firestore out of the startup bundle.
+    await run(
+      async () => {
+        const { getHouseholdsByUserUseCase } = await import(
+          '@/application/household/use_cases/getHouseholdsByUserUseCase'
+        );
+        return getHouseholdsByUserUseCase.execute({ uid });
       },
-    });
+      {
+        writeBack: (result) => {
+          if (result.ok) {
+            setHouseholds(result.value);
+          } else {
+            console.error('Error fetching households:', result.error);
+          }
+        },
+      },
+    );
   }, [uid, isOpen, run]);
 
   useEffect(() => {
@@ -44,6 +51,9 @@ export function useHouseholdSwitcher(
     if (!user || householdId === currentHouseholdId) return;
 
     try {
+      const { switchHouseholdUseCase } = await import(
+        '@/application/household/use_cases/switchHouseholdUseCase'
+      );
       await switchHouseholdUseCase.execute({ uid: user.uid, householdId });
       await refreshProfile();
       navigate('/');
@@ -66,6 +76,9 @@ export function useHouseholdSwitcher(
     });
     if (confirmed) {
       try {
+        const { leaveHouseholdUseCase } = await import(
+          '@/application/household/use_cases/leaveHouseholdUseCase'
+        );
         await leaveHouseholdUseCase.execute({ uid: user.uid });
         await refreshProfile();
         navigate('/onboarding');

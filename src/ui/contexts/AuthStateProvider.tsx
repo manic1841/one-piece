@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ensureUserProfileUseCase } from '@/application/auth/use_cases/ensureUserProfileUseCase';
 import { type AuthGateway } from '@/domains/auth/authGateway';
 import { type AuthInitErrorCode } from '@/domains/auth/authInitError';
 import { type AuthUser } from '@/domains/auth/identity';
@@ -35,6 +34,11 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ gateway, c
     const seed = profileSeedRef.current;
     setProfileLoading(true);
     try {
+      // Profile read is the first Firestore touch, so the use case is imported
+      // dynamically: Firestore then stays out of the startup bundle.
+      const { ensureUserProfileUseCase } = await import(
+        '@/application/auth/use_cases/ensureUserProfileUseCase'
+      );
       const profile = await ensureUserProfileUseCase.execute({
         uid: target.uid,
         email: target.email,

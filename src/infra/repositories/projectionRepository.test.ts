@@ -4,7 +4,7 @@ import { projectionRepository } from './projectionRepository';
 
 const state = vi.hoisted(() => ({ sequence: 0, calls: [] as string[], batch: null as unknown }));
 
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 
 vi.mock('firebase/firestore', () => {
   class MockTimestamp {

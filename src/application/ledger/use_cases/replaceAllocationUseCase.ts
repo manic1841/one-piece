@@ -14,7 +14,7 @@ import {
 } from '@/domains/allocation/schemas';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { LedgerValidator } from '@/domains/ledger/validator';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 

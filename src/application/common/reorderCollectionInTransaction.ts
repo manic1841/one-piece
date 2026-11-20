@@ -1,7 +1,7 @@
 import { type Transaction, doc, runTransaction } from 'firebase/firestore';
 
 import { ReorderCommandError, ReorderCommandErrorCode } from '@/application/common/reorderErrors';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 
 export interface ReorderEntry {
   id: string;

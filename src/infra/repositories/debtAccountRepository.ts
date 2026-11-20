@@ -14,7 +14,7 @@ import {
   type DebtAccountCreate,
   DebtAccountSchema,
 } from '@/domains/debt/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 

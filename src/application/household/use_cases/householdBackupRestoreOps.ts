@@ -1,6 +1,6 @@
 import { type DocumentData, type DocumentReference, doc, writeBatch } from 'firebase/firestore';
 
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { accountSnapshotRepository } from '@/infra/repositories/accountSnapshotRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
 import { portfolioSnapshotRepository } from '@/infra/repositories/portfolioSnapshotRepository';

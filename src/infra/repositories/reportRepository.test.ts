@@ -6,7 +6,7 @@ import { reportRepository } from './reportRepository';
 
 // Mock only the BaseRepository methods that saveReport should NOT call (get, list)
 // and the ones it SHOULD call (set). We spy on the instance methods directly.
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
   doc: vi.fn(),

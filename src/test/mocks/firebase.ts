@@ -64,11 +64,11 @@ export const assertEmulatorsAvailable = async (): Promise<void> => {
 connectFirestoreEmulator(db, firestoreEmulator.host, firestoreEmulator.port);
 connectAuthEmulator(auth, authEmulator.baseUrl);
 
-// Mock @/firebase to return the emulator-connected instances
-vi.mock('@/firebase', () => ({
-  db,
-  auth,
-}));
+// Mock the two app-side modules to return the emulator-connected instances.
+// They are separate because `@/firebase` is auth-only and `@/infra/firestore`
+// owns `db` (so the startup bundle does not carry Firestore).
+vi.mock('@/firebase', () => ({ auth }));
+vi.mock('@/infra/firestore', () => ({ db }));
 
 // Provide a way to reset the DB for tests.
 //

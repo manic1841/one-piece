@@ -6,7 +6,7 @@ import {
   type RetirementPlanCreate,
   type RetirementPlanUpdate,
 } from '@/domains/retirement/types';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 import { DOCUMENT_MAX_BYTES, isDocumentTooLarge } from '@/infra/repositories/firestorePayload';
 

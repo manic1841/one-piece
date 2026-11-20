@@ -6,7 +6,7 @@ import { retirementPlanRepository } from './retirementPlanRepository';
 
 const state = vi.hoisted(() => ({ sequence: 0, calls: [] as string[] }));
 
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 
 vi.mock('firebase/firestore', () => {
   class MockTimestamp {

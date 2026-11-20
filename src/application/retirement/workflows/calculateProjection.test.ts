@@ -31,7 +31,7 @@ vi.mock('../use_cases/getProjectionOpeningUseCase', () => ({
   getProjectionOpeningUseCase: { execute: vi.fn() },
 }));
 
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 
 const auth = { uid: 'u1', email: 'user@example.com', isGlobalAdmin: false };
 

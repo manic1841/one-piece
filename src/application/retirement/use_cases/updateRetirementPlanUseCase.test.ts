@@ -22,7 +22,7 @@ vi.mock('@/infra/repositories/retirementPlanRepository', () => ({
   },
 }));
 
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 
 const auth = { uid: 'u1', email: 'user@example.com', isGlobalAdmin: false };
 

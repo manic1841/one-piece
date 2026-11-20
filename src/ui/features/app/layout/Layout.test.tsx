@@ -37,12 +37,6 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
   }),
 }));
 
-vi.mock('@/application/household/use_cases/getHouseholdUseCase', () => ({
-  getHouseholdUseCase: {
-    execute: vi.fn().mockResolvedValue({ id: 'household-1', name: 'Test Household' }),
-  },
-}));
-
 vi.mock('@/application/dashboard/use_cases/getDashboardOverviewUseCase', () => ({
   getDashboardOverviewUseCase: { execute: vi.fn().mockResolvedValue(null) },
 }));
@@ -55,6 +49,17 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
 
 vi.mock('./HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
+}));
+
+/**
+ * The guard fetches the household name through `await import()` so Firestore stays out
+ * of the startup bundle. Mocking the guard instead of the use case keeps these header
+ * tests off that async hop: a dynamic import from inside a dependency is not reliably
+ * intercepted, and the real use case would then hit Firestore and never name the
+ * household.
+ */
+vi.mock('../hooks/useHouseholdGuard', () => ({
+  useHouseholdGuard: () => ({ familyName: 'Test Household', loadingHousehold: false }),
 }));
 
 function PageMarker() {
@@ -142,10 +147,10 @@ describe('Layout system status bar', () => {
     expect(dateText).toContain('2026');
   });
 
-  it('groups household switcher, search, and avatar on the header', async () => {
+  it('groups household switcher, search, and avatar on the header', () => {
     renderLayout();
 
-    expect(await screen.findByTestId('household-switcher')).toBeInTheDocument();
+    expect(screen.getByTestId('household-switcher')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /avatar/i })).toBeInTheDocument();
   });
@@ -169,12 +174,12 @@ describe('Layout system status bar', () => {
     expect(screen.queryByRole('button', { name: /settings/i })).not.toBeInTheDocument();
   });
 
-  it('keeps avatar and search reachable when the desktop-only controls are hidden', async () => {
+  it('keeps avatar and search reachable when the desktop-only controls are hidden', () => {
     renderLayout();
 
     const avatarButton = screen.getByRole('button', { name: /avatar/i });
     const searchButton = screen.getByRole('button', { name: /search/i });
-    const switcher = await screen.findByTestId('household-switcher');
+    const switcher = screen.getByTestId('household-switcher');
 
     expect(avatarButton.className).not.toContain('hidden');
     expect(searchButton.className).not.toContain('hidden');

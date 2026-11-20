@@ -38,6 +38,18 @@ GitHub Actions 位於 `.github/workflows/`。
 數量本身不計費，但每個 channel 的 release 會佔用儲存，必要時在 console 設定各 channel 的
 「releases to keep」上限。
 
+### Hosting 快取標頭
+
+`firebase.json` 的 `hosting.headers` 是唯一的快取政策來源：
+
+- `/assets/**` → `Cache-Control: public, max-age=31536000, immutable`。Vite 的檔名帶
+  內容 hash，內容一變檔名就變，因此可以永久快取。
+- `/index.html` 與 `/` → `no-cache`。外殼必須每次回源，否則使用者永遠拿不到指向新
+  asset 的新清單。
+
+沒有 service worker，回訪加速完全靠這兩條；新增任何「不帶 hash」的靜態資源時，必須
+一併決定它落在哪一邊，否則預設值會讓它被快取住。
+
 ## 3. Docker 開發環境
 
 專案提供 root-level Docker development stack，固定 Node.js 24 與 pnpm 10，並以同一個 Compose project 啟動 Vite 與 Firebase Emulator。適合需要一致工具鏈或不想在 host 安裝 Node/pnpm 的開發者。

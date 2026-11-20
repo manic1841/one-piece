@@ -15,7 +15,7 @@ import {
   FinancialReportSchema,
   type ReportType,
 } from '@/domains/report/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 
 import { BaseRepository } from './baseRepository';
 import { transactionRepository } from './transactionRepository';

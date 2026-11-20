@@ -1,10 +1,5 @@
-import { getAnalytics } from 'firebase/analytics';
 import { initializeApp } from 'firebase/app';
 import { GoogleAuthProvider, connectAuthEmulator, getAuth } from 'firebase/auth';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-
-import { FIRESTORE_PROXY_PATH } from '@/infra/emulatorEndpoints';
 
 // In emulator mode the API key MUST equal the E2E session installer's key
 // (`e2e/support/emulator.ts`): the Firebase SDK keys its persisted Auth entry as
@@ -31,14 +26,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
-const storage = getStorage(app);
-let analytics;
-
-if (typeof window !== 'undefined' && !useEmulator) {
-  analytics = getAnalytics(app);
-}
 
 if (useEmulator) {
   // Escape hatch for browsers that run inside the compose network and can resolve
@@ -46,27 +34,14 @@ if (useEmulator) {
   const directHost = import.meta.env.VITE_FIREBASE_EMULATOR_HOST as string | undefined;
 
   if (directHost) {
-    connectFirestoreEmulator(db, directHost, 8080);
     connectAuthEmulator(auth, `http://${directHost}:9099`);
   } else {
-    // Default: same-origin through the Vite dev-server proxy. The host usually
-    // publishes only the app port, so the browser cannot reach the emulator's
-    // 8080/9099 directly.
-    //
-    // The Firestore SDK builds its channel base URL as `http://${host}:${port}`,
-    // so a path prefix has to travel inside the `port` argument.
-    const proxiedFirestorePort = `${window.location.port}${FIRESTORE_PROXY_PATH}`;
-    connectFirestoreEmulator(
-      db,
-      window.location.hostname,
-      proxiedFirestorePort as unknown as number,
-    );
     // connectAuthEmulator discards any path in the URL ("Always replace path with
     // '/'" in the SDK), so the origin alone is correct: the SDK then requests
-    // `<origin>/identitytoolkit.googleapis.com/...`, which the proxy forwards.
+    // `<origin>/identitytoolkit.googleapis.com/...`, which the Vite proxy forwards.
     connectAuthEmulator(auth, window.location.origin);
   }
 }
 
 export const googleProvider = new GoogleAuthProvider();
-export { db, auth, storage, analytics };
+export { app, auth, useEmulator };
