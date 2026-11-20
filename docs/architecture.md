@@ -12,6 +12,20 @@
 - **內容**: `types.ts`, `schemas.ts` (Zod), `mappers.ts`。
 - **規則**: 不依賴外部框架或基礎設施；**絕對不依賴於 Application 或 Infrastructure 層。**
 
+#### 目錄結構：預設平放
+
+一個 domain 就是一個資料夾，檔案預設全部平放在該資料夾根層。只有同時符合下列兩條件才開子資料夾：
+
+1. 該群組有 **≥2 個同角色檔案**（單一檔案的群組不開夾）；
+2. 該 domain 已達 **≥10 個檔案**。
+
+其他限制：
+
+- 一個 domain 只選**一個**切分軸線：依子聚合（`auth/user`, `auth/whitelist`）或依角色（`calculators/`, `schemas/`），不可混用。
+- 子資料夾名稱必須是群組的共同性質，不得使用 `logic`、`utils`、`helpers` 這類萬用字。
+- 子資料夾一律以 `index.ts` barrel 對外，外部只 import 資料夾路徑，不深入檔名。
+- 未達門檻的既有子資料夾應攤平；搬移時同步更新所有 import 指定符。
+
 ### 📂 Application (應用層) - `src/application/`
 
 - **職責**: 協調領域對象與基礎設施，實現具體的使用案例 (Use Cases) 或複雜的業務服務 (Application Services)。
@@ -31,19 +45,17 @@
 - **內容**: `repositories/`, `schemas/` (與資料庫對應的實體), `external/` (第三方 API client)。
 - **規則**: 依賴 Domain（實作介面、使用領域模型）；不得 import UI（見 [ADR-0062](adr/0062-ui-tier-separation-and-surface-import-ban.md)）。Repository 只負責搬運資料，業務校驗放 Domain Service 或 Use Case。
 - **工具**: 繼承 `src/infra/repositories/baseRepository.ts` 進行標準 CRUD。
+- **Firebase 實例**: auth 的初始化與 gateway 在 `src/firebase.ts`，Firestore 實例在 `src/infra/firestore.ts`。兩者分開是為了讓啟動路徑（auth ＋ router ＋ shell）不必付 `firebase/firestore` 的下載成本；`src/ui/**` 仍然只看得到 gateway 與 repository，不直接 import 這兩者。
+- **本機持久化**: Firestore 以 `persistentLocalCache` 開啟 IndexedDB 快取，並用多分頁管理器。回訪時已知資料立刻回放、離線仍可讀且寫入會排隊；代價是磁碟佔用與「畫面可能先是快取值」。快取只是傳輸層加速，不快照也不改寫任何不變量——快照與餘額的真相仍見 [data-structure.md](data-structure.md)。沒有 IndexedDB 的執行環境（測試用 DOM、部分 WebView）退回記憶體快取。
 - **外部 API 介接**: 匯率由 `external/exchangeRateApiClient.ts` 直接從 CORS 開放的每日匯率源取得（免 key、免後端代理，詳見 [ADR-0049](adr/0049-cors-open-exchange-rate-source.md)）；跨匯率換算由 `GetLatestRateUseCase` 以 USD 基準匯率推導，並保留 1 小時記憶體快取。
 
 ### 📂 Presentation (呈現層) - `src/ui/`
 
 - **職責**: UI 渲染與使用者互動。
-- **內容**:
-  - `features/[feature-name]/hooks/`: **控制器 (Controller)**。React 進入點，負責銜接 UI 與核心邏輯。
-  - `contexts/`: UI 自有的 React context 與 provider（Controller 範圍，例如認證狀態）。
-  - `components/`: React 組件。
 - **規則**: Component 只調用 feature Hook (Controller)，不直接觸碰業務邏輯或資料庫。
-  層級、可觸碰清單與呼叫方向以 [`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準；
-  UI 不得 import `@/domains`、`@/application`、`@/infra`，也不得 import `firebase/firestore`
-  （跨層實作由 `src/App.tsx` 這個 composition root 注入）。
+
+層級、可觸碰清單、呼叫方向與跨層注入一律以
+[`ui/ui-layer-architecture.md`](ui/ui-layer-architecture.md) 為準，本文件不重述。
 
 ### 📂 Shared - `src/shared/`
 

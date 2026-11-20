@@ -23,7 +23,7 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
-import { MONEY_TONE_CLASS } from '@/ui/components/moneyTone';
+import { MONEY_TONE_CLASS, signTone } from '@/ui/components/moneyTone';
 import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { Alert, AlertDescription } from '@/ui/components/ui/alert';
 import { Button } from '@/ui/components/ui/button';
@@ -42,12 +42,12 @@ import ProjectForm from '@/ui/features/project/components/ProjectForm';
 import { useProjectPage } from '@/ui/features/project/hooks/useProjectPage';
 import { type ProjectRowVM } from '@/ui/features/project/viewmodels/projectPage.vm';
 import { useSortableRow } from '@/ui/hooks/useSortableList';
-import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
 const SKELETON_ROWS = [0, 1, 2, 3, 4];
 
-const netToneClass = (net: number): string => MONEY_TONE_CLASS[net >= 0 ? 'positive' : 'negative'];
+const balanceToneClass = (balance: number | null): string =>
+  balance === null ? MONEY_TONE_CLASS.default : MONEY_TONE_CLASS[signTone(balance)];
 
 const SortableProjectRow: React.FC<{
   row: ProjectRowVM;
@@ -97,14 +97,14 @@ const SortableProjectRow: React.FC<{
           label={row.isActive ? PROJECT_STATUS_LABELS.ACTIVE : PROJECT_STATUS_LABELS.INACTIVE}
         />
       </DataTableCell>
-      <DataTableCell align="number" className={MONEY_TONE_CLASS.positive}>
-        {formatCurrency(row.income)}
+      <DataTableCell
+        align="number"
+        className={cn('font-mono text-sm tabular-nums', balanceToneClass(row.balance))}
+      >
+        {row.balanceText}
       </DataTableCell>
-      <DataTableCell align="number" className={MONEY_TONE_CLASS.negative}>
-        {formatCurrency(row.expense)}
-      </DataTableCell>
-      <DataTableCell align="number" className={netToneClass(row.net)}>
-        {formatCurrency(row.net)}
+      <DataTableCell align="number" className="font-mono text-sm tabular-nums">
+        {row.lastSettledMonthText}
       </DataTableCell>
     </DataTableRow>
   );
@@ -160,20 +160,13 @@ const SortableProjectMobileRow: React.FC<{
           label={row.isActive ? PROJECT_STATUS_LABELS.ACTIVE : PROJECT_STATUS_LABELS.INACTIVE}
         />
       </MobileDataField>
-      <MobileDataField label={PROJECT_COLUMN_LABELS.NET_CASH_FLOW}>
-        <span className={cn('font-mono text-sm tabular-nums', netToneClass(row.net))}>
-          {formatCurrency(row.net)}
+      <MobileDataField label={PROJECT_COLUMN_LABELS.BALANCE}>
+        <span className={cn('font-mono text-sm tabular-nums', balanceToneClass(row.balance))}>
+          {row.balanceText}
         </span>
       </MobileDataField>
-      <MobileDataField label={PROJECT_COLUMN_LABELS.INCOME}>
-        <span className={cn('font-mono text-sm tabular-nums', MONEY_TONE_CLASS.positive)}>
-          {formatCurrency(row.income)}
-        </span>
-      </MobileDataField>
-      <MobileDataField label={PROJECT_COLUMN_LABELS.EXPENSE}>
-        <span className={cn('font-mono text-sm tabular-nums', MONEY_TONE_CLASS.negative)}>
-          {formatCurrency(row.expense)}
-        </span>
+      <MobileDataField label={PROJECT_COLUMN_LABELS.LAST_SETTLED_MONTH}>
+        <span className={cn('font-mono text-sm tabular-nums')}>{row.lastSettledMonthText}</span>
       </MobileDataField>
     </MobileDataRow>
   );
@@ -264,13 +257,10 @@ const Projects: React.FC = () => {
                   <DataTableHeadCell>{PROJECT_COLUMN_LABELS.NAME}</DataTableHeadCell>
                   <DataTableHeadCell>{PROJECT_COLUMN_LABELS.STATUS}</DataTableHeadCell>
                   <DataTableHeadCell align="number">
-                    {PROJECT_COLUMN_LABELS.INCOME}
+                    {PROJECT_COLUMN_LABELS.BALANCE}
                   </DataTableHeadCell>
                   <DataTableHeadCell align="number">
-                    {PROJECT_COLUMN_LABELS.EXPENSE}
-                  </DataTableHeadCell>
-                  <DataTableHeadCell align="number">
-                    {PROJECT_COLUMN_LABELS.NET_CASH_FLOW}
+                    {PROJECT_COLUMN_LABELS.LAST_SETTLED_MONTH}
                   </DataTableHeadCell>
                 </DataTableHeadRow>
               </TableHeader>

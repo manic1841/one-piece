@@ -20,6 +20,13 @@ describe('ComposedChart', () => {
     expect(screen.getByText('C')).toBeDefined();
   });
 
+  it('renders without a scale when every series is hidden', () => {
+    const { container } = render(<ComposedChart labels={['A', 'B']} series={[]} />);
+
+    expect(container.querySelector('svg')).toBeDefined();
+    expect(screen.queryByText('A')).toBeNull();
+  });
+
   it('draws an area path when a line requests one', () => {
     const { container } = render(
       <ComposedChart
@@ -29,6 +36,45 @@ describe('ComposedChart', () => {
     );
 
     expect(container.querySelectorAll('path')).toHaveLength(2);
+  });
+
+  it('thins the y ticks out on a short plot (design-system chart-axis)', () => {
+    const gutter = (height: number) =>
+      render(
+        <ComposedChart labels={['A', 'B']} series={SERIES} height={height} />,
+      ).container.querySelectorAll('[data-testid="chart-axis-left"] > span').length;
+
+    expect(gutter(120)).toBeLessThan(gutter(200));
+  });
+
+  it('keeps a pinned tick count regardless of the height', () => {
+    const { container } = render(
+      <ComposedChart labels={['A', 'B']} series={SERIES} height={80} yTicks={5} />,
+    );
+
+    expect(
+      container.querySelectorAll('[data-testid="chart-axis-left"] > span').length,
+    ).toBeGreaterThan(3);
+  });
+
+  it('renders a dashed secondary line thinner than a solid one', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[
+          { kind: 'line', tone: 'primary', values: [1, 3] },
+          { kind: 'line', tone: 'asset', values: [9, 12], dashed: true },
+        ]}
+      />,
+    );
+
+    const paths = [...container.querySelectorAll('path')];
+    expect(paths).toHaveLength(2);
+    expect(paths[0].getAttribute('stroke-dasharray')).toBeNull();
+    expect(paths[1].getAttribute('stroke-dasharray')).toBe('5 4');
+    expect(Number(paths[1].getAttribute('stroke-width'))).toBeLessThan(
+      Number(paths[0].getAttribute('stroke-width')),
+    );
   });
 
   it('fills every area with its own single-colour gradient', () => {
@@ -97,6 +143,30 @@ describe('ComposedChart', () => {
     expect(container.textContent).toContain('M');
   });
 
+  it('puts both axis label columns in gutters beside the plot, never over it', () => {
+    const dualSeries: ComposedSeries[] = [
+      { kind: 'bar', tone: 'positive', values: [55_000, 70_000] },
+      { kind: 'line', tone: 'primary', values: [1_000_000, 2_000_000], axis: 'right' },
+    ];
+    render(<ComposedChart labels={['A', 'B']} series={dualSeries} />);
+
+    const left = screen.getByTestId('chart-axis-left');
+    const right = screen.getByTestId('chart-axis-right');
+    const plot = left.parentElement?.querySelector('svg')?.parentElement;
+
+    // The gutters are siblings of the plot column, not overlays inside it.
+    expect(left.parentElement).toBe(right.parentElement);
+    expect(left.contains(plot ?? null)).toBe(false);
+    expect(left.nextElementSibling?.contains(plot ?? null)).toBe(true);
+  });
+
+  it('leaves no gutter when there is no scale to label', () => {
+    render(<ComposedChart labels={['A', 'B']} series={[]} />);
+
+    expect(screen.queryByTestId('chart-axis-left')).toBeNull();
+    expect(screen.queryByTestId('chart-axis-right')).toBeNull();
+  });
+
   it('marks the requested column with a reference line and caption', () => {
     const { container } = render(
       <ComposedChart
@@ -124,7 +194,9 @@ describe('ComposedChart', () => {
       </ComposedChart>,
     );
 
-    expect(seen).toEqual([3]);
+    // The width measurement re-renders once; every pass must expose the same layout.
+    expect(seen[0]).toBe(3);
+    expect(seen.every((count) => count === 3)).toBe(true);
   });
 
   it('drops the img role once an overlay owns the semantics', () => {
@@ -135,6 +207,53 @@ describe('ComposedChart', () => {
     );
 
     expect(screen.queryByRole('img')).toBeNull();
+  });
+
+  it('breaks a line path at null values instead of drawing through zero', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B', 'C', 'D']}
+        series={[{ kind: 'line', tone: 'asset', values: [1, null, 3, 4] }]}
+      />,
+    );
+
+    const path = container.querySelector('path')?.getAttribute('d') ?? '';
+    expect(path.match(/M/g)).toHaveLength(2);
+    expect(path).not.toContain('L10.00 null');
+  });
+
+  it('uses a categorical token over the semantic tone when one is given', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[
+          { kind: 'line', tone: 'neutral', colorToken: 'chart-1', area: true, values: [1, 2] },
+          { kind: 'bar', tone: 'neutral', colorToken: 'chart-4', values: [3, 4] },
+        ]}
+      />,
+    );
+
+    const strokePath = [...container.querySelectorAll('path')].find(
+      (path) => path.getAttribute('fill') === 'none',
+    );
+    expect(strokePath?.getAttribute('stroke')).toBe('hsl(var(--chart-1))');
+    expect(container.querySelector('linearGradient stop')?.getAttribute('stop-color')).toBe(
+      'hsl(var(--chart-1))',
+    );
+    expect(container.querySelector('rect')?.getAttribute('fill')).toBe('hsl(var(--chart-4))');
+  });
+
+  it('colours bars by sign when asked', () => {
+    const { container } = render(
+      <ComposedChart
+        labels={['A', 'B']}
+        series={[{ kind: 'bar', tone: 'positive', toneBySign: true, values: [10, -10] }]}
+      />,
+    );
+
+    const rects = [...container.querySelectorAll('rect')];
+    expect(rects[0].getAttribute('fill')).toBe('hsl(var(--positive))');
+    expect(rects[1].getAttribute('fill')).toBe('hsl(var(--negative))');
   });
 
   it('labels the plot for assistive tech when no overlay is present', () => {

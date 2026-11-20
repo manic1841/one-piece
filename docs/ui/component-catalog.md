@@ -13,92 +13,101 @@
 
 ## 索引
 
-| 檔案                                                    | 條目                              |
-| ------------------------------------------------------- | --------------------------------- |
-| `src/ui/components/AccessDenied.tsx`                    | AccessDenied                      |
-| `src/ui/components/AppFallback.tsx`                     | AppFallback                       |
-| `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow        |
-| `src/ui/components/Avatar.tsx`                          | Avatar                            |
-| `src/ui/components/charts/BarChart.tsx`                 | charts / BarChart                 |
-| `src/ui/components/charts/ChartLegend.tsx`              | charts / ChartLegend              |
-| `src/ui/components/charts/ChartScrubber.tsx`            | charts / ChartScrubber            |
-| `src/ui/components/charts/ChartTooltip.tsx`             | charts / ChartTooltip             |
-| `src/ui/components/charts/ComposedChart.tsx`            | charts / ComposedChart            |
-| `src/ui/components/charts/DonutChart.tsx`               | charts / DonutChart               |
-| `src/ui/components/charts/InteractiveBarChart.tsx`      | charts / InteractiveBarChart      |
-| `src/ui/components/charts/InteractiveComposedChart.tsx` | charts / InteractiveComposedChart |
-| `src/ui/components/charts/InteractiveLineChart.tsx`     | charts / InteractiveLineChart     |
-| `src/ui/components/charts/LineChart.tsx`                | charts / LineChart                |
-| `src/ui/components/CliProgress.tsx`                     | CliProgress                       |
-| `src/ui/components/DangerZone.tsx`                      | DangerZone                        |
-| `src/ui/components/Divider.tsx`                         | Divider                           |
-| `src/ui/components/EmptyState.tsx`                      | EmptyState                        |
-| `src/ui/components/ErrorBoundary.tsx`                   | ErrorBoundary                     |
-| `src/ui/components/FilterStrip.tsx`                     | FilterStrip                       |
-| `src/ui/components/FinancialNumber.tsx`                 | FinancialNumber                   |
-| `src/ui/components/GateSurface.tsx`                     | GateSurface                       |
-| `src/ui/components/InlineEditableTitle.tsx`             | InlineEditableTitle               |
-| `src/ui/components/ListSectionHeader.tsx`               | ListSectionHeader                 |
-| `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric              |
-| `src/ui/components/Module.tsx`                          | Module                            |
-| `src/ui/components/NumberInput.tsx`                     | NumberInput                       |
-| `src/ui/components/PageHeader.tsx`                      | PageHeader                        |
-| `src/ui/components/PageSection.tsx`                     | PageSection                       |
-| `src/ui/components/PeriodBadge.tsx`                     | PeriodBadge                       |
-| `src/ui/components/RadioGroup.tsx`                      | RadioGroup / Radio                |
-| `src/ui/components/RowActions.tsx`                      | RowActions                        |
-| `src/ui/components/SearchField.tsx`                     | SearchField                       |
-| `src/ui/components/Skeleton.tsx`                        | Skeleton                          |
-| `src/ui/components/StatusGlyph.tsx`                     | StatusGlyph                       |
-| `src/ui/components/Toast.tsx`                           | Toast                             |
-| `src/ui/components/Toolbar.tsx`                         | Toolbar                           |
-| `src/ui/components/YearMonthPicker.tsx`                 | YearMonthPicker                   |
-| `src/ui/components/confirm/ConfirmDialog.tsx`           | confirm / ConfirmDialogProvider   |
-| `src/ui/components/confirm/ConfirmDialogBody.tsx`       | confirm / ConfirmDialogBody       |
-| `src/ui/components/drawer/DrawerPanel.tsx`              | drawer / DrawerPanel              |
-| `src/ui/components/LoadingLine.tsx`                     | LoadingLine                       |
-| `src/ui/components/data-table/DataTable.tsx`            | data-table / DataTable            |
-| `src/ui/components/data-table/DataTableCell.tsx`        | data-table / DataTableCell        |
-| `src/ui/components/data-table/DataTableColGroup.tsx`    | data-table / DataTableColGroup    |
-| `src/ui/components/data-table/DataTableHeadCell.tsx`    | data-table / DataTableHeadCell    |
-| `src/ui/components/data-table/DataTableRow.tsx`         | data-table / DataTableRow         |
-| `src/ui/components/data-table/MobileDataRow.tsx`        | data-table / MobileDataRow        |
-| `src/ui/components/data-table/NumberCell.tsx`           | data-table / NumberCell           |
-| `src/ui/components/form/AdvancedDisclosure.tsx`         | form / AdvancedDisclosure         |
-| `src/ui/components/form/DateInput.tsx`                  | form / DateInput                  |
-| `src/ui/components/form/Form.tsx`                       | form / Form                       |
-| `src/ui/components/form/FormControl.tsx`                | form / FormControl                |
-| `src/ui/components/form/FormDescription.tsx`            | form / FormDescription            |
-| `src/ui/components/form/FormField.tsx`                  | form / FormField                  |
-| `src/ui/components/form/FormItem.tsx`                   | form / FormItem                   |
-| `src/ui/components/form/FormLabel.tsx`                  | form / FormLabel                  |
-| `src/ui/components/form/FormMessage.tsx`                | form / FormMessage                |
-| `src/ui/components/form/ReadoutField.tsx`               | form / ReadoutField               |
-| `src/ui/components/form/Select.tsx`                     | form / Select                     |
-| `src/ui/components/form/TextArea.tsx`                   | form / TextArea                   |
-| `src/ui/components/form/TextInput.tsx`                  | form / TextInput                  |
-| `src/ui/components/sortable/SortableListScope.tsx`      | sortable / SortableListScope      |
-| `src/ui/components/statement/StatementPanel.tsx`        | statement / StatementPanel        |
-| `src/ui/components/statement/StatementTable.tsx`        | statement / StatementTable        |
-| `src/ui/components/ui/accordion.tsx`                    | ui/ 群組                          |
-| `src/ui/components/ui/alert.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/badge.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/button.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/card.tsx`                         | ui/ 群組                          |
-| `src/ui/components/ui/checkbox.tsx`                     | ui/ 群組                          |
-| `src/ui/components/ui/command.tsx`                      | ui/ 群組                          |
-| `src/ui/components/ui/dialog.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/dropdown-menu.tsx`                | ui/ 群組                          |
-| `src/ui/components/ui/input.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/label.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/popover.tsx`                      | ui/ 群組                          |
-| `src/ui/components/ui/select.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/sheet.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/switch.tsx`                       | ui/ 群組                          |
-| `src/ui/components/ui/table.tsx`                        | ui/ 群組                          |
-| `src/ui/components/ui/tabs.tsx`                         | ui/ 群組                          |
-| `src/ui/components/ui/textarea.tsx`                     | ui/ 群組                          |
-| `src/ui/components/ui/tooltip.tsx`                      | ui/ 群組                          |
+| 檔案                                                    | 條目                                                           |
+| ------------------------------------------------------- | -------------------------------------------------------------- |
+| `src/ui/components/AccessDenied.tsx`                    | AccessDenied                                                   |
+| `src/ui/components/AppFallback.tsx`                     | AppFallback                                                    |
+| `src/ui/components/ActivityList.tsx`                    | ActivityList / ActivityRow                                     |
+| `src/ui/components/AnimatedNumber.tsx`                  | AnimatedNumber                                                 |
+| `src/ui/components/Avatar.tsx`                          | Avatar                                                         |
+| `src/ui/components/charts/ChartAxisGutter.tsx`          | charts / ChartAxisGutter                                       |
+| `src/ui/components/charts/BarChart.tsx`                 | charts / BarChart                                              |
+| `src/ui/components/charts/ChartLegend.tsx`              | charts / ChartLegend                                           |
+| `src/ui/components/charts/ChartScrubber.tsx`            | charts / ChartScrubber                                         |
+| `src/ui/components/charts/ChartTooltip.tsx`             | charts / ChartTooltip                                          |
+| `src/ui/components/charts/ChartXLabelRow.tsx`           | charts / ChartXLabelRow                                        |
+| `src/ui/components/charts/ComposedChart.tsx`            | charts / ComposedChart                                         |
+| `src/ui/components/charts/DonutChart.tsx`               | charts / DonutChart                                            |
+| `src/ui/components/charts/InteractiveBarChart.tsx`      | charts / InteractiveBarChart                                   |
+| `src/ui/components/charts/InteractiveComposedChart.tsx` | charts / InteractiveComposedChart                              |
+| `src/ui/components/charts/InteractiveLineChart.tsx`     | charts / InteractiveLineChart                                  |
+| `src/ui/components/charts/LineChart.tsx`                | charts / LineChart                                             |
+| `src/ui/components/CliProgress.tsx`                     | CliProgress                                                    |
+| `src/ui/components/DangerZone.tsx`                      | DangerZone                                                     |
+| `src/ui/components/DefinitionRows.tsx`                  | DefinitionRows                                                 |
+| `src/ui/components/Divider.tsx`                         | Divider                                                        |
+| `src/ui/components/EmptyState.tsx`                      | EmptyState                                                     |
+| `src/ui/components/ErrorBoundary.tsx`                   | ErrorBoundary                                                  |
+| `src/ui/components/FilterStrip.tsx`                     | FilterStrip                                                    |
+| `src/ui/components/FinancialNumber.tsx`                 | FinancialNumber                                                |
+| `src/ui/components/GateSurface.tsx`                     | GateSurface                                                    |
+| `src/ui/components/InlineEditableTitle.tsx`             | InlineEditableTitle                                            |
+| `src/ui/components/ListSectionHeader.tsx`               | ListSectionHeader                                              |
+| `src/ui/components/LoadErrorAlert.tsx`                  | LoadErrorAlert                                                 |
+| `src/ui/components/MetricGroup.tsx`                     | MetricGroup / Metric                                           |
+| `src/ui/components/Module.tsx`                          | Module                                                         |
+| `src/ui/components/NumberInput.tsx`                     | NumberInput                                                    |
+| `src/ui/components/OrbitLoader.tsx`                     | OrbitLoader                                                    |
+| `src/ui/components/PageHeader.tsx`                      | PageHeader                                                     |
+| `src/ui/components/PageSkeleton.tsx`                    | PageSkeleton                                                   |
+| `src/ui/components/PageSection.tsx`                     | PageSection                                                    |
+| `src/ui/components/PeriodBadge.tsx`                     | PeriodBadge                                                    |
+| `src/ui/components/RadioGroup.tsx`                      | RadioGroup / Radio                                             |
+| `src/ui/components/RowActions.tsx`                      | RowActions                                                     |
+| `src/ui/components/SearchField.tsx`                     | SearchField                                                    |
+| `src/ui/components/Skeleton.tsx`                        | Skeleton                                                       |
+| `src/ui/components/StatusGlyph.tsx`                     | StatusGlyph                                                    |
+| `src/ui/components/Toast.tsx`                           | Toast                                                          |
+| `src/ui/components/Toolbar.tsx`                         | Toolbar                                                        |
+| `src/ui/components/YearMonthPicker.tsx`                 | YearMonthPicker                                                |
+| `src/ui/components/confirm/ConfirmDialog.tsx`           | confirm / ConfirmDialogProvider                                |
+| `src/ui/components/confirm/ConfirmDialogBody.tsx`       | confirm / ConfirmDialogBody                                    |
+| `src/ui/components/drawer/DrawerPanel.tsx`              | drawer / DrawerPanel                                           |
+| `src/ui/components/LoadingLine.tsx`                     | LoadingLine                                                    |
+| `src/ui/components/data-table/DataTable.tsx`            | data-table / DataTable                                         |
+| `src/ui/components/data-table/DataTableCell.tsx`        | data-table / DataTableCell                                     |
+| `src/ui/components/data-table/DataTableColGroup.tsx`    | data-table / DataTableColGroup                                 |
+| `src/ui/components/data-table/DataTableDetailRow.tsx`   | data-table / DataTableDetailRow                                |
+| `src/ui/components/data-table/DataTableHeadCell.tsx`    | data-table / DataTableHeadCell                                 |
+| `src/ui/components/data-table/DataTableRow.tsx`         | data-table / DataTableRow                                      |
+| `src/ui/components/data-table/MobileDataRow.tsx`        | data-table / MobileDataRow                                     |
+| `src/ui/components/data-table/NumberCell.tsx`           | data-table / NumberCell                                        |
+| `src/ui/components/form/AdvancedDisclosure.tsx`         | form / AdvancedDisclosure                                      |
+| `src/ui/components/form/DateInput.tsx`                  | form / DateInput                                               |
+| `src/ui/components/form/Form.tsx`                       | form / Form                                                    |
+| `src/ui/components/form/FormControl.tsx`                | form / FormControl                                             |
+| `src/ui/components/form/FormDescription.tsx`            | form / FormDescription                                         |
+| `src/ui/components/form/FormField.tsx`                  | form / FormField                                               |
+| `src/ui/components/form/FormItem.tsx`                   | form / FormItem                                                |
+| `src/ui/components/form/FormLabel.tsx`                  | form / FormLabel                                               |
+| `src/ui/components/form/FormMessage.tsx`                | form / FormMessage                                             |
+| `src/ui/components/form/ReadoutField.tsx`               | form / ReadoutField                                            |
+| `src/ui/components/form/Select.tsx`                     | form / Select                                                  |
+| `src/ui/components/form/Combobox.tsx`                   | form / Combobox                                                |
+| `src/ui/components/form/TextArea.tsx`                   | form / TextArea                                                |
+| `src/ui/components/form/TextInput.tsx`                  | form / TextInput                                               |
+| `src/ui/components/sortable/SortableListScope.tsx`      | sortable / SortableListScope                                   |
+| `src/ui/components/statement/StatementPanel.tsx`        | statement / StatementPanel                                     |
+| `src/ui/components/statement/StatementTable.tsx`        | statement / StatementTable                                     |
+| `src/ui/components/ui/accordion.tsx`                    | ui/ 群組                                                       |
+| `src/ui/components/ui/alert.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/badge.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/button.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/card.tsx`                         | ui/ 群組                                                       |
+| `src/ui/components/ui/checkbox.tsx`                     | ui/ 群組                                                       |
+| `src/ui/components/ui/command.tsx`                      | ui/ 群組                                                       |
+| `src/ui/components/ui/dialog.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/dropdown-menu.tsx`                | ui/ 群組                                                       |
+| `src/ui/components/ui/input.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/label.tsx`                        | ui/ 群組（`labelVariants` 帶 `size` 軸：`default`／`compact`） |
+| `src/ui/components/ui/popover.tsx`                      | ui/ 群組                                                       |
+| `src/ui/components/ui/select.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/sheet.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/switch.tsx`                       | ui/ 群組                                                       |
+| `src/ui/components/ui/table.tsx`                        | ui/ 群組                                                       |
+| `src/ui/components/ui/tabs.tsx`                         | ui/ 群組                                                       |
+| `src/ui/components/ui/textarea.tsx`                     | ui/ 群組                                                       |
+| `src/ui/components/ui/tooltip.tsx`                      | ui/ 群組                                                       |
 
 ## 非元件模組（不在本目錄的元件索引）
 
@@ -106,12 +115,15 @@
 
 | 檔案                                                  | 種類                                                 |
 | ----------------------------------------------------- | ---------------------------------------------------- |
+| `src/ui/components/charts/axisLabels.ts`              | 軸標籤避讓（零基線標籤與讓位）                       |
 | `src/ui/components/charts/chartTheme.ts`              | 表面常數（色調對應、donut 色階、數值格式）           |
 | `src/ui/components/charts/chartInteraction.ts`        | 互動共用（點型別、keyboard scrubber、tooltip 定位）  |
 | `src/ui/components/charts/composedChartGeometry.ts`   | 幾何計算（`ComposedChart` 使用）                     |
 | `src/ui/components/charts/donutSlices.ts`             | 幾何計算（donut 切片、百分比與 conic-gradient stop） |
 | `src/ui/components/charts/lineChartGeometry.ts`       | 幾何計算（`LineChart` 使用）                         |
 | `src/ui/components/charts/monthTrendSeries.ts`        | 月份趨勢資料整理（標籤、tooltip、升冪序列）          |
+| `src/ui/components/charts/useMeasuredWidth.ts`        | 寬度量測 hook（圖表標籤密度用）                      |
+| `src/ui/components/charts/xLabels.ts`                 | 軸標籤密度（抽稀、年份折疊、槽寬預算）               |
 | `src/ui/components/eyebrow.ts`                        | 表面常數（11px 全大寫 mono 標籤的共用 class）        |
 | `src/ui/components/moneyTone.ts`                      | 表面常數（金額語意的色調對應）                       |
 | `src/ui/components/data-table/index.ts`               | barrel                                               |
@@ -125,13 +137,17 @@
 | `src/ui/components/form/index.ts`                     | barrel                                               |
 | `src/ui/components/form/styles.ts`                    | 表面常數                                             |
 | `src/ui/components/ui/button-variants.ts`             | 變體定義模組（`button` 使用）                        |
+| `src/ui/components/ui/close-button.ts`                | 表面常數（sheet 與 drawer 共用的關閉鈕）             |
 | `src/ui/components/ui/input-styles.ts`                | 表面常數                                             |
+| `src/ui/components/ui/disclosure-styles.ts`           | 揭露內文的共用表面（M05 的成對 class）               |
+| `src/ui/components/ui/sheetDrag.ts`                   | 手勢判定純函式（bottom sheet 關閉門檻）              |
 | `src/ui/components/ui/tabs-styles.ts`                 | 表面常數                                             |
+| `src/ui/components/ui/useSheetDrag.ts`                | 內部接線（pointer 手勢與回彈，`sheet` 使用）         |
 
 ## 頁面骨架
 
 - **`PageHeader`** — List / Detail / Workspace 頁的 Page Header：Title、Description、Actions，另可帶 crumb、badge、meta 與返回。
-  - Props：`title`（必填）、`description?`、`crumb?`、`badge?`、`meta?`、`actions?`、`onBack?`。
+  - Props：`title`（必填）、`description?`、`crumb?`、`badge?`、`meta?`、`actions?`、`onBack?`、`backLabel?`（返回鈕的無障礙名稱，預設 `Back`）。
   - 變體：無。
   - **不要用於**：把 Header 做成 Card、塞大量 Metric；那些是 [`visual-standards.md`](visual-standards.md) Page Shell 的禁止事項。
   - 範例：`src/ui/features/debt/pages/DebtDetailPage.tsx`
@@ -156,6 +172,11 @@
 
 - **`ErrorBoundary`** — class component，捕捉 render 期錯誤並渲染 `AppFallback`。
   - Props：`children`。**不要用於**：可預期的資料錯誤（那是 Controller 的責任）。
+
+- **`LoadErrorAlert`** — 區段資料載入失敗的 inline warning alert（標題為原始錯誤訊息）＋ 尾端重試鈕。已載入的區段其餘內容保留不清空（ADR-0072：載入失敗是 UNKNOWN，不是 EMPTY）。
+  - Props：`errorMessage`（必填）、`message`（人話說明，如「無法載入債務帳戶」）、`retryLabel`、`onRetry`、`testId?`。
+  - **不要用於**：整頁無法顯示的失敗（用 `PlanLoadStates` 或頁面層 exception）；沒有重試動作的純提示（用 `ui/` 群組的 `alert`）。
+  - 範例：`src/ui/features/retirement/pages/RetirementPlanViewPage.tsx`、`src/ui/features/retirement/components/ListPageScaffold.tsx`
 
 ## 通用呈現
 
@@ -184,10 +205,15 @@
   - **不要用於**：短暫 loading（用 `Skeleton` 或單行文字）；需要水平量表的比例顯示（用堆疊條或 `DonutChart`）。
   - 範例：`src/ui/features/dashboard/components/MonthlyCloseCard.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
 
-- **`LoadingLine`** — 一般載入態的單行文字（`Loading...`）。預設鋪滿視窗高度並置中，供 app 啟動閘門用；嵌在區塊內時以 `className` 覆寫高度。
+- **`LoadingLine`** — 一般載入態的單行文字（`Loading...`）。預設鋪滿視窗高度並置中，供區塊或非頁面的等待使用；嵌在區塊內時以 `className` 覆寫高度。
   - Props：`className?`。
-  - **不要用於**：Table / List / Detail 的載入（用 `Skeleton`）；長時間工作（用 `CliProgress`）。
-  - 範例：`src/ui/features/app/AuthGate.tsx`、`src/ui/features/app/router/ProtectedRoute.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
+  - **不要用於**：Table / List / Detail 的載入（用 `Skeleton`）；長時間工作（用 `CliProgress`）；路由 chunk 下載（用 `PageSkeleton`）；授權未落定（用 `GateSurface` ＋ `Skeleton`）。
+  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
+
+- **`PageSkeleton`** — 路由 chunk 下載期間的頁面骨架（一組 `Skeleton` 區塊，`aria-busy` ＋ `aria-label="載入中"`）。路由一律 `lazy()` 切分，`Suspense` 的 fallback 就是它；由 `Layout` 掛在 `Outlet` 外側，header 與 footer 因此保持掛載。
+  - Props：無。
+  - **不要用於**：區段內的載入（各區段自己的 `Skeleton`）；入口畫面的等待（`ProtectedRoute` 自己在 `GateSurface` 內組 Skeleton）。
+  - 範例：`src/ui/features/app/layout/Layout.tsx`、`src/App.tsx`
 
 - **`EmptyState`** — 空狀態：狀態 glyph ＋ status 標題 ＋ 一句說明 ＋ 一個主要 action。不做大型 Card。
   - Props：`title`、`description`、`action?`、`className?`。glyph 固定，不是 prop。
@@ -195,18 +221,26 @@
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`
 
 - **`FinancialNumber`** — 財務數值顯示：`hero` / `large` / `default` 三級 ＋ 選用 change line ＋ 缺值「$ —」。值與 change line 都由呼叫端預先格式化，本元件不做貨幣運算。
-  - Props：`value?: string | null`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
+  - Props：`value?: string | null`、`animatedValue?`（已確認的原始數值，提供時改由 `AnimatedNumber` 補間）、`animateFormat?`、`size?`、`tone?`（`default`/`positive`/`negative`）、`change?`、`changeTone?`（`default`/`positive`/`negative`/`muted`）、`className?`。提供 `change` 時根元素變為 block。
   - **不要用於**：表格儲存格（用 `data-table` 的 `NumberCell`）；輸入（用 `NumberInput`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（hero 淨資產 ＋ YTD change line）、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/project/pages/ProjectDetailPage.tsx`（hero 專案餘額）。
 
-- **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
-  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`tone?`、`change?`、`changeTone?`、`testId?`、`className?`。
-  - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
-  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，3 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，2 欄）。
+- **`DefinitionRows`** — 唯讀的「標籤 / 值」成對清單（`<dl>`）。提供 `list`（標籤在上、值在下，md 以上轉兩欄）與 `row`（值靠右）與 `inline`（單行緊接）三種版型，是專案內唯一的 definition 版型來源；標籤一律走 `eyebrowClass`。
+  - Props：`items`（`{ label, value }[]`，值由呼叫端預先格式化）、`layout?`、`divided?`（所有版型都可加分隔線）、`className?`。
+  - **不要用於**：可編輯欄位（用 `form` 套件）；需要欄寬與選取的表格資料（用 `data-table`）。
+  - 範例：`src/ui/features/retirement/components/ProjectionSnapshotTab.tsx`、`src/ui/features/retirement/components/AnnualYearPanel.tsx`、`src/ui/features/retirement/components/LifeEventTimeline.tsx`、`src/ui/features/retirement/components/RetirementPlanDetail.tsx`；gallery section 04。
 
-- **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。number ＋ title 為選用的 section 標題（14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band。
-  - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
-  - **不要用於**：section 內的個別單元（用 `Module`）；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
+- **`MetricGroup` / `Metric`** — 同層級財務指標列：label + mono 值 + change line，非卡片。`MetricGroup` 是分割線容器，`Metric` 是單一指標。
+  - Props（Group）：`children`、`columns?`（`2`/`3`/`4`/`5`，md 以上；手機固定 2 欄）、`lastSpansFull?`（末格在手機跨滿，收掉 2 欄換行留下的缺角）、`className?`。Props（Metric）：`label`、`value`、`animatedValue?`、`animateFormat?`、`tone?`、`change?`、`changeTone?`、`captionLabel?`、`action?`（尾端動作，例如跳至該年）、`testId?`、`layout?`（`column` 預設；`stacked` 為手機 label 左／值右的單列，供已放棄格線的表面使用）、`className?`。
+  - **`change` 與 `captionLabel` 是兩件事**：`change` 是這個數字自己的變動（`+6.8% MoM`）；`captionLabel` 是**關於**這個數字的註記，寫成「標籤：值」（`錨定：2026-08`），muted、排在 change 之下。把註記塞進 `change` 會讓它偽裝成變動。
+  - 分割線只在列首重置：每個欄位數各自記錄 md 的列首節奏，5 欄在 md 降為 3 欄（mono 數字先碰撞），`lg` 才回到 5。`lastSpansFull` 在該降階段的末列把**倒數第二格**撐成兩格、最後一格維持單格，寬的一邊留在閱讀方向；`lg` 兩格都回到 1。呼叫端若把整組收窄（如 `md:max-w-[42rem]`），欄數要跟著降，不要留一手機寬的 5 欄在窄容器裡。
+  - **不要用於**：需要互動或篩選的資料（那是 table/toolbar 的事）。
+  - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（FINANCIAL SNAPSHOT，5 欄）、`src/ui/features/project/pages/ProjectDetailPage.tsx`（SUMMARY，3 欄）、`src/ui/features/debt/pages/DebtDetailPage.tsx`（LOAN INFORMATION，4 欄）、`src/ui/features/debt/pages/DebtListPage.tsx`（SUMMARY，3 欄）、`src/ui/features/account/pages/AccountList.tsx`（SUMMARY，2 欄且整組收窄）。
+
+- **`PageSection`** — 頁面層級的全寬 section band（`border-b` ＋ `py-10`），visual-standards 的「structure over cards」：頁面區域用 band 分段，不用浮動卡片。title 為選用的 section 標題（`h2`、14px mono 全大寫 `font-semibold text-foreground`，`sectionTitleClass`，比 eyebrow 標籤大一階）；僅內容時是素 band，且**不畫 `border-b`**——分隔線只在分帶被標題命名時有意義。
+  - **band 狀態**：`status` 在標題前放 `StatusGlyph`（並補 `sr-only` 狀態字），`hint` 在標題下掛一行 muted 原因。呼叫端只在值得回報時才傳——驗證錯誤用 `status="error"`，單純「還沒填」只給 `hint`，避免每頁排版都長滿字形。
+  - Props：`number?`、`title?`、`action?`（與標題同列的尾端控件）、`status?`（`StatusGlyph` 狀態）、`hint?`（標題下的單行原因）、`testId?`、`ariaLabel?`（具名的 `<section>` 成為 landmark）、`spacing?`（`default`/`compact`，後者收緊密集堆疊）、`children`、`className?`。
+  - **不要用於**：同一段落的第二層標題（用 `Module`）；section 內的個別單元；需要 sticky 或導航的區域（用 `PageHeader` / `Toolbar`）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（`spacing="compact"` 堆疊）、`src/ui/features/project/pages/ProjectDetailPage.tsx`、`src/ui/features/debt/pages/DebtDetailPage.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`。
 
 - **`Module`** — PageSection 內的 distinct module：mono label + 卡片邊界（唯一允許卡片的層級，design-system「Card 保留給 distinct module」）。`min-w-0` 防止在響應式 grid 溢出。
@@ -219,20 +253,26 @@
   - **不要用於**：表格列的展開明細（那是 `data-table` 的列展開，見 [`design-system.md`](design-system.md) `data-table`）；需要 tab 語意的區塊切換（用 `ui/tabs`）；**section 標題本身**——非摺疊的 section 用 `PageSection` 的 `title`，不要拿 accordion trigger 當標題樣式。
   - 範例：`src/ui/features/monthly_close/stages/portfolio_cash_flow/components/PortfolioCashFlowSection.tsx`（每個 portfolio 一個可摺疊 section）；`src/ui/features/setting/components/LedgerCodeSettings.tsx`（把科目清單依類型分成可收合的群組、預設全開，群組標題帶筆數）。
 
-- **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的底線。
+- **`ActivityList` / `ActivityRow`** — 最近活動列：date / title+meta / amount。列表容器收掉最後一列的粗線。
   - Props（Row）：`date`、`title`、`meta?`、`amount?`、`tone?`、`onActivate?`（提供時該列變成可點擊的 button，供導覽／選取）、`className?`。
   - **不要用於**：完整交易資料表（用 `data-table` 套件）。
   - 範例：`src/ui/features/dashboard/pages/DashboardPage.tsx`（RECENT TRANSACTIONS）。
 
+- **`AnimatedNumber`** — 在兩個已確認數值之間補間；符合 §5.2 判準的數字一律在載入時從 0 起算（motion-system M07）；`prefers-reduced-motion` 下直接跳終值。`FinancialNumber` / `Metric` 提供 `animatedValue` 時由它接手，一般不需要單獨使用。
+  - Props：`value`（已確認數值，`null` 顯示 `missing`）、`format`、`missing?`、`durationMs?`（覆寫補間長度；預設 `data` 的 400ms，目前僅 Motion Lab 用來對照 300／400／500）、`animateOnMount?`（判準內的每一處都開）、`className?`。
+  - **不要用於**：表格儲存格（多列同時跳動妨礙掃視）；`change` 之類的衍生文字與日期；載入中尚未確認的值。
+  - 骨架綁在 `loading` 上，讓數字每次載入重新從 0 起算；判準與理由見 motion-system §5.2。
+  - 範例：`src/ui/components/FinancialNumber.tsx`、`src/ui/components/MetricGroup.tsx`。
+
 - **`ListSectionHeader`** — 清單區塊的標題列：標題（可選 `(n)` 計數）＋ 尾端動作。section 標題 class 在此決定，垂直間距由呼叫端給（`className`）。
   - Props：`title`（必填）、`count?`、`actions?`、`className?`。
   - **不要用於**：頁面層級 section（用 `PageSection` 的 `title`）；資料表自身的表頭（那是 `data-table`）。
-  - 範例：`src/ui/features/retirement/components/detail/IncomeTabContent.tsx`、`src/ui/features/retirement/components/AssumptionsForm.tsx`
+  - 範例：`src/ui/features/setting/components/EmailWhitelistUI.tsx`、`src/ui/features/setting/components/BackupSettings.tsx`
 
 - **`RowActions`** — 可編輯列的列尾 edit／delete 成對動作：`edit` 是節點（通常是 dialog trigger），delete 是 destructive icon button。
   - Props：`edit?`、`onDelete`（必填）、`deleteLabel`（必填，delete 的無障礙名稱）、`className?`。
   - **不要用於**：密度或語意不同的列動作——交易列用較密的 `h-8 w-8` muted→primary 變體（見 `TransactionItem`），本元件不涵蓋。
-  - 範例：`src/ui/features/retirement/components/detail/IncomeTabContent.tsx`、`src/ui/features/retirement/components/detail/ExpenseTabContent.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryCollections.tsx`
 
 - **`Avatar`** — 身分圓形：photo 或 initials，mono、uppercase。`rounded-full` 白名單內的本質圓形。
   - Props：`initials?`、`src?`、`alt?`、`size?`（`sm`/`default`）、`className?`。
@@ -254,7 +294,7 @@
   - **不要用於**：表單欄位列（用 `form` 套件）。
   - 範例：`src/ui/features/app/pages/GalleryLayout.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`
 
-- **`FilterStrip`** — 語意為 filter 的底線式篩選列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。沿用 `tabs` 的觸發區 token（選中態 2px 底線以 `-mb-px` 咬住細線），但**細線由呼叫端的列提供**——本元件不畫自己的容器框線，因此可嵌進任何有底線的列。
+- **`FilterStrip`** — 語意為 filter 的按鈕切換列。項目為原生 `button`，以 `aria-pressed` 標示選取；整列是具名的 `role="group"`。未選中為 outline 按鈕、淡化字色；選中態＝primary 字色 ＋ 微抬升底色，框線不變。按鈕相連成一段：無 gap、按鈕之間無分隔線，整組只有兩端圓角與外側邊界。樣式以 `/gallery` 的 Filter Strip section 為準。
   - Props：`items`（`{ id, label }[]`，必填）、`value`（選取的 id）、`onValueChange`（必填）、`ariaLabel`（必填）、`className?`。
   - **不要用於**：切換內容區塊的 tab（用 `ui/tabs`）；需要 server-side 重載的資料範圍選擇（那是期間瀏覽，不是情境篩選）。
   - 範例：`src/ui/features/transaction/pages/TransactionsPage.tsx`、`src/ui/features/project/pages/ProjectsPage.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
@@ -294,8 +334,9 @@
 - **`drawer / DrawerPanel`** — 抽屜的內容殼，放在 `SheetContent` 內。
   - Props：`title`（必填）、`description?`、`onClose?`（僅 inline 分支自畫；live 的關閉鈕由 `SheetContent` 擁有）、`footer?`、`children?`、`titleClassName?`、`inline?`。
   - 使用規則：**抽屜／panel 用 `DrawerPanel`；非抽屜語意的 sheet（如 Pixel Pet 行動版 navigator）才直接用 `ui/sheet`**。
+  - 同一份內容同時要當欄位與抽屜時，把 `inline` 當參數傳，抽屜**只在窄屏、且只在開啟時 render**：寬螢幕同時掛兩個實例會讓同一組表單欄位被註冊兩次，而留在樹上的已關閉面板會繼續把焦點扣在自己的 focus trap（`LifeEventsSection.tsx`）。
   - **不要用於**：非抽屜語意的 sheet；需要自組 `SheetContent` 內部結構的場合。
-  - 範例：`src/ui/features/monthly_close/stages/securities_trade/components/TradeDrawer.tsx`、`src/ui/features/app/pages/GalleryInteraction.tsx`
+  - 範例：`src/ui/features/monthly_close/stages/securities_trade/components/TradeDrawer.tsx`、`src/ui/features/app/pages/GalleryInteraction.tsx`、`src/ui/features/retirement/components/LifeEventsSection.tsx`
 
 - **`confirm / ConfirmDialogProvider`** — 全站掛載的 promise-based 確認對話（`useConfirm()` 回傳 `Promise<boolean>`）。結構為 Title → Context → Consequence → Actions。字串輸入是不可逆刪除的預設（destructive `DELETE`）；可逆動作傳結構化 options 並用非 destructive 標籤。
   - **不要用於**：需要多欄位輸入的對話（那不是 confirm）。
@@ -307,7 +348,9 @@
 
 ## 圖表 (charts)
 
-資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts`：語意圖表用 tone→token 對應（`primary` / `positive` / `negative` / `neutral` / `investment` / `asset`），分類拆解圖（donut）用 `CHART_DONUT_COLORS` 的 `chart-*` 類別色板（[`design-system.md`](design-system.md) §1、[ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
+資料驅動的圖表群：呼叫端傳值與標籤，幾何、比例與軸標籤由元件推導。色調一律走 `chartTheme.ts`：語意圖表用 tone→token 對應（`primary` / `positive` / `negative` / `neutral` / `investment` / `asset`），以顏色編碼分類的拆解圖用 `CHART_CATEGORICAL_COLORS` 的 `chart-*` 類別色板，取色一律經 `chartCategoricalColor(index)` 而不自行 modulo（[`design-system.md`](design-system.md) §1、[ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）。標籤文字一律由呼叫端提供——元件不得硬編任何領域系列名稱。
+
+折線、長條、複合與圓環都在首次拿到資料時由基線揭露（M08，[`motion-system.md`](motion-system.md) §5.7）；一律開啟，掛載即揭露，之後的期間切換不重播。互動版同樣保留揭露。
 
 - **`charts / LineChart`** — 折線圖：格線、可選面積、座標軸標籤。y 軸預設以資料範圍加邊距（不做 0 基底），讓大額餘額中的小幅變動仍可讀；`includeZero` 可改為 0 基底。
   - Props：`values`（必填）、`labels?`（長度需與 `values` 相同才會畫 x 軸）、`tone?`、`showArea?`、`markLastPoint?`、`includeZero?`（y 值域含 0）、`zeroLine?`（在 0 畫虛線，需 0 落在值域內）、`yAxis?`（`none`/`left`，左側值標籤）、`height?`、`ariaLabel?`、`className?`、`children?`（render-prop，取得算好的 geometry 以便疊加互動層）。
@@ -322,29 +365,30 @@
 
 - **`charts / ComposedChart`** — 複合圖：分組長條與折線共用同一塊繪圖區。長條可為負值（由 0 基準線向下長），折線可選擇填滿；具 `axis: 'right'` 的序列使用獨立的右側 y 軸。可標記 `referenceLines`（依欄位 index 畫垂直虛線，例如退休年）。左／右軸刻度與 x 軸標籤由元件推導。
   - Props：`labels`、`series`（`{ kind: 'bar' | 'line', tone, values, axis?, area?, baselineValues? }[]`）、`referenceLines?`（`{ index, tone?, label? }[]`）、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供欄位、長條矩形、折線路徑、軸標籤與實際使用的標記）。
-  - 值以**大小**呈現；長條一律從 0 基準線長出，負值向下。折線與同軸的長條共用一個 y 值域。
+  - 值以**大小**呈現；長條一律從 0 基準線長出，負值向下。折線與同軸的長條共用一個 y 值域。折線的 `values` 可含 `null`：該點跳過、折線斷成子路徑，軸值域也略過它（用來表達缺月份，不補 0）。
+  - 長條 series 可設 `toneBySign`：正值用序列 tone、負值改用 `negative` tone（淨現金流的零基準雙向柱）。
   - `area` 的面積預設填到 0 基準線；`baselineValues` 逐點指定另一條線為下緣（堆疊帶，例如把投資報酬疊在收入之上）；基線逐點變動時，面積路徑的下緣會逐一描過基線取樣點，不會只收兩個角點而切過那條線。面積一律是該序列顏色的**單色資料歸屬漸層**：濃度端在該帶自己的線上，往它的基線淡出；基線在線的上方時（零基準以下的支出帶、或被堆疊在別人之下）方向整個反轉（[ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)）。
   - 一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
   - **不要用於**：需要 hover 明細——用 `InteractiveComposedChart`。
-  - 範例：`src/ui/features/retirement/components/projection/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨現金流線＋淨資產右軸線）。
+  - 範例：`src/ui/features/retirement/components/CashFlowChart.tsx`（收入＋投資報酬堆疊帶＋支出帶＋淨資產變動線＋淨資產右軸線）。
 
-- **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_DONUT_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
+- **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_CATEGORICAL_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
   - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
   - **不要用於**：需要精確讀值——圓環只適合看比例；精確值用數字或表格。
   - 範例：`src/ui/features/dashboard/components/AssetCompositionBlock.tsx`（資產組成）。
 
-- **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。
-  - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`。
-  - **不要用於**：需要互動切換序列（本輪未實作）。
-  - 範例：`src/ui/components/charts/DonutChart.tsx`（`vertical` 模式）。
+- **`charts / ChartLegend`** — 圖例。`horizontal` 為 inline swatch 列（長條圖），`vertical` 為 label／value 列（圓環）。提供 `onToggle` 時每個項目成為切換鈕（`aria-pressed`），以 `active` 標示目前是否顯示；關閉的項目降透明度，命中高度至少 32px。
+  - Props：`items`（`{ label, tone?, color?, value? }[]`）、`orientation?`、`className?`、`onToggle?`、`active?`（目前可見的 label 清單）。
+  - **不要用於**：非序列的篩選（那用 `FilterStrip`）。沒有 `onToggle` 時純展示，與圖表互動無關。
+  - 範例：`src/ui/components/charts/DonutChart.tsx`（`vertical` 模式）；`src/ui/features/report/components/analysisChart/engine/AnalysisChart.tsx`（可切換）。
 
 - **`charts / ChartTooltip`** — 圖表 hover 卡片表面（標題／數值／次要行）。定位由呼叫端負責。
   - Props：`title`、`value`、`meta?`、`className?`、`style?`。
   - **不要用於**：非圖表的說明（那用 `ui/tooltip`）。
   - 範例：`src/ui/components/charts/InteractiveLineChart.tsx`、`src/ui/components/charts/InteractiveBarChart.tsx`
 
-- **`charts / ChartScrubber`** — 兩個互動圖表共用的互動層：單一 `role="slider"` 表面、鍵盤契約（左右鍵移動、Escape 清除）與 `aria-valuetext`。呼叫端提供「指標位置 → 索引」的映射（`resolveIndex`，回 -1 表示不改變），並以 render-prop 從 scrubber state 畫自己的導線／資料點／tooltip。
-  - Props：`count`、`plotHeight`、`points`、`ariaLabel`、`className`、`resolveIndex`、`children`。
+- **`charts / ChartScrubber`** — 兩個互動圖表共用的互動層：單一 `role="slider"` 表面、鍵盤契約（左右鍵移動、Enter／Space 啟用、Escape 清除）與 `aria-valuetext`。呼叫端提供「指標位置 → 索引」的映射（`resolveIndex`，回 -1 表示不改變）與選用的 `onActivate`，並以 render-prop 從 scrubber state 畫自己的導線／資料點／tooltip。
+  - Props：`count`、`plotHeight`、`points`、`ariaLabel`、`className`、`resolveIndex`、`onActivate?`、`children`。
   - **不要用於**：非互動的圖表——`LineChart` / `BarChart` 不需要它。
   - 範例：`src/ui/components/charts/InteractiveLineChart.tsx`、`src/ui/components/charts/InteractiveBarChart.tsx`
 
@@ -358,10 +402,20 @@
   - **不要用於**：只是要看趨勢、不需要明細——用 `BarChart`。
   - 範例：`src/ui/features/dashboard/components/CashFlowChartBlock.tsx`（月現金流流入／流出）、`src/ui/features/app/pages/GalleryCharts.tsx`
 
-- **`charts / InteractiveComposedChart`** — `ComposedChart` ＋ hover／鍵盤 scrubber：導線、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠移到任一欄位（以指標 x 位置命中）或鍵盤左右鍵都能選取該欄（Escape 清除）。
-  - Props：`labels`、`series`、`referenceLines?`、`points`（`{ title, value, meta? }[]`）、`height?`、`showLabels?`、`ariaLabel`（必填）、`className?`。
+- **`charts / InteractiveComposedChart`** — `ComposedChart` ＋ hover／鍵盤 scrubber：導線、共用 `ChartTooltip`。整塊以 `role="slider"` 呈現，滑鼠移到任一欄位（以指標 x 位置命中）或鍵盤左右鍵都能選取該欄（Escape 清除）；提供 `onPointClick` 時，點擊或 Enter／Space 會啟用該欄，供選取年份等行為使用。
+  - Props：`labels`、`series`、`referenceLines?`、`points`（`{ title, value, meta? }[]`）、`height?`、`showLabels?`、`ariaLabel`（必填）、`onPointClick?`、`className?`。
   - **不要用於**：只是要看趨勢、不需要明細——用 `ComposedChart`。
-  - 範例：`src/ui/features/retirement/components/projection/CashFlowChart.tsx`、`src/ui/features/retirement/components/projection/NetWorthChart.tsx`
+  - 範例：`src/ui/features/retirement/components/CashFlowChart.tsx`、`src/ui/features/retirement/components/NetWorthChart.tsx`
+
+- **`charts / ChartAxisGutter`** — y 軸刻度欄：把值標籤放在繪圖區旁邊的固定 48px 欄位，讓線與面積永遠不會穿過數字。純展示、`aria-hidden`、`pointer-events-none`；排序與刻度密度見 [`design-system.md`](design-system.md) 的 `chart-axis`。
+  - Props：`side`（`left`/`right`）、`labels`（`{ y, text }[]`，已排序）、`height`、`viewBoxHeight`。
+  - **不要用於**：沒有 y 值標籤的圖表（`BarChart`），也不要在呼叫端自行計算標籤位置——交給 `lineChartGeometry` / `composedChartGeometry`。
+  - 範例：`src/ui/components/charts/LineChart.tsx`、`src/ui/components/charts/ComposedChart.tsx`。
+
+- **`charts / ChartXLabelRow`** — x 軸標籤列：絕對定位的標籤，兩端可保留與 gutter 等寬的空盒，讓標籤從繪圖區邊緣起算（讓位理由見 `design-system.md` 的 `chart-axis`）。
+  - Props：`labels`（`{ xRatio, text }[]`）、`leftGutter`、`rightGutter`、`testId?`。
+  - **不要用於**：非時間軸的標籤列。
+  - 範例：`src/ui/components/charts/LineChart.tsx`、`src/ui/components/charts/ComposedChart.tsx`。
 
 ## data-table 套件
 
@@ -383,6 +437,12 @@
   - **不要用於**：數字欄不要手寫右對齊與等寬——用 `align="number"`。
   - 範例：`src/ui/features/monthly_close/stages/securities_trade/components/TradeTable.tsx`
 
+- **`DataTableDetailRow`** — 展開列的詳情列（跨所有欄的單一 cell），接在可點擊的彙總列之後。
+  - Props：`open`、`colSpan`、`contentClassName?`、原生 `tr` 屬性。
+  - 展開狀態由呼叫端受控；列保持掛載以播收合動畫，高度走 `height: auto ↔ 0`（見 [`motion-system.md`](motion-system.md) §5.1）。
+  - **不要用於**：子樹要留在同一組固定欄寬裡（那是 `StatementTable`）；區塊級面板（用 `ui/accordion`）。
+  - 範例：`src/ui/features/debt/components/detail/DebtHistoryTable.tsx`、`src/ui/features/transaction/components/TransactionItem.tsx`
+
 - **`DataTableColGroup`** — 以百分比陣列定義欄寬；總和必須為 100（開發模式會報錯）。
   - Props：`widths`（必填，百分比陣列，總和 100）、`className?`。
   - **不要用於**：欄寬和必須為 100 的理由見 [`design-system.md`](design-system.md) `data-table`。
@@ -393,8 +453,8 @@
   - **不要用於**：可編輯的數字欄（用 `NumberInput`）。
   - 範例：`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`
 
-- **`MobileDataRow`** — 行動版的 grouped row（label／值）。**`MobileDataList`** 是外框；**`MobileDataField`** 是其中一欄。**`MobileExpandableRow`** 是可展開的列變體：`summary` / `value` / `meta` / `actions` / `details`，自身接管展開狀態與鍵盤等價（Enter／Space）並在提供 `details` 時補上 `role="button"` 與 `aria-expanded`；`actions` 區停止冒泡，讓列動作不切換展開。
-  - Props：原生 div 屬性；`MobileDataField` 另加 `label`（必填）、`children?`、`className?`；`MobileExpandableRow` 另加 `summary`（必填）、`value?`、`meta?`、`actions?`、`details?`。
+- **`MobileDataRow`** — 行動版的 grouped row（label／值）。**`MobileDataList`** 是外框；**`MobileDataField`** 是其中一欄。**`MobileExpandableRow`** 是可展開的列變體：`summary` / `value` / `meta` / `actions` / `details`，自身接管展開狀態與鍵盤等價（Enter／Space）並在提供 `details` 時補上 `role="button"` 與 `aria-expanded`；`actions` 區停止冒泡，讓列動作不切換展開。預設列點擊會切換展開並接著呼叫 `onClick`；`expandOnRowClick={false}` 時列點擊只交給 `onClick`，展開交由 `actions` 內的獨立控件承擔（選取與展開是兩個意圖的列）。
+  - Props：原生 div 屬性；`MobileDataField` 另加 `label`（必填）、`children?`、`className?`；`MobileExpandableRow` 另加 `summary`（必填）、`value?`、`meta?`、`actions?`、`details?`、`expandOnRowClick?`、`expanded?`（受控）、`onExpandedChange?`。
   - **不要用於**：桌機佈局（用 `DataTable`）。
   - 範例：`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceMobileLists.tsx`、`src/ui/features/transaction/components/TransactionItem.tsx`、`src/ui/features/debt/pages/DebtListPage.tsx`
 
@@ -413,16 +473,17 @@
   - Props：原生 div 屬性。
   - **不要用於**：欄位不要自行決定 label 或 error 的位置與間距，一律透過它。
 - **`FormLabel`** — 欄位標籤。
-  - Props：原生 label 屬性，另加 `required?`（在尾端加 `*`，不寫「必填」字樣）。
+  - Props：原生 label 屬性，另加 `required?`（在尾端加 `*`，不寫「必填」字樣）、`size?`（`default`／`compact`）。
+  - 變體：`size="compact"`（12px）供密集表單（多欄並排、行動版）；尺寸只在這裡決定，不在父層寫 `[&_label]`。
   - **不要用於**：需在 `FormField` 內。
 - **`FormControl`** — 以 `cloneElement` 把表單狀態注入子欄位（id、name、value、onChange、onBlur、ref、error 與對應的 `aria-*`）。**接線集中在這裡，欄位本身不得 import RHF**（[ADR-0065](../adr/0065-rhf-free-field-components-with-formcontrol-glue.md)）。
   - Props：`children`（單一元素，必填）。
   - **不要用於**：不要用它包非欄位元素。
+- **`FormMessage`** — 欄位的第一筆錯誤，只顯示第一筆、無錯誤時不渲染，固定掛在 control 下方；同模組另匯出 `formMessageClass`，供無法使用元件的錯誤彙總（repeater 尾端、alert 式清單）重用同一組字級與字重。
+  - Props：原生 p 屬性，`children` 作為欄位錯誤缺席時的內容。
+  - **不要用於**：不要自行寫一組 destructive 字級／字重；錯誤表面只有這一個（design-system §7 `form`）。
 - **`FormDescription`** — 欄位說明文字。
   - Props：原生 p 屬性。**不要用於**：錯誤訊息用它會顯示不出來（用 `FormMessage`）。
-- **`FormMessage`** — 錯誤訊息，只顯示第一筆錯誤；無錯誤時不渲染。
-  - Props：原生 p 屬性。
-  - **不要用於**：需在 `FormField` 內。
 - 範例：`src/ui/features/debt/components/DebtAccountForm.tsx`
 
 ### 欄位（RHF-free 受控元件，value 契約為 string）
@@ -437,15 +498,27 @@
   - Props：同 `TextInput` 的 string value 契約，另加 `surface?`（`form`（預設）／`table`）、`compact?`、`prefix?`、`error?`（僅 `surface="form"` 呈現）。
   - **不要用於**：表格儲存格的顯示（用 `NumberCell`）；唯讀推導值（用 `ReadoutField`）。
   - 範例：`src/ui/features/transaction/components/form/AllocationSection.tsx`（form surface）、`src/ui/features/monthly_close/stages/account_balance/components/CloseAccountBalanceInputs.tsx`（table surface）。
+- **`OrbitLoader`** — 真實非同步任務的 pending 指示環（`src/ui/components/OrbitLoader.tsx`；[`motion-system.md`](motion-system.md) §5.4）。
+  - Props：`appearAfterMs?`（預設 300，`0` 立即可見）、`className?`。
+  - 行為：延遲出現以免瞬時閃爍；`aria-hidden`，狀態文字由呼叫端放在旁邊並自帶 `role="status"`；reduced-motion 下停在原地當靜態環；不宣稱百分比。
+  - **不要用於**：瞬時操作；有真實進度可回報的場合（那裡要的是進度條）。
+  - 範例：`src/ui/features/retirement/components/WorkspaceActionBar.tsx`
 - **`DateInput`** — 日期欄位，emit ISO `yyyy-MM-dd`。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：年月（用 `YearMonthPicker`）。
-  - 範例：`src/ui/features/transaction/components/form/AmountDateFields.tsx`
+  - 範例：`src/ui/features/transaction/components/form/AmountFields.tsx`
 - **`Select`**（`SelectField`）— 單值選欄位。
   - Props：`options`（必填）、`value?`、`onChange?`、`onBlur?`、`placeholder?`、`noneLabel?`、`error?`、`disabled?`、`className?`、`id?`、`name?` 與 `aria-*`。
   - 變體：選填的「無值」列以 `noneLabel` 表示；**option 不得自帶空字串 value**（違反時開發模式報錯）。
   - **不要用於**：需要自行組合 Radix parts 的場合（用 `ui/select`）。
   - 範例：`src/ui/features/account/pages/AccountForm.tsx`
+- **`Combobox`**（`ComboboxField`）— 可搜尋的單值選欄位，給長到不能捲的清單（科目、帳戶）。與 `SelectField` 同一個 string value 契約，多出 `hint` 與 `group` 讓呼叫端把清單一開就蓋掉的脈絡（已使用次數、未使用／已使用分組）留在選項上。
+  - Props：`options`（必填，`{ value, label, hint?, group? }`）、`value?`、`onChange?`、`onBlur?`、`noneLabel?`、`placeholder?`、`searchPlaceholder?`、`emptyLabel?`、`loading?`、`loadingLabel?`、`error?`、`disabled?`、`className?`、`id?`、`name?` 與 `aria-*`。
+  - 變體：「無值」列以 `noneLabel` 表示，emit `''`；`hint` 印在列尾當次要資訊，不參與選取；`group` 決定分區與先後（呼叫端把重要的一組排前面）。
+  - 清單還在載入時傳 `loading` 與 `loadingLabel`：觸發鈕與空清單都改說「載入中」，否則尚未完成的清單會借用 `emptyLabel` 的「沒有符合項」，跟真的沒得選長得一樣（見 [`states-and-a11y.md`](states-and-a11y.md) 三態要求）。
+  - 注意：清單列是 cmdk item，`data-disabled` 屬性恆存在（值 `"true"`／`"false"`），所以列樣式（含 `pointer-events`）必須寫成 `data-[disabled=true]:*`。寫成裸 `data-[disabled]:*` 會讓每一列都吃不到點擊，鍵盤仍可用，滑鼠全失效。
+  - **不要用於**：5 項以內、不需要搜尋的清單（用 `Select`）；多選（目前沒有共用元件）。
+  - 範例：`src/ui/features/retirement/components/ProjectionRuleInspector.tsx`
 - **`TextArea`** — 多行文字。
   - Props：同 `TextInput` 的 string value 契約，另加 `error?`。
   - **不要用於**：單行輸入（用 `TextInput`）。
@@ -455,14 +528,14 @@
 
 欄位形狀、但不承載表單狀態的輔助元件。
 
-- **`AdvancedDisclosure`** — 表單內「Advanced」揭露：field 形狀的邊框切換鈕（`ChevronDown`），展開後顯示次要欄位（visual-standards：複雜設定預設隱藏）。**不是** `ui/accordion`——那是有 mono 標題列的 section 級面板。
+- **`AdvancedDisclosure`** — 表單內「Advanced」揭露：單一邊框群組，頂部標題列（`ChevronDown`）切換；展開後在同一框內、以 `bg-muted/50` 內縮底色顯示次要欄位（同展開子列的材質語言，見 `design-system.md` §3），使子層與標題列明確隸屬同一群組。**不是** `ui/accordion`——那是有 mono 標題列的 section 級面板。
   - Props：`label`（必填）、`open`（必填，受控）、`onOpenChange`（必填）、`children`、`className?`。
   - **不要用於**：section 級可摺疊面板（用 `ui/accordion`）；區塊切換（用 `ui/tabs`）。
-  - 範例：`src/ui/features/retirement/components/IncomeDialog.tsx`、`src/ui/features/retirement/components/ExpenseDialog.tsx`
+  - 範例：`src/ui/features/app/pages/GalleryInteraction.tsx`
 - **`ReadoutField`** — 唯讀推導值的欄位列：label ＋ 與 input 同尺寸的邊框值框。用於表單算出的值（成長率、期間），不是輸入。
   - Props：`label`（必填）、`value`（必填，`ReactNode`）、`className?`。
   - **不要用於**：可編輯欄位（用 `NumberInput`／`TextInput`）；表單外的唯讀顯示（用 `Metric`／`FinancialNumber`）。
-  - 範例：`src/ui/features/retirement/components/IncomeDialog.tsx`（Growth／Duration readout）
+  - 範例：`src/ui/features/app/pages/GalleryForms.tsx`（Growth／Duration readout）
 
 ## sortable
 
@@ -474,12 +547,12 @@
 
 ## statement
 
-- **`StatementPanel`** — 一張報表的排版外框：標題（僅行動版 `statementTitleClass`）＋ 摘要指標列 ＋ 表格內容。`title` 與 `metrics` 皆可缺席：空狀態保留標題、省略指標列（不顯示歸零假象）；`testId` 掛在外框根節點。報表檢視與月度關帳共用同一份外框。
+- **`StatementPanel`** — 一張報表的排版外框：標題（`subSectionTitleClass`）＋ 摘要指標列 ＋ 表格內容。`title` 與 `metrics` 皆可缺席：空狀態保留標題、省略指標列（不顯示歸零假象）；`testId` 掛在外框根節點。報表檢視與月度關帳共用同一份外框。行動版把指標列改為堆疊的 label / 值列（`${testId}-metrics-stacked`），因為三個 mono 合計在手機寬塞不進單列。
 - **不要用於**：一般頁面區塊（用 `PageSection`）；需要卡片式 KPI 時。
 - **`statementMetrics`**（`statementMetrics.ts`）— 報表摘要指標的**身分定義**：`incomeMetrics`／`balanceMetrics`／`cashFlowMetrics` 各回傳該表固定三個 `StatementMetric`（`key`／`testId`／`label` 內定，值由呼叫端提供）。標籤取自 `@/ui/constants/report/reportMetricLabels` 的 `REPORT_METRIC_LABELS`；月度關帳在值之上另帶漂移變化行（`change`／`changeTone`）。指標陣容只定義一次，兩個表面因此不會各自漂移。
-- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上。同模組另匯出 `statementTitleClass`：行動版堆疊時每張表上方的標題表面（桌機由 tabs 承擔），由 `StatementPanel` 使用。
+- **`StatementTable`** — 財務報表語意階層表格（兩欄：縮排標籤 ＋ 右緣金額）。`rows` 為 `StatementRow`（`key`／`label`／`amountText`／`amountWarning?`／`amountDetail?`／`tone`／`level`／`children`），`collapsed`／`onToggle` 控制可摺疊列，`testId` 掛在表格上（行動版另掛 `${testId}-mobile`）。行動版不沿用兩欄表：一列一筆、label 左金額右，語意角色與縮排沿用，chevron 撐到 44px 命中區。`amountDetail`（已格式化的字串，例如「期初 → 期末」的邊界行）在**兩個表面都**折成值下方的第二行：桌面不靠右緣欄位塞比較資訊，行動版也不必另走一份渲染。選填的 `data-testid` 兩邊都在，測試以 `within` 分開讀。
 - **`buildStatementRows`**（`statementRows.ts`）— 把「區塊 + 資料」排成 `StatementRow[]`：指派縮排層級與語意角色、以路徑組出穩定 key（同層同名不互撞）、把每個區塊收成「標題列 → 資料列 → 合計列」並補上 terminus。呼叫端只提供已解析的金額欄（`StatementAmountCell`）與標籤；月度關帳（漂移比對）與報表檢視（已產生報表）共用同一份列結構。
-- 語意角色由 `tone`（`section`／`group`／`detail`／`deepDetail`／`subtotal`／`terminus`）決定，縮排由 `level` 決定（見 [`visual-standards.md`](visual-standards.md) 「財務報表語意階層」）。金額一律由呼叫端先格式化為 `amountText`（`null` 表示該列無金額），元件不感知任何 drift／比較邏輯。
+- 語意角色由 `tone`（`section`／`group`／`detail`／`deepDetail`／`subtotal`／`terminus`）決定，縮排由 `level` 決定（見 [`visual-standards.md`](visual-standards.md) 「財務報表語意階層」）。金額一律由呼叫端先格式化為 `amountText`（`null` 表示該列無金額），元件不感知任何 drift／比較邏輯：比較文字由呼叫端組成後當成 `amountDetail` 傳入。
 - **不要用於**：一般資料列表（用 `data-table` 套件）；需要多欄或可編輯欄位時。
 - 範例：`src/ui/features/monthly_close/stages/financial_reports/components/CloseFinancialReportViews.tsx`、`src/ui/features/report/pages/ReportDetailPage.tsx`
 
@@ -487,20 +560,21 @@
 
 `src/ui/components/ui/` 是 shadcn 產生的 primitive 群，包 Radix 或原生元素：`accordion`、`alert`、`badge`、`button`、`card`、`checkbox`、`command`、`dialog`、`dropdown-menu`、`input`、`label`、`popover`、`select`、`sheet`、`switch`、`table`、`tabs`、`textarea`。
 
-- 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向。
+- 變體軸（variant／size／direction 等）與完整值以各檔案為準，本目錄不複述完整列舉；表面契約見 [`design-system.md`](design-system.md) §7。其中少數非預設變體值得先知道：`button` 另有 `text` variant（tertiary 動作），`alert` 與 `badge` 另有 `destructive` 變體，`sheet` 有四個進出方向，且 `side="bottom"` 預設可拖曳關閉（`draggable={false}` 可退出，手勢規則見 [`motion-system.md`](motion-system.md) §5.3）。`switch` 沒有自己的錯誤樣式，只轉發 `FormControl` 注入的 `error` 為 `aria-invalid`。
 - **何時不要用**：表單欄位不要直接用 `input`／`select`／`textarea`，用 `form/` 的對應欄位（見下方裁決）；表格不要直接用 `table`，用 `data-table` 套件。
 - 這些元件的表面契約（尺寸、狀態、radius、shadow 允用清單）屬 [`design-system.md`](design-system.md) §7。
-- 範例：`src/ui/features/retirement/pages/RetirementPlanForm.tsx`
+- 範例：`src/ui/features/retirement/pages/ProjectionWorkspacePage.tsx`
 
 ### 近重複裁決
 
 以下「看起來一樣、其實契約不同」的元件，選錯會拿到錯的 value 契約或錯的 surface。數字輸入原本也是這樣一對（form／data-table 各一個），現已合併為單一 `NumberInput`，改用 `surface` 表達差異，不再列於此表：
 
-| 該用哪個                         | 用在                                                                  | 不要用在                             |
-| -------------------------------- | --------------------------------------------------------------------- | ------------------------------------ |
-| `form / TextInput`               | form 套件的文字欄位：RHF-free 的 **string** value 契約、帶 error 呈現 | data table 內；需要原生事件物件時    |
-| `ui/input`                       | 需要 shadcn 原始 surface／原生事件，或作為上游 primitive 被擴充       | 表單欄位（改用 `form / TextInput`）  |
-| `form / Select`（`SelectField`） | 單值選欄位：`options` ＋ `noneLabel`、string value 契約               | 需要自行組合 Radix parts 時          |
-| `ui/select`（Radix part 集）     | 需要自行組合 Radix parts 的場合，或被上游擴充                         | 一般表單欄位（改用 `form / Select`） |
+| 該用哪個                             | 用在                                                                  | 不要用在                                   |
+| ------------------------------------ | --------------------------------------------------------------------- | ------------------------------------------ |
+| `form / TextInput`                   | form 套件的文字欄位：RHF-free 的 **string** value 契約、帶 error 呈現 | data table 內；需要原生事件物件時          |
+| `ui/input`                           | 需要 shadcn 原始 surface／原生事件，或作為上游 primitive 被擴充       | 表單欄位（改用 `form / TextInput`）        |
+| `form / Select`（`SelectField`）     | 單值選欄位：`options` ＋ `noneLabel`、string value 契約               | 需要自行組合 Radix parts 時                |
+| `form / Combobox`（`ComboboxField`） | 同一契約但清單很長、需要搜尋，或選項要帶脈絡（`hint`／`group`）       | 5 項以內的一般欄位（改用 `form / Select`） |
+| `ui/select`（Radix part 集）         | 需要自行組合 Radix parts 的場合，或被上游擴充                         | 一般表單欄位（改用 `form / Select`）       |
 
 `NumberInput` 的 `form`／`table` 兩種 surface **共用的只有幾何與數字處理，不是整體外觀**；其餘各組的判準與表面規格見 [`design-system.md`](design-system.md) §7 的 `form` 與 `data-table`。

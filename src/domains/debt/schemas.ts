@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { LEDGER_CODES } from '@/domains/ledger/constants';
 import { BaseSchema } from '@/shared/schemas/base';
+import { TimestampSchema } from '@/shared/schemas/date';
 
 // [DOMAIN ENTITY]
 // DebtAccount represents a liability position such as a mortgage, car loan, or personal loan.
@@ -29,15 +30,15 @@ export const DebtAccountCreateSchema = z.object({
   originalAmount: z.number().positive(),
   currentBalance: z.number().positive(),
   interestRate: z.number().min(0), // annual, in %
-  startDate: z.date(),
-  endDate: z.date(),
-  graceEndDate: z.date().nullable().optional(), // Grace period end date; null/undefined = no grace period
+  startDate: TimestampSchema,
+  endDate: TimestampSchema,
+  graceEndDate: TimestampSchema.nullable().optional(), // Grace period end date; null/undefined = no grace period
   monthlyPayment: z.number().positive(),
   linkedLedgerCode: z.string(), // auto-derived from type on write
   linkedProjectId: z.string().nullable().optional(),
   note: z.string().optional(),
   isActive: z.boolean().default(true),
-  closedAt: z.date().nullable().optional(),
+  closedAt: TimestampSchema.nullable().optional(),
 });
 
 export type DebtAccountCreate = z.infer<typeof DebtAccountCreateSchema>;

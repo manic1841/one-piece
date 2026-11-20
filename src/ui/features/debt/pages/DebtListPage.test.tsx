@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -60,7 +60,7 @@ const controllerBase = {
   debtAccountViews: [buildDebtVM()],
   projects: [],
   totalDebt: 4800000,
-  totalMonthlyPayment: 25000,
+  totalMonthlyDue: 25000,
   getPaymentHistory: vi.fn().mockResolvedValue([]),
   reload: vi.fn(),
 };
@@ -275,7 +275,7 @@ describe('DebtListPage table', () => {
     expect(container.querySelector('table')).not.toBeNull();
   });
 
-  it('summarises the total outstanding and the active loan count', () => {
+  it('summarises the total outstanding and the active loan count', async () => {
     mockUseDebtPage.mockReturnValue({
       ...controllerBase,
       debtAccountViews: [
@@ -295,7 +295,31 @@ describe('DebtListPage table', () => {
 
     expect(screen.getByText('貸款總額')).toBeInTheDocument();
     expect(screen.getByText('啟用貸款')).toBeInTheDocument();
-    expect(screen.getByTestId('debt-active-count')).toHaveTextContent('1');
+    // The count counts up from zero on mount (M07), so the settled value is awaited.
+    await waitFor(() => expect(screen.getByTestId('debt-active-count')).toHaveTextContent('1'));
+  });
+
+  it('summarises the monthly due of active loans as its own metric', async () => {
+    mockUseDebtPage.mockReturnValue({
+      ...controllerBase,
+      debtAccountViews: [
+        buildDebtVM({ id: 'd1', isActive: true, monthlyDueAmount: 25000 }),
+        buildDebtVM({ id: 'd2', isActive: false, monthlyDueAmount: 99000 }),
+      ],
+    });
+    mockUseDebtAccountCmds.mockReturnValue({ removeDebtAccount: vi.fn() } as never);
+    mockUseConfirm.mockReturnValue({ confirm: vi.fn().mockResolvedValue(false) } as never);
+    mockUseNavigate.mockReturnValue(vi.fn());
+
+    render(
+      <MemoryRouter>
+        <DebtListPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('debt-total-monthly-due')).toHaveTextContent('NT$25,000'),
+    );
   });
 
   it('shows a loading state while the loans load', () => {

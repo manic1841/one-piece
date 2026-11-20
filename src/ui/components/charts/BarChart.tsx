@@ -88,7 +88,13 @@ export function BarChart({
               return (
                 <div
                   key={seriesIndex}
-                  className={cn('min-h-[3px] w-[38%]', CHART_TONE_FILL[tone])}
+                  // Grows out of the shared baseline on mount (motion-system
+                  // §5.7). Values are magnitudes here, so there is one
+                  // direction to grow in.
+                  className={cn(
+                    'min-h-[3px] w-[38%] origin-bottom animate-chart-reveal',
+                    CHART_TONE_FILL[tone],
+                  )}
                   style={{ height: `${Math.max(2, (value / scale) * 100)}%` }}
                 />
               );
@@ -102,7 +108,7 @@ export function BarChart({
           {labels.map((label) => (
             <span
               key={label}
-              className="flex-1 text-center font-mono text-[10px] text-muted-foreground"
+              className="flex-1 text-center font-mono text-[11px] text-muted-foreground"
             >
               {label}
             </span>

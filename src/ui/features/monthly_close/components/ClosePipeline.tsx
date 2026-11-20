@@ -36,13 +36,9 @@ const stageStatus = (
   return stage.isCompleted ? 'COMPLETED' : 'WAITING';
 };
 
-const glyphTypeMap: Record<ClosePipelineStageStatus, 'active' | 'verified' | 'waiting' | 'review'> =
-  {
-    CURRENT: 'active',
-    COMPLETED: 'verified',
-    WAITING: 'waiting',
-    REVIEW: 'review',
-  };
+/** Green carries exactly one meaning in the pipeline: completed. Everything else shows its number. */
+const stepGlyphType = (status: ClosePipelineStageStatus): 'verified' | 'review' | null =>
+  status === 'COMPLETED' ? 'verified' : status === 'REVIEW' ? 'review' : null;
 
 const headerGlyphType = (isClosed: boolean, isPaused: boolean): 'active' | 'verified' | 'review' =>
   isClosed ? 'verified' : isPaused ? 'review' : 'active';
@@ -75,8 +71,10 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
           aria-controls="close-pipeline-stages"
           data-testid="close-pipeline-toggle"
           className={cn(
-            'inline-flex h-8 shrink-0 items-center gap-1.5 border-0 bg-transparent px-0 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-colors',
-            'hover:text-foreground',
+            // A real 44px box, not a 32px visual box with an invisible halo:
+            // the padding is what makes the target reachable on a phone.
+            'inline-flex min-h-11 shrink-0 items-center gap-1.5 border-0 bg-transparent px-2 -mr-2 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground transition-[color,transform] duration-fast ease-out-quint',
+            'hover:text-foreground active:scale-[0.97]',
             'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           )}
         >
@@ -92,11 +90,13 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
       {isExpanded && (
         <ol
           id="close-pipeline-stages"
-          aria-label="Close workflow pipeline"
-          className="grid grid-cols-1 gap-[7px] border-b border-border py-4 md:grid-cols-9 md:gap-[7px]"
+          aria-label="關帳流程"
+          className="grid grid-cols-1 gap-[7px] border-b border-border py-4 md:gap-[7px] md:[grid-template-columns:repeat(var(--pipeline-cols),minmax(0,1fr))]"
+          style={{ '--pipeline-cols': stages.length } as React.CSSProperties}
         >
           {stages.map((stage, index) => {
             const status = stageStatus(stage, currentStageId, isClosed, isPaused);
+            const glyphType = stepGlyphType(status);
             const isViewing = stage.stageId === viewingStageId;
             const completedIndex = stages.findIndex((item) => !item.isCompleted);
             const isBeforeCurrent =
@@ -114,7 +114,7 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
                   onClick={() => onSelectStage(stage.stageId)}
                   aria-current={status === 'CURRENT' ? 'step' : undefined}
                   className={cn(
-                    'group flex h-11 w-full items-center gap-2 rounded px-2 text-left text-xs transition-colors',
+                    'group flex h-12 w-full items-center gap-2 rounded px-2 text-left text-xs transition-colors',
                     'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                     isViewing
                       ? 'bg-elevated text-foreground'
@@ -125,8 +125,17 @@ export const ClosePipeline: React.FC<ClosePipelineProps> = ({
                     !clickable && 'cursor-not-allowed',
                   )}
                 >
-                  <StatusGlyph type={glyphTypeMap[status]} label="" className="shrink-0" />
-                  <span className="whitespace-nowrap font-semibold tracking-widest opacity-60">
+                  <StatusGlyph
+                    type={glyphType ?? 'waiting'}
+                    label=""
+                    className={cn('shrink-0', glyphType === null && 'opacity-0')}
+                  />
+                  <span
+                    className={cn(
+                      'whitespace-nowrap font-semibold tracking-widest',
+                      glyphType === null ? 'opacity-100' : 'opacity-0',
+                    )}
+                  >
                     {stepNumber(index)}
                   </span>
                   <span className="truncate font-medium">{getCloseStageLabel(stage.stageId)}</span>

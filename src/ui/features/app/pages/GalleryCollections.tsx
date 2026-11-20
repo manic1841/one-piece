@@ -24,10 +24,12 @@ import {
 import { GripHandle, SortableListScope } from '@/ui/components/sortable/SortableListScope';
 import { Button } from '@/ui/components/ui/button';
 import { TableBody, TableHeader } from '@/ui/components/ui/table';
+import { ClosePeriodMatrix } from '@/ui/features/monthly_close/components/ClosePeriodMatrix';
 import { useSortableRow } from '@/ui/hooks/useSortableList';
 import { cn } from '@/ui/utils/cn';
 
 import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
+import { StatementRowsModule } from './GalleryStatement';
 
 /**
  * Collection surfaces: five ways to present a set of rows. Kept adjacent so the
@@ -141,6 +143,7 @@ const DataTableSection: React.FC = () => (
         ))}
       </div>
     </GalleryModule>
+    <StatementRowsModule />
     <GalleryCaption>
       唯讀的結構化紀錄：表頭 + 明確欄寬（總和 100%），供掃描與跨表比較。行動版改走 grouped card。
     </GalleryCaption>
@@ -349,9 +352,49 @@ const EditableListSection: React.FC = () => (
       </div>
     </GalleryModule>
     <GalleryCaption>
-      可編輯列的清單：`ListSectionHeader`（標題 ＋ 計數 ＋ 動作）搭配 `RowActions`（edit trigger ＋
-      destructive delete）。標題列 class 與列尾動作由共用元件決定，垂直間距由呼叫端給。
+      可編輯列的清單：`ListSectionHeader`（標題、計數、動作）搭配
+      `RowActions`（編輯與刪除）。標題列樣式與列尾動作由共用元件決定，垂直間距由呼叫端提供。
     </GalleryCaption>
+  </GallerySection>
+);
+
+const PeriodMatrixSection: React.FC = () => (
+  <GallerySection number="13" title="Period Matrix & Empty Step">
+    <GalleryModule label="最近六個月">
+      <ClosePeriodMatrix
+        months={[
+          { yearMonth: '2026-04', monthText: '4 月', status: 'CLOSED', statusText: '已關帳' },
+          { yearMonth: '2026-05', monthText: '5 月', status: 'CLOSED', statusText: '已關帳' },
+          {
+            yearMonth: '2026-06',
+            monthText: '6 月',
+            status: 'IN_PROGRESS',
+            statusText: '進行中',
+          },
+          {
+            yearMonth: '2026-07',
+            monthText: '7 月',
+            status: 'NOT_STARTED',
+            statusText: '未開始',
+          },
+          { yearMonth: '2026-08', monthText: '8 月', status: 'NOT_STARTED', statusText: '未開始' },
+          { yearMonth: '2026-09', monthText: '9 月', status: 'NOT_STARTED', statusText: '未開始' },
+        ]}
+        selectedYearMonth="2026-06"
+        onSelect={() => undefined}
+      />
+      <GalleryCaption>
+        就近的月份是一格一鍵；沒有紀錄的月份一樣可選。任何一格的命中區都不小於 44px。
+      </GalleryCaption>
+    </GalleryModule>
+    <GalleryModule label="空白步驟只說一次">
+      <p className="text-xs text-muted-foreground">
+        本月沒有證券交易或融資紀錄，確認後仍會完成這個步驟。
+      </p>
+      <GalleryCaption>
+        空白不是阻擋條件，用一行 caption 說明即可，不彈確認框重述同一句話。
+      </GalleryCaption>
+    </GalleryModule>
   </GallerySection>
 );
 
@@ -363,5 +406,6 @@ export const GalleryCollectionsBody: React.FC = () => (
     <ActivitySection />
     <SortableSection />
     <EditableListSection />
+    <PeriodMatrixSection />
   </>
 );

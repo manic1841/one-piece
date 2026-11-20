@@ -104,6 +104,10 @@ describe('portfolioDisplay.vm', () => {
     expect(vm.securitiesName).toBe('Brokerage');
     expect(vm.monthlyReturnText).toBe('23.46%');
     expect(vm.breakdown).toEqual({
+      previousValue: 100000,
+      currentValue: 123456,
+      investmentCashFlow: 0,
+      calculatedReturn: 23456,
       previousValueText: expect.stringContaining('100,000'),
       currentValueText: expect.stringContaining('123,456'),
       investmentCashFlowText: expect.stringContaining('0'),

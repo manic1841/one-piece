@@ -1,12 +1,12 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type RetirementPlan } from '@/domains/retirement/types';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 
-interface GetRetirementPlanRequest {
+export interface GetRetirementPlanRequest {
   householdId: string;
-  planId: string;
   auth: AuthContext;
+  planId: string;
 }
 
 export class GetRetirementPlanUseCase {
@@ -19,7 +19,7 @@ export class GetRetirementPlanUseCase {
       auth.isGlobalAdmin,
     );
 
-    return retirementRepository.getPlan(householdId, planId);
+    return retirementPlanRepository.getPlan(householdId, planId);
   }
 }
 

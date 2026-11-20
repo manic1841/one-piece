@@ -16,106 +16,110 @@ import {
   IncomeStatementDataSchema,
   ReportType,
 } from '@/domains/report/schemas';
-import { RetirementPlanSchema } from '@/domains/retirement/schemas';
+import { BaseSchema } from '@/shared/schemas/base';
+import { TimestampSchema } from '@/shared/schemas/date';
 
 /**
  * Import-side validation for the household backup payload (issue #256):
- * mirrors the persisted document shapes the export side reads. Backups are
- * JSON-serialized, so timestamps revive from ISO strings; legacy rows may
- * lack createdBy/updatedBy, so those stay optional.
+ * mirrors the persisted document shapes the export side reads.
+ *
+ * Timestamps: a backup file is JSON, so every timestamp arrives as an ISO
+ * string even though it was a Date in memory. The domain schemas already model
+ * that with the shared TimestampSchema (src/shared/schemas/date.ts), which
+ * accepts both forms and normalizes to Date — so validation itself performs the
+ * revival and its parsed output is what the import writes back. Retirement
+ * plans travel as `unknown[]`; their audit timestamps are revived at write time.
+ *
+ * Legacy rows may lack createdBy/updatedBy, so those stay optional.
  */
-const RevivedDate = z.union([z.date(), z.string()]);
+const BackupBaseSchema = BaseSchema.partial({ createdBy: true, updatedBy: true });
 
-const BackupBaseSchema = z.object({
-  id: z.string(),
-  createdBy: z.string().optional(),
-  createdAt: RevivedDate,
-  updatedBy: z.string().optional(),
-  updatedAt: RevivedDate,
-});
+const withBackupBase = <T extends z.ZodRawShape>(shape: T) => BackupBaseSchema.extend(shape);
 
-const withRevivedBase = <T extends z.ZodRawShape>(shape: T) => BackupBaseSchema.extend(shape);
-
-const AccountDocumentSchema = withRevivedBase(AccountSchema.shape);
-const AccountSnapshotDocumentSchema = withRevivedBase(AccountSnapshotSchema.shape);
-const ProjectDocumentSchema = withRevivedBase(ProjectSchema.shape);
-const ProjectSnapshotDocumentSchema = withRevivedBase(ProjectSnapshotSchema.shape);
-const PortfolioDocumentSchema = withRevivedBase(PortfolioSchema.shape);
-const PortfolioSnapshotDocumentSchema = withRevivedBase(PortfolioSnapshotSchema.shape);
-const DebtAccountDocumentSchema = withRevivedBase(DebtAccountSchema.shape);
-const DebtSnapshotDocumentSchema = withRevivedBase(DebtSnapshotSchema.shape);
-const RetirementPlanDocumentSchema = withRevivedBase(RetirementPlanSchema.shape);
-const TransactionDocumentSchema = withRevivedBase(TransactionSchema.shape);
-const AllocationDocumentSchema = withRevivedBase(AllocationSchema.shape);
-const AllocationTemplateDocumentSchema = withRevivedBase(AllocationTemplateSchema.shape);
-const LedgerCodeDocumentSchema = withRevivedBase(CustomLedgerCodeSchema.shape);
-const IntentMappingDocumentSchema = withRevivedBase(IntentMappingSchema.shape);
+const AccountDocumentSchema = withBackupBase(AccountSchema.shape);
+const AccountSnapshotDocumentSchema = withBackupBase(AccountSnapshotSchema.shape);
+const ProjectDocumentSchema = withBackupBase(ProjectSchema.shape);
+const ProjectSnapshotDocumentSchema = withBackupBase(ProjectSnapshotSchema.shape);
+const PortfolioDocumentSchema = withBackupBase(PortfolioSchema.shape);
+const PortfolioSnapshotDocumentSchema = withBackupBase(PortfolioSnapshotSchema.shape);
+const DebtAccountDocumentSchema = withBackupBase(DebtAccountSchema.shape);
+const DebtSnapshotDocumentSchema = withBackupBase(DebtSnapshotSchema.shape);
+const TransactionDocumentSchema = withBackupBase(TransactionSchema.shape);
+const AllocationDocumentSchema = withBackupBase(AllocationSchema.shape);
+const AllocationTemplateDocumentSchema = withBackupBase(AllocationTemplateSchema.shape);
+const LedgerCodeDocumentSchema = withBackupBase(CustomLedgerCodeSchema.shape);
+const IntentMappingDocumentSchema = withBackupBase(IntentMappingSchema.shape);
 
 /** FinancialPeriod docs revive from the persisted create shape plus doc metadata. */
-const FinancialPeriodDocumentSchema = withRevivedBase(FinancialPeriodCreateSchema.shape);
+const FinancialPeriodDocumentSchema = withBackupBase(FinancialPeriodCreateSchema.shape);
 
-const HouseholdDocumentSchema = HouseholdSchema.extend({
-  createdAt: RevivedDate,
-  updatedAt: RevivedDate,
-});
+const HouseholdDocumentSchema = HouseholdSchema;
 
 /** Reports revive from the persisted discriminated union (yearMonth, uppercase type). */
 const ReportDocumentSchema = z.discriminatedUnion('type', [
-  z
-    .object({
-      id: z.string(),
-      householdId: z.string(),
-      yearMonth: z.string(),
-      createdBy: z.string().optional(),
-      updatedBy: z.string().optional(),
-      createdAt: RevivedDate,
-      updatedAt: RevivedDate,
-    })
-    .extend({
-      type: z.literal(ReportType.INCOME_STATEMENT),
-      data: IncomeStatementDataSchema,
-    }),
-  z
-    .object({
-      id: z.string(),
-      householdId: z.string(),
-      yearMonth: z.string(),
-      createdBy: z.string().optional(),
-      updatedBy: z.string().optional(),
-      createdAt: RevivedDate,
-      updatedAt: RevivedDate,
-    })
-    .extend({
-      type: z.literal(ReportType.BALANCE_SHEET),
-      data: BalanceSheetDataSchema,
-    }),
-  z
-    .object({
-      id: z.string(),
-      householdId: z.string(),
-      yearMonth: z.string(),
-      createdBy: z.string().optional(),
-      updatedBy: z.string().optional(),
-      createdAt: RevivedDate,
-      updatedAt: RevivedDate,
-    })
-    .extend({
-      type: z.literal(ReportType.CASH_FLOW),
-      data: CashFlowDataSchema,
-    }),
+  withBackupBase({
+    householdId: z.string(),
+    yearMonth: z.string(),
+    type: z.literal(ReportType.INCOME_STATEMENT),
+    data: IncomeStatementDataSchema,
+  }),
+  withBackupBase({
+    householdId: z.string(),
+    yearMonth: z.string(),
+    type: z.literal(ReportType.BALANCE_SHEET),
+    data: BalanceSheetDataSchema,
+  }),
+  withBackupBase({
+    householdId: z.string(),
+    yearMonth: z.string(),
+    type: z.literal(ReportType.CASH_FLOW),
+    data: CashFlowDataSchema,
+  }),
 ]);
 
+/**
+ * Projection main document. Summary fields are pinned so a truncated entry is
+ * rejected; `passthrough` keeps any future field intact through validation.
+ * `createdAt` revives from ISO on the JSON hop like every other audit field.
+ */
+const ProjectionDocumentSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    engineVersion: z.number(),
+    retirementNetWorth: z.number().nullable(),
+    finalNetWorth: z.number(),
+    minNetWorth: z.number(),
+    minNetWorthYear: z.number().nullable(),
+    bankruptcyYear: z.number().nullable(),
+    isBankrupt: z.boolean(),
+    createdBy: z.string(),
+    createdAt: TimestampSchema,
+  })
+  .passthrough();
+
+/** The three fixed projection child documents travel under explicit keys. */
+const ProjectionBundleSchema = z.object({
+  projection: ProjectionDocumentSchema,
+  config: z.record(z.string(), z.unknown()),
+  source: z.record(z.string(), z.unknown()),
+  annual: z.record(z.string(), z.unknown()),
+});
+
 export const HouseholdBackupPayloadSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   exportedAt: z.string(),
   householdId: z.string(),
   household: HouseholdDocumentSchema,
   /**
    * Only live collections are declared. Zod objects drop undeclared keys, so a
-   * collection retired from the app but still present in an older
-   * schemaVersion-1 payload is ignored on import rather than rejected or
-   * restored. The retired collection is named in ADR-0080, the single source of
-   * that decision; do not restate it here.
+   * collection retired from the app but still present in an old payload is
+   * ignored on import rather than rejected or restored. The retired collection
+   * is named in ADR-0080, the single source of that decision; do not restate it
+   * here.
+   *
+   * Retirement plans are `unknown[]`: their shape is already validated at the
+   * write boundary, and a projection reuses the document verbatim (ADR-0084).
    */
   collections: z.object({
     accounts: z.array(
@@ -142,7 +146,8 @@ export const HouseholdBackupPayloadSchema = z.object({
         snapshots: z.array(DebtSnapshotDocumentSchema),
       }),
     ),
-    retirementPlans: z.array(RetirementPlanDocumentSchema),
+    retirementPlans: z.array(z.unknown()),
+    projections: z.array(ProjectionBundleSchema),
     transactions: z.array(TransactionDocumentSchema),
     reports: z.array(ReportDocumentSchema),
     allocations: z.array(AllocationDocumentSchema),

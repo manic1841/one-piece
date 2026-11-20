@@ -36,9 +36,19 @@ firebase-emulator/firebase_configs/firebase-export-*/
 # Testing
 test.ts
 coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
 
 # Local ticket records (kept locally, not stored in the repo)
 .scratch/
 
 # Household backup fixtures (real live financial data, never committed)
 examples/
+
+# Local codebase knowledge graph (rebuilt with `graphify . --code-only`)
+graphify-out/
+
+# Cloned producer tooling used as a reference (sprite-forge)
+references/

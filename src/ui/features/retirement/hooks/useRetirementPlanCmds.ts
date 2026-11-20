@@ -1,98 +1,82 @@
 import { useCallback } from 'react';
 
-import { createRetirementPlanUseCase } from '@/application/retirement/use_cases/createRetirementPlanUseCase';
+import { type PlanDraft } from '@/application/retirement/types';
+import {
+  type CreateRetirementPlanOutcome,
+  createRetirementPlanUseCase,
+} from '@/application/retirement/use_cases/createRetirementPlanUseCase';
 import { deleteRetirementPlanUseCase } from '@/application/retirement/use_cases/deleteRetirementPlanUseCase';
-import { duplicateRetirementPlanUseCase } from '@/application/retirement/use_cases/duplicateRetirementPlanUseCase';
-import { updateRetirementPlanUseCase } from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
-import { type RetirementPlanCreate } from '@/domains/retirement/types';
-import { getErrorMessage } from '@/ui/hooks/getErrorMessage';
+import {
+  type UpdateRetirementPlanOutcome,
+  updateRetirementPlanUseCase,
+} from '@/application/retirement/use_cases/updateRetirementPlanUseCase';
+import { saveWorkspaceAsPlanWorkflow } from '@/application/retirement/workflows/saveWorkspaceAsPlan';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { type LoadingTaskResult, useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
-const MISSING_CONTEXT_MESSAGE = 'Missing household or user context. Please refresh and try again.';
-
-export function useRetirementPlanCmds(
-  householdId: string | undefined,
-  userEmail: string | undefined,
-) {
+/**
+ * Plan writes only. Reads live in the query hooks that compose this one, and the
+ * name fields live in `useNameField` (they are Controller state, not commands).
+ *
+ * Like the projection commands, every method resolves through `run`: an
+ * infrastructure failure is the outer `kind: 'failed'`, a validation failure is
+ * the inner `{ ok: false, code }`.
+ */
+export function useRetirementPlanCmds(householdId: string | undefined) {
   const auth = useAuthIdentity();
-  const { loading, error, errorMessage, run } = useLoadingTask();
+  const { run, errorMessage } = useLoadingTask();
 
   const createPlan = useCallback(
-    async (plan: RetirementPlanCreate): Promise<LoadingTaskResult<string>> => {
-      if (!householdId || !userEmail) {
-        return { ok: false, kind: 'failed', error: new Error(MISSING_CONTEXT_MESSAGE) };
-      }
-      return run(async () => {
-        return createRetirementPlanUseCase.execute({ householdId, plan, userEmail, auth });
-      });
-    },
-    [householdId, userEmail, auth, run],
+    (draft: PlanDraft): Promise<LoadingTaskResult<CreateRetirementPlanOutcome>> =>
+      run(async () => {
+        if (!householdId) return { ok: false, code: 'PLAN_INVALID' };
+        return createRetirementPlanUseCase.execute({ ...draft, householdId, auth });
+      }),
+    [auth, householdId, run],
+  );
+
+  const renamePlan = useCallback(
+    (planId: string, name: string): Promise<LoadingTaskResult<UpdateRetirementPlanOutcome>> =>
+      run(async () => {
+        if (!householdId) return { ok: false, code: 'PLAN_NOT_FOUND' };
+        return updateRetirementPlanUseCase.execute({ householdId, planId, name, auth });
+      }),
+    [auth, householdId, run],
   );
 
   const updatePlan = useCallback(
-    async (planId: string, updates: Partial<RetirementPlanCreate>): Promise<void> => {
-      if (!householdId || !userEmail) {
-        throw new Error(MISSING_CONTEXT_MESSAGE);
-      }
+    (planId: string, draft: PlanDraft): Promise<LoadingTaskResult<UpdateRetirementPlanOutcome>> =>
+      run(async () => {
+        if (!householdId) return { ok: false, code: 'PLAN_NOT_FOUND' };
+        return updateRetirementPlanUseCase.execute({ ...draft, householdId, planId, auth });
+      }),
+    [auth, householdId, run],
+  );
 
-      const result = await run(async () => {
-        await updateRetirementPlanUseCase.execute({
-          householdId,
-          planId,
-          updates,
-          userEmail,
-          auth,
-        });
-      });
-
-      // An abandoned run has an unknown outcome: the underlying write cannot be
-      // cancelled once started, so reporting it as a failure would be a guess.
-      if (!result.ok && result.kind === 'aborted') return;
-
-      if (!result.ok) {
-        throw new Error(
-          `Failed to update retirement plan in Firestore: ${getErrorMessage(result.error)}`,
-        );
-      }
-    },
-    [householdId, userEmail, auth, run],
+  const saveWorkspaceAsPlan = useCallback(
+    (draft: PlanDraft) =>
+      run(async () => {
+        if (!householdId) return { ok: false as const, code: 'PLAN_INVALID' as const };
+        return saveWorkspaceAsPlanWorkflow.execute({ ...draft, householdId, auth });
+      }),
+    [auth, householdId, run],
   );
 
   const deletePlan = useCallback(
-    async (planId: string): Promise<void> => {
-      if (!householdId) return;
-      await run(async () => {
+    (planId: string): Promise<LoadingTaskResult<void>> =>
+      run(async () => {
+        if (!householdId) return undefined;
         return deleteRetirementPlanUseCase.execute({ householdId, planId, auth });
-      });
-    },
-    [householdId, auth, run],
-  );
-
-  const duplicatePlan = useCallback(
-    async (sourcePlanId: string): Promise<LoadingTaskResult<string>> => {
-      if (!householdId || !userEmail) {
-        return { ok: false, kind: 'failed', error: new Error(MISSING_CONTEXT_MESSAGE) };
-      }
-      return run(async () => {
-        return duplicateRetirementPlanUseCase.execute({
-          householdId,
-          sourcePlanId,
-          userEmail,
-          auth,
-        });
-      });
-    },
-    [householdId, userEmail, auth, run],
+      }),
+    [auth, householdId, run],
   );
 
   return {
     createPlan,
+    saveWorkspaceAsPlan,
+    renamePlan,
     updatePlan,
     deletePlan,
-    duplicatePlan,
-    loading,
-    error,
     errorMessage,
   };
 }

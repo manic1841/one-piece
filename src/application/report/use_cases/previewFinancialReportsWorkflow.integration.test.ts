@@ -1,69 +1,10 @@
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { generateFinancialReportsUseCase } from '@/application/report/use_cases/generateFinancialReportsUseCase';
 import { previewFinancialReportsWorkflow } from '@/application/report/use_cases/previewFinancialReportsWorkflow';
-import { db, resetMockDb } from '@/test/mocks/firebase';
-
-const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
-
-const seedAccount = async (householdId: string, accountId: string) => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', accountId), {
-    id: accountId,
-    name: `Account ${accountId}`,
-    category: 'cash',
-    currency: 'TWD',
-    order: 0,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
-
-const seedAccountSnapshot = async (
-  householdId: string,
-  accountId: string,
-  yearMonth: string,
-  amount: number,
-) => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth), {
-    id: yearMonth,
-    accountId,
-    year: Number(yearMonth.split('-')[0]),
-    month: Number(yearMonth.split('-')[1]),
-    amount,
-    holdings: [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
-
-const seedTransaction = async (
-  householdId: string,
-  transactionId: string,
-  date: Date,
-  entries: { ledgerCode: string; debit: number; credit: number }[],
-) => {
-  await setDoc(doc(db, 'households', householdId, 'transactions', transactionId), {
-    id: transactionId,
-    date,
-    description: '',
-    intent: 'SALARY',
-    intentType: 'INCOME',
-    amount: 0,
-    projectId: null,
-    allocationId: null,
-    entries,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+import { TEST_USER as auth } from '@/test/factories';
+import { resetMockDb } from '@/test/mocks/firebase';
+import { seedAccount, seedAccountSnapshot, seedTransaction } from '@/test/seeds';
 
 describe('previewFinancialReportsWorkflow — emulator integration', () => {
   let householdId: string;
@@ -78,12 +19,15 @@ describe('previewFinancialReportsWorkflow — emulator integration', () => {
 
   it('computes all three reports from seeded data', async () => {
     await seedAccount(householdId, 'acc-1');
-    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, 5000);
+    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, { amount: 5000 });
 
-    await seedTransaction(householdId, 'tx-1', new Date(2026, 2, 15), [
-      { ledgerCode: 'asset:cash', debit: 1000, credit: 0 },
-      { ledgerCode: 'income:salary', debit: 0, credit: 1000 },
-    ]);
+    await seedTransaction(householdId, 'tx-1', {
+      date: new Date(2026, 2, 15),
+      entries: [
+        { ledgerCode: 'asset:cash', debit: 1000, credit: 0 },
+        { ledgerCode: 'income:salary', debit: 0, credit: 1000 },
+      ],
+    });
 
     const result = await previewFinancialReportsWorkflow.execute({
       householdId,
@@ -135,7 +79,7 @@ describe('previewFinancialReportsWorkflow — emulator integration', () => {
 
   it('re-previews as persisted with timestamps after the workflow generates reports', async () => {
     await seedAccount(householdId, 'acc-1');
-    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, 5000);
+    await seedAccountSnapshot(householdId, 'acc-1', yearMonth, { amount: 5000 });
 
     const before = await previewFinancialReportsWorkflow.execute({
       householdId,

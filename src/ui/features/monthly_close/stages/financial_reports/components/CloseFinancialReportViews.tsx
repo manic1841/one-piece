@@ -29,21 +29,28 @@ import {
   type IncomeStatementDrift,
   combineDrift,
   formatDriftAmountText,
-  formatDriftDelta,
+  formatDriftEdgeLine,
+  formatDriftEdges,
   isDrifted,
 } from '../../../viewmodels/reportDrift.vm';
 
-/** 漂移金額 → 共用列的金額欄位：文字為 delta 或原值，警示色標記已漂移。 */
+/**
+ * 漂移金額 → 共用列的金額欄位：主值是當期值，警示色標記已漂移，兩端折成下方的
+ * 第二行（元件只吃字串，不認識漂移語彙）。
+ */
 const driftCell = (drift: DriftAmount): StatementAmountCell => ({
-  amountText: formatDriftAmountText(drift),
+  amountText: formatCurrency(drift.amount),
   amountWarning: isDrifted(drift),
+  amountDetail: isDrifted(drift) ? formatDriftEdgeLine(formatDriftEdges(drift)) : null,
 });
 
-/** 漂移金額 → 摘要指標值：當期值為本體，變化行為漂移 delta（未漂移則不顯示變化行）。 */
+/** 漂移金額 → 摘要指標值：當期值為本體，變化行寫明兩端（未漂移則不顯示變化行）。 */
 const driftMetricValue = (drift: DriftAmount, tone?: MoneyTone): StatementMetricValue => ({
   value: formatCurrency(drift.amount),
+  animatedValue: drift.amount,
+  animateFormat: formatCurrency,
   tone,
-  change: formatDriftDelta(drift) ?? undefined,
+  change: isDrifted(drift) ? formatDriftEdgeLine(formatDriftEdges(drift)) : undefined,
   changeTone: 'muted',
 });
 

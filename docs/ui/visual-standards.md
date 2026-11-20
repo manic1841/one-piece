@@ -1,6 +1,6 @@
 # 頁面視覺標準 (Visual Standards)
 
-> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；空／載入／錯誤三態的義務與無障礙契約屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
+> **邊界宣告**：本文件管**頁面層級的佈局與互動標準**——Page Shell、頁寬、間距用途、進階設定、工作流版面、Dashboard 版面、報表版面、行動版佈局、搜尋與指令、資料密度、互動一致性、破壞性動作、通知、響應式、反模式與最終 review checklist。**設計 token 與元件表面**（色彩、材質、字體排印、元件尺寸與狀態契約、spacing 級距）屬 [`design-system.md`](design-system.md)；**動態**屬 [`motion-system.md`](motion-system.md)；分層、導航／Header 契約、List / Detail / Workflow 動作位置與 RWD 斷點契約屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；空／載入／錯誤三態的義務與無障礙契約屬 [`states-and-a11y.md`](states-and-a11y.md)。五份文件權威不重疊。
 
 本文件是頁面層級視覺契約的唯一真相來源。已由其他文件承載的契約（Dashboard 資料錨定、關帳階段模型等）一律以指標引用、不在本文件重述；規則差異時以該事實的歸屬文件為準。
 
@@ -18,7 +18,7 @@
 4. **Color communicates state**
 5. **Motion has a purpose**
 
-> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的並列拆解圖（donut）使用 `chart-*` 類別色板；這道例外只適用於分類拆解，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
+> 原則 4 的**具名例外**：以顏色編碼「分類」而非「狀態」的拆解圖使用 `chart-*` 類別色板；這道例外只適用於分類編碼，不得用於金額或狀態呈現，見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)。
 
 Tie-break：若一個做法同時符合與違反多條原則，以序號較小的原則勝出；仍不明確時，選**裝飾較少、新元素較少**的那一個。`development-guide` §4 的六個提問是同一判斷的展開。
 
@@ -49,12 +49,17 @@ ONE PIECE 的視覺目標是：
 
 Page Header 規則：
 
-- Title：頁面唯一 H1。
+- Title：頁面唯一 H1（shell 的品牌不是 heading，見 [`states-and-a11y.md`](states-and-a11y.md)）。
 - Description：最多 1 行。
-- Action 放右側。
+- Action 放右側；多個 action 在手機改為**全寬堆疊**（`flex-col items-stretch`，`sm` 以上才轉回橫向）。主動作在上、次動作在下，同一個 action 不因寬度換位置。
 - 不要在 Header 再塞大量 Metric。
 - 不要把 Header 做成 Card。
 - 不使用大型 hero banner。
+- **不要重複已有導覽的入口**：nav 已經能去的地方（例如關帳的期間選擇）不再在 header 放第二個連結。
+
+文件外殼（`index.html`）也是頁面的一部分：`<title>` 寫「品牌 — 系統定位」、`<meta name="description">` 一句話、`theme-color` 取 `--background` 的實際色值（狀態列在 CSS 載入前就上色，不會白閃）、icon 指向專案自己的 `public/favicon.svg`。不要把樣板上預設的資源路徑留在 `<head>` 裡。
+
+外殼另外帶一段 inline style 與置中的 `Loading...` 骨架，放在 `#root` 內：JS 與 app CSS 都是外掛資源，這段讓第一個畫格就是深色底而不是白屏，首渲染時由 `createRoot` 一併清掉。骨架只在 `#root` 內，不進 `<head>` 的其他位置。
 
 ### 入口畫面 (Entry / Gate Surface)
 
@@ -67,12 +72,7 @@ Page Header 規則：
 
 ## 頁面寬度
 
-桌面版以固定最大內容寬度置中。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。
-
-頁面依用途分兩類：
-
-- **資料密集頁**（Transactions、Accounts、Debt、Reports）：可使用完整內容寬度。
-- **閱讀 / 情境頁**（Retirement、Account Detail、Portfolio Detail）：限制在較窄的閱讀寬度，避免長行。容器上限屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
+桌面版以固定最大內容寬度置中，全站所有頁面共用同一個容器，頁面**不另外設定寬度**（不寫頁面層級的 `max-w-*`）。容器上限與斷點切換屬 RWD 斷點契約，見 [`ui-layer-architecture.md`](ui-layer-architecture.md)（[ADR-0044](../adr/0044-rwd-breakpoint-contract.md)），本節不重述數字。
 
 原則：
 
@@ -97,19 +97,34 @@ Page Header 規則：
 
 **禁止**：級距外的任意值不得大量出現，除非有特殊 layout 原因。目標是讓整個系統有**可預測的節奏**。
 
+**分帶的層級**：`PageSection` 的 `border-b` 是 section 的分隔線，只有被標題命名的分帶才畫。section 內部的並列群組用子區塊標題（`subSectionTitleClass`，13px）＋ `Divider`／`Module` 記憶體分隔，**不再加 `border-b`**——一路加下去會出現三種粗細一樣、意思不同的線。標題與其內容之間靠間距拉開（告訴前 `pt-4`），不要讓標題與內容黏成同一塊。
+
 ## 狀態 (States)
 
 空、載入、錯誤三態的必備義務——標準結構、文案要求、呈現位置與錯誤呈現方式——屬 [`states-and-a11y.md`](states-and-a11y.md)。本節不重述，也不保留摘要版本。
 
 ## 進階設定 (Advanced Settings)
 
-複雜設定預設隱藏，收在 `Advanced` 展開鈕之後（例：Retirement 的 Growth / Start Year / End Year）。
+複雜設定預設隱藏，收在 `Advanced` 展開鈕之後（例：交易表單的進階欄位；退休規則的參數只隨所選 Method 出現，不預先鋪滿）。
 
 原則：
 
 > **Default path simple. Advanced path powerful.**
 
 不要把 domain complexity 全部丟給使用者。
+
+### 欄位順序與上下層揭露 (Field Order & Disclosure)
+
+選取 Phase 的編輯器若同時修改它所屬的 Event，桌機以並列的 Event / Phase 區域呈現，避免把必要欄位藏在收合層級，也讓窄欄位不被整個頁寬拉長；行動版依 Event → Phase 的閱讀順序垂直堆疊。兩者都屬於同一個選取細節，不重複顯示摘要列。
+
+其他「剛選中的東西」與「它的上層」編輯面板仍遵循以下順序：
+
+1. **選中的東西先出現**——它是這個面板存在的理由。
+2. **上層物件收在上方的揭露列**，摘要行右側以單行小字顯示識別值，點開才出現欄位。
+3. **上層欄位有錯誤時強制展開**，訊息不得藏在收起的區域裡。
+4. 上層的值若已由摘要行呈現，面板標題與描述不再重述一次。
+
+揭露列只用在「同一筆編輯的上下層」，與上面的 `Advanced`（同一層的選填欄位）是兩件事。
 
 ## 工作流 (Workflow)
 
@@ -128,8 +143,8 @@ Monthly Close 是全站最重要的 workflow UI。其階段模型、資料建立
 帳戶餘額階段依 Account Type 分區（現金／銀行／外幣／證券），所有必要輸入直接呈現在 Page 內（單一 Current Step 工作區），不使用 Dialog：
 
 - **缺漏輸入不做 inline 必填提示**，由狀態 glyph 單獨承擔；計算欄在缺漏輸入時顯示 0，不阻擋確認。操作錯誤仍以 inline 錯誤訊息就近呈現。
-- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，前期餘額／外幣金額／匯率／TWD 價值等數字欄的標籤與數字同軸右對齊（桌機佈局）。
-- **現金／銀行共用表頭的真表格**：一條 thead（帳戶／前期餘額／期末餘額），列內不重複欄位標籤；行動版維持卡片列（label 左、值右）。
+- **外幣 row 五欄佈局**：Account（名稱＋幣別）佔獨立欄，期初餘額／外幣金額／匯率／TWD 價值等數字欄的標籤與數字同軸右對齊（桌機佈局）。
+- **現金／銀行共用表頭的真表格**：一條 thead（帳戶／期初餘額／期末餘額），列內不重複欄位標籤；行動版維持卡片列（label 左、值右）。
 - **證券表**：數字欄表頭與輸入框右緣同軸。
 
 欄寬、列高、內距與字級層級等表面規格見 [`design-system.md`](design-system.md) 的 `data-table` 與其「字體排印」節；具體欄寬常數與同軸對齊由程式碼承擔。
@@ -217,24 +232,55 @@ Financial Reports 三張表是一個**沒有欄名標題列的單表**，由資�
 - **階層以縮排表達**（級距見 [`design-system.md`](design-system.md) 的「間距級距」），可摺疊、**預設展開**、chevron 置於標籤**左側**；摺疊狀態跨分頁切換**不保留**（切回重置為展開）。
 - **金額欄一律靠表格最右**，與標籤欄兩欄配置（欄寬為程式碼常數）。
 - **現金流的實際餘額為表下的 muted 註腳**（對帳性質的次要觀察值），不與現金淨變動等重。
-- **行動版沿用同一張兩欄表**（標籤換行、無水平捲動），並沿用同一套語意階層，不另做 grouped card；資產負債表的五項權益來源固定呈現（含 0），確保 breakdown 不因歸零而被隱藏。
+- **行動版改用一列一筆的堆疊列，不沿用兩欄表**：`<md` 沒有 74/26 的欄寬可分配，硬留兩欄會把標籤與金額一起擠爛。列的形狀（label 左／金額右、44px chevron、漂移折成金額下方第二行）由 [`design-system.md`](design-system.md) 的 `data-table` Mobile 段定義，本節只要求三張表都走這條路：行動版不另做 grouped card，資產負債表的五項權益來源固定呈現（含 0），確保 breakdown 不因歸零而被隱藏。
+- **終結列在行動版滿版整列**：primary 與 2px 上下線一律保留，不因堆疊而少掉下線——手機上它就是結論的框。
+- **文字優先於表格語彙**：行動版仍沿用同一套語意階層與同一組字級，只是沒有表頭與欄對齊可用。
 
 ### 報表檢視 (Report View)
 
 報表檢視是回看已產生報表的介面，分為清單與 detail，兩者一律讀**已產生報表**、不做漂移比對（與關帳畫面的預覽契約刻意不同，見 [ADR-0077](../adr/0077-report-view-shows-persisted-close-shows-preview.md)）。
 
-- **清單**：header（標題 ＋ 月／年粒度切換）→ hero（最近一份有報表期間的淨利）→ summary（同期的期末權益與期末現金）→ **報表歷史**。hero 與 summary 同源；最新期間尚無報表時往前找，不顯示空值。
-- **報表歷史**：每列一個期間（期間、淨利、期末權益、期末現金），最新在前、全列不分頁；月／年切換是同一份資料的兩種粒度（年度為月報表聚合，見 [`CONTEXT.md`](../../CONTEXT.md) 的 Report Year）。狀態標記**僅在非已關帳時**顯示，已關帳為預設不標。
+- **清單**：header（標題 ＋ 說明）→ **財務摘要**（總資產、淨資產、總負債、儲蓄率四個 KPI，詳見下節 Analysis View）→ **報表歷史**。KPI 取分析錨點（最新有資產負債表的期間，含未關帳）；尚無報表時四格皆為「—」。
+- **報表歷史**：每列一個期間（期間、淨利、期末權益、期末現金），最新在前、全列不分頁；月／年切換是同一份資料的兩種粒度（年度為月報表聚合，見 [`CONTEXT.md`](../../CONTEXT.md) 的 Report Year）。狀態標記**僅在非已關帳時**顯示，已關帳為預設不標。四欄表格自 `lg` 起顯示；`lg` 以下（含平板）改用 grouped row，避免期間與狀態在窄欄被拆字。
 - **detail**：header（期間 ＋ 上／下導覽）→ 底線式 tabs（三張報表）；每張表沿用上節「財務報表語意階層」與關帳報表的表格／分頁契約（同一份共用呈現）。導覽為純日曆移動，任何期間皆可開啟，該期無報表顯示空狀態；非已關帳期間於 header 提供次級動作前往月度關帳。
 - **三態**一律沿用共用元件：載入＝Skeleton、錯誤＝ inline 提醒 ＋ 重試、空＝空狀態（detail 空狀態帶期間）；不使用 spinner 或純文字紅字。
+
+### 歷史財務分析 (Analysis View)
+
+`/reports/analysis` 是報表的分析子頁，**reading-first、不起卡片**，區塊以帶狀分節（[ADR-0090](../adr/0090-report-analysis-single-route-and-anchor.md)、[financial_analysis.md](../financial_analysis.md)）。
+
+- **Header**：標題「歷史財務分析」、麵包屑「報表」回首頁；不另放返回按鈕。導覽標籤與 Pixel Pet 不變。
+- **摘要句**：header 下第一行是完整語句的結論（淨資產、較上期變化、儲蓄率、負債比），先給答案再看圖；句中淨資產數字單獨放大為 20px 並用 tabular-nums，其餘維持 16px `foreground`，不做 hero。缺任何一項時該句只保留有值的片段。
+- **資料截止列**：摘要句下方的小字列「資料截至 `YYYY-MM`」，有未關帳時同一句帶「含 N 期未關帳」，其後以 `StatusGlyph` 帶「未關帳月份」標籤列出月份；超過 6 期收斂為「<最早月份> 起等 N 期」並連到報表歷史。
+- **區塊索引**：`sticky` 於 header 下方、`border-y` 與 `backdrop-blur` 分離（共七個）；錨點連結只放區塊名稱、不重複錨點值（值由各區塊標題承擔），行動版水平捲動並把 active 連結移進可視範圍。當前節以底線與 `aria-current` 標示（`IntersectionObserver` 取視窗上三分之一），捲動時索引本身不隨頁面重排。點擊連結捲動至區塊並把焦點移到該區塊（平滑與否由全域 `prefers-reduced-motion` 規則決定，見 [states-and-a11y.md](states-and-a11y.md)）。
+- **範圍與粒度控制**：範圍 `1Y／3Y／5Y／All`、粒度 `月／年`，皆以 `aria-pressed` 表達選取、replace 更新網址；產生相同結果的選項移除，只剩一個時該條控制隱藏。年粒度另有「年度選取」下拉，行為契約見 [`financial_analysis.md` §1b](../financial_analysis.md#1b-資料粒度)。
+- **選取期間摘要**：點選圖上任一期間即導覽到該期報表；`?period=` 是不導覽的深連結，解析後選取該期並顯示摘要列——該期淨資產、總資產、總負債、儲蓄率、負債比與「查看 `期間` 完整報表」按鈕。未關帳期間標「暫估」。選取期間是整頁共用狀態：所有圖表標記同一點；各區塊標題值固定取錨點期，缺該期的區塊顯示「—」。
+- **財務摘要 KPI（landing）**：總資產、淨資產、總負債、儲蓄率。僅「標籤＋數字」是連結區，外框留白不喫點擊、命中高度至少 44px；箭頭桌機 hover 出現、觸控常駐；`aria-label` 具名目的地。四格共用的期間與未關帳狀態只在區塊標題顯示一次，不逐格複製；標題列右側另有 `Button variant="text"`「查看完整分析 →」。
+- **淨資產趨勢**：全寬，淨資產為實線＋`asset` 單色面積（accent 保留給主要趨勢）；總資產與總負債為預設關閉的虛線脈絡，走右軸（與左軸的淨資產量級分開）。桌機 320、行動版 200。
+- **資產類別構成**：現金／投資／不動產三條固定序列的 100% 堆疊面積，顏色走類別色板（`chart-1`／`chart-4`／`chart-3`，經 `ComposedChart` 的 `colorToken`，非語意 tone）。`chart-3` 與 `warning` 同值：重疊處由參考線的 background casing 與虛線形式區隔，不換色以免與 donut 的類別映射脫鉤。y 軸固定 0–100、刻度 0／25／50／75／100 並標 `%`（分母規則見 [financial_analysis.md §7](../financial_analysis.md#7-資產類別構成)）。tooltip 用 list 模式：只列可見序列，每類別一列、金額與佔比同層，並帶該類別色塊。桌機 320、行動版 200。
+- **投資績效**：上層報酬金額柱（正 `positive`／負 `negative`，桌機 240），下層 96px 報酬率折線（`investment`、零基準），共用月份、x 軸與同一份 tooltip、不使用右軸；折線承擔 x 標籤。兩層 tooltip 都採 hero 模式：報酬金額是唯一主要值，報酬率與期初市值為輔助列，隱藏的序列不列；期初市值是報酬率的尺度，報酬率隱藏時仍保留。報酬金額被隱藏時 hero 位置顯示「—」，不把輔助值升格。區塊下方固定一行 muted「家庭層、市值加權，報酬已排除期間現金流」。
+- **負債與槓桿**：全寬、三層同節：負債餘額柱（`negative`，桌機 240）→ 96px 負債比折線（`neutral`）→ 96px 加權平均槓桿折線（`investment`），各層以分隔線與單位標籤區隔、不使用右軸。三層共用同一份 hero tooltip：負債餘額是主要值，負債比與加權平均槓桿為輔助列（槓桿列只在該層存在時出現），隱藏的序列不列；負債比另附較前期變化，以「個百分點」而非「%」表示。負債餘額被隱藏時 hero 位置顯示「—」。槓桿值在 tooltip 顯示至小數第四位再去尾零，不用固定兩位截斷。槓桿層只在目前範圍任一點大於 1 時渲染；否則底部一行 muted「此範圍內持倉無槓桿」。x 標籤由最下層可見折線承擔；窄幅比率軸靠 `yDecimals` 固定小數位，避免刻度重複。
+- **收支與儲蓄率**：上半為收入／支出並列柱（`positive`／`negative`，桌機 240），下半為 96px 儲蓄率折線（`asset`），共用月份與 x 軸、**不使用右軸**；柱圖不出 x 標籤，由下方折線承擔（折線被切換隱藏時，x 標籤回到柱圖）。兩張圖以分隔線與「儲蓄率 %」單位標籤區隔，避免兩套尺度讀成一張圖。收入是 tooltip 的 hero，儲蓄率與較前期的儲蓄**金額**變化（不列比率變化）都是輔助列，公式註記固定在區塊下方。
+- **淨現金流**：零基準柱，正值 `positive`、負值 `negative`，桌機 240；區塊下方有現金基礎的 muted 提醒。
+- **現金覆蓋**：全頁最後一節、全寬。單一折線（`positive`、零基準、`null` 斷線），桌機 240、行動版 160；tooltip 依序固定列覆蓋月數（一位小數）、現金、近三月平均支出，缺 window 的點以「—」呈現但仍可選取。區塊標題小字為 `YYYY-MM · X 個月`，底部固定 muted 公式註記「現金與銀行資產（含定存）÷ 近三月平均支出」。非 `null` 點數不足 2 期時顯示不足說明。
+- 資產類別構成與投資績效、收支與淨現金流在 `lg` 成對並排（欄距 40px）、`md` 以下堆疊；淨資產、負債槓桿與現金覆蓋永遠全寬。
+- x 標籤在月粒度為 `MMM YYYY`、年粒度直接是 `YYYY`（年點本身就是年份，不再帶月份）。
+- 區塊標題右側以小字顯示該區塊的**錨點期**與值（`期間 · 值`，年粒度為 `YYYY`），未關帳期間加「（未關帳）」，不加變化率；選取期間的摘要留在摘要列，不改寫標題。淨資產 tooltip 以淨資產為 hero、另列較前期的金額變化率；收支列儲蓄金額變化、負債比列百分點變化，皆為輔助列。tooltip 內容分 hero（單一主要指標）與 list（多個平行項目）兩種語義模式；欄位順序只決定顯示次序，不決定層級。
+- 圖表高度只有三組固定值（`tall` 320／200、`standard` 240／160、`compact` 160／160），不依點數多寡再切換。
+- **點選即下鑽**：桌機 hover 有預覽，單擊（或 Enter／空白鍵）導覽到該期報表；深連結 `?period=` 解析後只選取、不導覽。tooltip 標題在未關帳期間加「（未關帳）」，與選取摘要的「暫估」一致。
+- **未關帳**：每段連續未關帳月份的第一筆畫 `warning` 參考線並標「未關帳」，同一區段只標一次；標籤只畫在第一張圖，其餘圖共用同一個座標，不重複標。參考線與標籤以 background casing 墊底，確保壓在分類色帶上仍可辨識。`Alert` 只給載入錯誤。
+- **三態**與報表檢視相同（Skeleton／warning alert ＋重試／空狀態）；載入時每個區塊各自一塊等高 Skeleton，不回應頁級骨架上整頁等待。資料不足 2 期顯示說明而非空圖。
 
 ### Detail 頁的次要閱讀層 (Detail Secondary Layers)
 
 Detail 頁把低頻決策的資訊收在可摺疊面板與列展開之後，讓主結論（summary）先被讀到：
 
 - **區塊級折疊**：次要 section 可整段收進可摺疊面板，面板標題即 section 標題，**預設展開**；展開狀態**不持久**（切換檢視即重置）。
-- **列展開**：同一份資料的「彙總列 → 該列明細」用**列展開**承擔。彙總列是唯一的互動列（chevron 置於標籤**左側**、`aria-expanded`），展開顯示該列明細；展開中的列不加 hover 底色，明細列一律不得有 hover 呈現。
-- **權威值優先**：每月彙總以已結算的快照為權威，缺快照時退回該月明細合計；SUMMARY 固定為最近 12 個月合計，實體餘額取最新快照並獨立於 summary 呈現（專案詳情以 hero 數字承擔），兩者都不隨展開狀態跳動。
+- **列展開**：同一份資料的「彙總列 → 該列明細」用**列展開**承擔。彙總列是唯一的互動列（chevron 置於標籤**左側**、`aria-expanded`），展開顯示該列明細；展開中的列不加 hover 底色，明細列一律不得有 hover 呈現。**chevron 與整列是同一個意圖**：兩者行為一致（選取＋切換展開），不得讓相鄰的兩個目標給出不同結果；chevron 命中區至少 32px。
+- **權威值優先**：每月彙總以已結算的快照為權威，缺快照時退回該月明細合計；SUMMARY 固定為最近 12 個月合計並標註「近 12 個月」，與餘額不同源。餘額取最新快照後逐月 roll-forward 至最新月份，期初由該錨點反向推導（有快照的月份仍用快照值）；MONTHLY CASH FLOW 的收支欄含轉帳列但只以收支呈現。推導契約見 [data-structure.md](../data-structure.md) §3；三者都不隨展開狀態跳動。
+- **餘額與結算脈絡**：餘額是即時推導值，不是最後一次結算的數字，因此 hero 下方固定顯示「最後結算月份」（`YYYY-MM` 或「未曾結算」），讓人看得出這個數字距離最後一次驗證有多遠；餘額查詢失敗時在原位顯示錯誤與重試，不以缺值佔位假裝正常。
+- **視窗與載入更多**：MONTHLY CASH FLOW 一次載入 12 個日曆月，較舊資料以單一「載入更早的月份」按鈕再往前 12 個月，探測窗前一筆決定按鈕存否；summary 恆為已載入群組的前 12 個月，載入更多不得改變它。探測失敗代表「是否有更舊資料」未知（[ADR-0072](../adr/0072-load-failure-is-not-evidence.md)）：按鈕照常可再載入一次，並顯示一行說明，不把失敗讀成到底。此決定可逆且未另立 ADR，理由記錄於此。
+- **只有第一畫受 Skeleton 管制**：首次載入顯示 Skeleton，之後的載入更多與重新整理都在原位換內容，不置換整個 section；否則使用者的捲動位置與脈絡會被清空。
 - **可推導的聚合不另開表**：能由明細推導的聚合（如支出分類）不另開表格，改由展開明細承擔。
 - 行動版以可展開的 grouped row 呈現同一組資料，不另做第二套結構。
 
@@ -246,7 +292,10 @@ Mobile 不是 Desktop 縮小，而是相同資訊階層的不同排版。
 - 不以水平捲動作為主要解法。
 - Table → compact rows / grouped list。
 - Secondary information 可收進 Accordion。
+- 併排區塊在手機改為上下堆疊時，**每個區塊各自帶標題**，不靠另一半的欄寬暗示歸屬；只在桌機才有的欄（如沒有欄名的 `-` 佔位列）不帶到手機，改由列內既有文字承擔。
 - Primary action 保持容易觸及。
+- **分頁列（tabs）在手機照樣是分頁，不是堆疊**：面板 `forceMount` 時，面板與分頁列都不可以 `hidden md:*`——否則手機一次看到全部面板、而且永遠切不動。非選中的面板 `hidden`、選中的 `block`（每個寬度都一樣）；分頁列在一個寬度下放不下時自己橫向捲動（隱藏滾動條），不要靠推向下一層。
+- 底部固定列（sticky dock）以 `--bottom-overlay`（由 shell 量測系統級固定浮層髮布，無浮層時為 `0`）加上 `env(safe-area-inset-bottom)` 讓位，永不與固定浮層或 home indicator 重疊；高度不得寫死。
 - Reading order 與 Desktop 一致（見「響應式原則」）。
 
 行動版導覽由 Pixel Pet 獨家擁有，契約見 [`ui-layer-architecture.md`](ui-layer-architecture.md)。
@@ -318,6 +367,7 @@ State change
 
 - 不要只靠紅色表達危險。
 - Confirmation 必須說清楚 **What will happen** / **What will not happen**，並提供 `[ Cancel ] [ Confirm ]`。
+- **觸發鈕本身就要有破壞性重量**：不可逆動作（關帳、刪除）的主按鈕用 `destructive` 變體，不用 `default`。按下前就該看出這一顆與旁邊的「上一步」不是同一種後果。後果說明以一行常駐文字掛在鈕旁（例「關帳後將鎖定，重開會牽連後續所有期間」），不把後果只留在確認框裡——前置說明讓人在按下去之前就決定。
 
 ## 通知 (Toast / Notification)
 
@@ -349,7 +399,7 @@ Reading order 不變。斷點與導覽切換契約見 [`ui-layer-architecture.md
 工程師 Review 時看到以下情況，優先視為 drift：
 
 - ❌ **Card everywhere**——每個區塊都套 Card。
-- ❌ **Excessive rounded corners**——`rounded-xl` / `rounded-2xl` / pill everything。
+- ❌ **Excessive rounded corners**——`rounded-xl` / pill everything。
 - ❌ **Shadow everywhere**。
 - ❌ **彩色代表資料類型**。
 - ❌ **大型 icon / illustration**。
@@ -391,6 +441,7 @@ ONE PIECE VISUAL CHECK
 [ ] 沒有不必要的 Card / Pill / Shadow
 [ ] Page hierarchy 一眼可讀
 [ ] 畫面組合與 gallery 對應 section 一致（自製替代即 drift）
+[ ] 動態符合 [`motion-system.md`](motion-system.md)：有對應的動畫 ID、用 token、不重播頁面進場
 ```
 
 ### 最後的判斷標準

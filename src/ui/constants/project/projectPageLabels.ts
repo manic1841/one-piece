@@ -12,15 +12,14 @@ export const PROJECTS_PAGE_LABELS = {
   FILTER_LABEL: '專案狀態篩選',
 } as const;
 
-export const PROJECT_COLUMN_WIDTHS = [8, 32, 20, 13, 13, 14] as const;
+export const PROJECT_COLUMN_WIDTHS = [8, 40, 12, 20, 20] as const;
 
 export const PROJECT_COLUMN_LABELS = {
   REORDER: '排序',
   NAME: '名稱',
   STATUS: '狀態',
-  INCOME: '收入',
-  EXPENSE: '支出',
-  NET_CASH_FLOW: '淨現金流',
+  BALANCE: '餘額',
+  LAST_SETTLED_MONTH: '最後結算月份',
 } as const;
 
 export const PROJECT_STATUS_LABELS = {
@@ -31,7 +30,7 @@ export const PROJECT_STATUS_LABELS = {
 export const PROJECT_FILTER_ALL = 'all';
 
 export const PROJECT_FILTER_ITEMS = [
-  { id: 'active', label: '僅進行中' },
+  { id: 'active', label: '進行中' },
   { id: PROJECT_FILTER_ALL, label: '含停用' },
 ] as const;
 

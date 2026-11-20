@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { TimestampSchema } from '@/shared/schemas/date';
+
 export const OperationStatus = z.enum(['IN_PROGRESS', 'SUCCEEDED', 'FAILED']);
 export type OperationStatus = z.infer<typeof OperationStatus>;
 
@@ -14,9 +16,9 @@ export const OperationRecordSchema = z.object({
   payloadFingerprint: z.string().min(1),
   status: OperationStatus,
   resultReference: OperationResultReferenceSchema.nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  completedAt: z.date().nullable().optional(),
+  createdAt: TimestampSchema,
+  updatedAt: TimestampSchema,
+  completedAt: TimestampSchema.nullable().optional(),
   createdByUid: z.string().min(1),
 });
 

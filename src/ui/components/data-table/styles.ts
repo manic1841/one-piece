@@ -2,7 +2,7 @@
  * Data table 樣式契約（單一真相來源）。
  *
  * 值對應 `docs/ui/design-system.md` 的 `data-table` 段與 ADR-0061：
- * table-fixed + border-collapse、header 10px/500/uppercase/0.08em、
+ * table-fixed + border-collapse、header 11px/500/uppercase/0.08em、
  * 資料列 54px、cell padding 9px 12px、數字欄右對齊 mono tabular-nums。
  *
  * 垂直內距是列高預算的一部分：`h-[54px]` 只是**最小**列高，列內最高的內容是
@@ -21,7 +21,7 @@ export const dataTableClass = 'w-full table-fixed border-collapse text-sm';
 export const dataTableScrollAreaClass = 'hidden overflow-x-auto md:block';
 
 const headCellBaseClass =
-  'border-b border-border pb-[9px] pr-3 align-bottom text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
+  'border-b border-border pb-[9px] pr-3 align-bottom text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
 
 /** 文字欄表頭：置底對齊、左對齊。 */
 export const dataTableHeadTextClass = `${headCellBaseClass} text-left`;
@@ -52,7 +52,7 @@ export const dataTableCellNumberClass =
 
 /** 欄位／區塊標籤（行動版 grouped card 與表頭以外的標籤共用）。 */
 export const dataTableLabelClass =
-  'text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
+  'text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground';
 
 /** 移除 number input 的原生增減 spinner（來源：`ui/input-styles`，與 form 套件共用）。 */
 export { numberInputSpinnerClass } from '@/ui/components/ui/input-styles';

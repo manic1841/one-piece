@@ -27,8 +27,11 @@ describe('dashboardCashFlowChart.vm', () => {
     expect(vm.points).toEqual([
       {
         title: 'AUG 2026',
-        value: '現金流入 +NT$4,600',
-        meta: '現金流出 −NT$16,900',
+        content: {
+          mode: 'hero',
+          primary: { id: 'inflow', label: '現金流入', value: '+NT$4,600' },
+          secondary: [{ id: 'outflow', label: '現金流出', value: '−NT$16,900' }],
+        },
       },
     ]);
   });

@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { getAccountsUseCase } from '@/application/account/use_cases/getAccountsUseCase';
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
-import { type MonthlyCloseConfirmResult } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 import {
-  type MonthlyCloseConfirmRequest,
-  monthlyCloseWorkflowUseCase,
-} from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
+  type MonthlyCloseConfirmBody,
+  type MonthlyCloseConfirmResult,
+} from '@/application/monthly_close/use_cases/monthlyCloseRequests';
+import { monthlyCloseWorkflowUseCase } from '@/application/monthly_close/use_cases/monthlyCloseWorkflowUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listProjectsUseCase } from '@/application/project/use_cases/listProjectsUseCase';
 import { type Account } from '@/domains/account/types/account';
@@ -27,6 +27,7 @@ import {
   resolvePositionText,
   resolveStepText,
 } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import { alert, celebrate } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { logger } from '@/utils/logger';
@@ -92,9 +93,7 @@ export const useMonthlyClosePage = ({
   }, [auth, beginRequest, householdId, isLatestRequest, userEmail, yearMonth]);
 
   const confirmStage = useCallback(
-    async (
-      request: Omit<MonthlyCloseConfirmRequest, 'householdId' | 'yearMonth' | 'userEmail' | 'auth'>,
-    ): Promise<MonthlyCloseConfirmResult | null> => {
+    async (request: MonthlyCloseConfirmBody): Promise<MonthlyCloseConfirmResult | null> => {
       const seq = beginRequest();
       setConfirmingStageId(request.stageId);
       setError(null);
@@ -108,10 +107,13 @@ export const useMonthlyClosePage = ({
         });
         if (!isLatestRequest(seq)) return null;
         setPeriod(result.period);
+        // Closing the month is the workflow's own finish line, not a stage step.
+        if (request.stageId === 'CLOSE_PERIOD' && result.period.status === 'CLOSED') celebrate();
         return result;
       } catch (err) {
         if (!isLatestRequest(seq)) return null;
         setError(monthlyCloseErrorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        alert();
         return null;
       } finally {
         setConfirmingStageId(null);
@@ -139,6 +141,7 @@ export const useMonthlyClosePage = ({
       } catch (err) {
         if (!isLatestRequest(seq)) return null;
         setError(monthlyCloseErrorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        alert();
         return null;
       } finally {
         setIsStarting(false);
@@ -231,7 +234,6 @@ export const useMonthlyClosePage = ({
   const handleConfirmStage = async (stageId: CloseStageId) => {
     // The registry is a complete record, so the stage is always present.
     const { control } = stepRegistry[stageId];
-    if (control.confirmGate && !(await control.confirmGate())) return;
     const result = await confirmStage(control.buildRequest());
     // A failed confirm writes nothing, so no view reset and no refresh may follow.
     if (!result) return;

@@ -1,25 +1,9 @@
 import { z } from 'zod';
 
-import {
-  RetirementExpenseCategorySchema,
-  RetirementExpenseType as RetirementExpenseTypeEnum,
-  RetirementIncomeSourceSchema,
-  RetirementIncomeType as RetirementIncomeTypeEnum,
-  RetirementOneTimeEventSchema,
-  RetirementPlanCreateSchema,
-  RetirementPlanSchema,
-  RetirementProjectionYearSchema,
-} from './schemas';
+import { createRetirementPlanCreateSchema, createRetirementPlanUpdateSchema } from './schemas';
 
-export type RetirementPlan = z.infer<typeof RetirementPlanSchema>;
-export type RetirementPlanCreate = z.infer<typeof RetirementPlanCreateSchema>;
-export type RetirementIncomeSource = z.infer<typeof RetirementIncomeSourceSchema>;
-export type RetirementExpenseCategory = z.infer<typeof RetirementExpenseCategorySchema>;
-export type RetirementOneTimeEvent = z.infer<typeof RetirementOneTimeEventSchema>;
-export type RetirementProjectionYear = z.infer<typeof RetirementProjectionYearSchema>;
+export type RetirementPlanCreate = z.infer<ReturnType<typeof createRetirementPlanCreateSchema>>;
+export type RetirementPlanUpdate = z.infer<ReturnType<typeof createRetirementPlanUpdateSchema>>;
 
-export type RetirementIncomeType = RetirementIncomeTypeEnum;
-export const RetirementIncomeType = RetirementIncomeTypeEnum;
-
-export type RetirementExpenseType = RetirementExpenseTypeEnum;
-export const RetirementExpenseType = RetirementExpenseTypeEnum;
+/** Persisted plan: the create shape plus its document id. */
+export type RetirementPlan = RetirementPlanCreate & { id: string };

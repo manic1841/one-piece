@@ -31,6 +31,9 @@ No accounts have been added yet.
 ### 載入狀態 (Loading)
 
 - 一般 loading：單行文字（`Loading...`）。
+- **頁面層**的等待（app 啟動授權、路由 chunk 下載）用 Skeleton，不用單行文字：
+  路由 chunk 的 fallback 是 `PageSkeleton`，授權未落定的 fallback 是 `GateSurface`
+  ＋ Skeleton。兩者都帶 `aria-busy="true"` 與 `aria-label="載入中"`。
 - Skeleton 用於 Table / List / Detail。
 - 長時間工作使用 Terminal-style 進度——這是 ONE PIECE 的 engineering identity：
 
@@ -57,11 +60,24 @@ $ generate-reports --period SEP-2026
 - `ui/alert` 承擔 `role="alert"` live region；`CliProgress` 自繪進度條並自帶 `role="progressbar"` 與 `aria-value*`。其他自繪進度指示同樣必須自行補齊等價的 `role` 與 `aria-value*`。
 - 拖曳排序的播報容器（`aria-live`）置於 table **外層**，不得成為 `tbody` 的子元素。
 - 純裝飾的關閉 backdrop 標 `aria-hidden="true"`——它對輔助技術沒有意義。
+- **地標 (landmarks) 各一份**：`header` / `main` / `footer` 不疊用、不縮進 `div`。`main` 帶 `id="main"` 與 `tabIndex={-1}`，shell 的第一個可聚焦元素是 `#main` 的跳至主要內容連結（平時 `sr-only`，聚焦時浮出）；`tabIndex={-1}` 讓焦點真的落在 main 上而不會被瀏覽器吞掉。
+- **一頁只有一個 `h1`，由路由的頁面標題承擔**；shell 的品牌是 `p`，否則每個頁面都會有兩個 `h1`，而且先被讀到的那個跟這個頁面無關。
+- 圖示按鈕的 `aria-label` 與可見文字不得重複宣告（visible text 已足夠時不加）。
 
 ### 焦點可見性
 
 - 每個可互動元素都必須有可見的 focus 指示。移除 `outline` 就必須提供等價的替代。
 - 這是義務而非樣式選擇：focus 樣式跟隨既有元件（`src/ui/components/`）已建立的模式；新元件不得自創。
+
+### 命中區 (Hit Area)
+
+- **指標目標至少 44×44**（WCAG 2.5.5）。觸控與滑鼠共用同一個數字：細指標裝置的存取成本不會因為有滑鼠而消失。
+- 命中區可以大於視覺盒，**放大命中區不改變視覺尺寸**——已有密集表面不必因此改設計：
+  - 視覺盒本身夠大（`icon` button 的 40px）時，用 `after:absolute after:-inset-0.5` 往外補到 44，盒子尺寸不動。
+  - 列內小的 ghost icon（刪除）用 `after:-inset-1.5`，且**刪除按鈕留在列裡**，不另開一欄。
+  - 高度不足的文字按鈕與 toggle 用 `min-h-11`；搭配 `h-auto p-0` 的「文字連結樣式按鈕」同樣要 `min-h-11`。
+- 偽元素命中區需要 `relative` 的宿主；`after` 必須 `content-[""]` 才會生成。
+- 圖示只有 icon 時必須有 `aria-label`（見下方 Checklist）。
 
 ### 鍵盤可及性
 
@@ -75,6 +91,7 @@ $ generate-reports --period SEP-2026
 - 表單輸入必須有**可程式化關聯**的 label：`htmlFor` + `id`，或以 `<label>` 包覆控制項。Radix 的 checkbox / switch 控制項以 `<label>` 包覆，並在 eslint 設定中登錄為控制項。
 - 浮層（popover / dialog / sheet）必須能用 **Escape** 關閉。
 - 展開／收合類的控件必須帶 `aria-expanded`。
+- **拖曳的鍵盤等價由「另一個真實欄位」承擔，不重造拖曳**：時間軸的 bar 是 `role="button"`，↑↓ 只在列間移動焦點；換事件的隸屬（拖曳跨列的等價）走 inspector 的 `Belongs to event` 選欄。反之，列內的年份拖曳（平移、改長度）由 inspector 的年份欄承擔。`aria-grabbed` 因此不必模擬，兩條路徑都指向同一份草稿。
 
 ### 使用者偏好設定
 
@@ -100,5 +117,7 @@ ONE PIECE A11Y CHECK
 [ ] 浮層都能用 Escape 關閉
 [ ] 展開/收合控件帶 aria-expanded
 [ ] 沒有移除 outline 而無 focus 替代
+[ ] 指標目標至少 44×44，且放大命中區沒有改變視覺尺寸
+[ ] 地標不重複，`main` 有 id 且可被跳至；一頁只有一個 h1
 [ ] 純裝飾元素不進 accessibility tree
 ```

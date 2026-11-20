@@ -25,6 +25,19 @@ const COLUMN_WIDTHS = [22, 26, 26, 26] as const;
 
 const detailPath = (period: string): string => `/reports/${period}`;
 
+/** Enter/Space on a focused row opens it; two renders share one handler. */
+const rowKeyDown =
+  (go: (period: string) => void, period: string) =>
+  (event: React.KeyboardEvent<HTMLElement>): void => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    go(period);
+  };
+
+const INTERACTIVE_CLASS =
+  'cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0';
+
 interface ReportHistoryTableProps {
   rows: ReportHistoryRowVM[];
 }
@@ -37,7 +50,8 @@ export const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({ rows }) 
 
   return (
     <>
-      <MobileDataList>
+      {/* Four numeric columns only fit from `lg`; tablets keep the grouped rows. */}
+      <MobileDataList className="md:block lg:hidden">
         {rows.map((row) => (
           <MobileDataRow
             key={row.period}
@@ -45,23 +59,28 @@ export const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({ rows }) 
             role="button"
             tabIndex={0}
             onClick={() => go(row.period)}
-            onKeyDown={(event) => {
-              if (event.target !== event.currentTarget) return;
-              if (event.key !== 'Enter' && event.key !== ' ') return;
-              event.preventDefault();
-              go(row.period);
-            }}
-            className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0"
+            onKeyDown={rowKeyDown(go, row.period)}
+            className={INTERACTIVE_CLASS}
           >
-            <div className="flex items-center justify-between gap-2 text-sm font-medium">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="font-mono tabular-nums">{row.period}</span>
-                {row.status && <StatusGlyph type={row.status.glyph} label={row.status.text} />}
-              </span>
-              <span className={cn('font-mono tabular-nums', MONEY_TONE_CLASS[row.netIncomeTone])}>
-                {row.netIncomeText}
+            {/* One fact per line: the row opens on the period it is about, and
+                everything else is a labelled field below it. */}
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <span className="font-mono tabular-nums">{row.period}</span>
+              {row.status && <StatusGlyph type={row.status.glyph} label={row.status.text} />}
+              <span aria-hidden className="ml-auto text-muted-foreground">
+                ›
               </span>
             </div>
+            <MobileDataField label={REPORT_LIST_LABELS.COLUMN_NET_INCOME}>
+              <span
+                className={cn(
+                  'font-mono text-sm tabular-nums',
+                  MONEY_TONE_CLASS[row.netIncomeTone],
+                )}
+              >
+                {row.netIncomeText}
+              </span>
+            </MobileDataField>
             <MobileDataField label={REPORT_LIST_LABELS.COLUMN_EQUITY}>
               <span className="font-mono text-sm tabular-nums">{row.equityText}</span>
             </MobileDataField>
@@ -72,7 +91,7 @@ export const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({ rows }) 
         ))}
       </MobileDataList>
 
-      <DataTableScrollArea>
+      <DataTableScrollArea className="md:hidden lg:block">
         <DataTable data-testid="report-history-table">
           <DataTableColGroup widths={COLUMN_WIDTHS} />
           <TableHeader>
@@ -94,14 +113,9 @@ export const ReportHistoryTable: React.FC<ReportHistoryTableProps> = ({ rows }) 
                 data-testid={`report-history-row-${row.period}`}
                 onClick={() => go(row.period)}
                 tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.target !== event.currentTarget) return;
-                  if (event.key !== 'Enter' && event.key !== ' ') return;
-                  event.preventDefault();
-                  go(row.period);
-                }}
+                onKeyDown={rowKeyDown(go, row.period)}
                 interactive
-                className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0"
+                className={INTERACTIVE_CLASS}
               >
                 <DataTableCell>
                   <span className="flex items-center gap-2">

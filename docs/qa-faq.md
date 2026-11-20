@@ -16,6 +16,8 @@
 9. [命名相近的標籤讓斷言誤判](#9-命名相近的標籤讓斷言誤判)
 10. [長跑 dev server 的 vite deps cache 過期 → App 不 mount](#10-長跑-dev-server-的-vite-deps-cache-過期--app-不-mount)
 11. [拖曳排序 handle 可見不等於 drop 可完成](#11-拖曳排序-handle-可見不等於-drop-可完成)
+12. [跑完 integration 後 QA 環境落 `/access-denied` → 是整庫清空不是資料壞](#12-跑完-integration-後-qa-環境落-access-denied--是整庫清空不是資料壞)
+13. [CI e2e job 被 cancelled → `--log-failed` 是空的](#13-ci-e2e-job-被-cancelled--log-failed-是空的)
 
 ## 1. REST-seeded 文件缺 base 欄位 → 頁面靜默吞錯
 
@@ -41,7 +43,7 @@
 
 **症狀**:從容器內對 `localhost:8080` 的 REST 探測全部 ECONNREFUSED,以為 emulator 掛了。2026-09-22 實例:對 `localhost:8080/9099/4000` 逐一探測全部失敗,結論寫成「emulator 已停止」,但同一時間 `pnpm qa:seed` 正常結束。
 
-**根因**:本工作區可能是 dev-container(透過 docker compose 建立)。容器內 `localhost` 指容器自己,emulator 只能透過 service hostname `firebase` 連(`firebase:8080` / `firebase:9099`)。前端已改走 Vite 同源 proxy(見 `docs/development-guide.md` 的「瀏覽器如何連到 emulator」),所以瀏覽器端不再需要 `localhost:8080/9099`;那兩個 port 通常也沒有發佈到 host。
+**根因**:本工作區可能是 dev-container(透過 docker compose 建立)。容器內 `localhost` 指容器自己,emulator 只能透過 service hostname `firebase` 連(`firebase:8080` / `firebase:9099`)。前端已改走 Vite 同源 proxy(見 `docs/operations.md` 的「瀏覽器如何連到 emulator」),所以瀏覽器端不再需要 `localhost:8080/9099`;那兩個 port 通常也沒有發佈到 host。
 
 **判別法**:容器內(`pnpm qa:seed`、`curl firebase:8080`)用 `firebase:8080`;瀏覽器端看 DevTools 請求是否走同源路徑(`/__emulator/firestore/...`、`/identitytoolkit.googleapis.com/...`),不要去探 `localhost:8080`。admin 腳本(如 `pnpm qa:seed`)能連線成功就代表 emulator 活著。兩邊都失敗才懷疑 emulator 本身。整合測試的環境變數設定見 `docs/testing.md`。
 
@@ -73,7 +75,7 @@
 
 **症狀**:種子文件存在、查詢語法正確、甚至直接 REST runQuery 拿得到資料,頁面仍顯示空列表。
 
-**根因**:App 按「登入使用者的 householdId」做 parent-scoped 查詢(例如 `households/{householdId}/retirement_plans`)。種子資料寫在 `households/qa_household/...` 而登入者的 household 是 `hh-test` 時,查詢正確地回空——不是 bug。整條鏈路只有一個 Firestore database(`(default)`),看起來像「資料在不同 database」時,通常是 household scoping 或 auth 身分錯位(見 §2),不是 database 不一致。
+**根因**:App 按「登入使用者的 householdId」做 parent-scoped 查詢(例如 `households/{householdId}/retirementPlans`)。種子資料寫在 `households/qa_household/...` 而登入者的 household 是 `hh-test` 時,查詢正確地回空——不是 bug。整條鏈路只有一個 Firestore database(`(default)`),看起來像「資料在不同 database」時,通常是 household scoping 或 auth 身分錯位(見 §2),不是 database 不一致。
 
 **判別法**:先確認「實際登入的 user 的 householdId」再決定種子路徑;`qa:seed` 之所以用固定 doc ID + 固定 `qa_household`,就是為了讓種子資料與登入身分對齊。
 
@@ -133,4 +135,24 @@
 
 **記錄自**:#152(2026-09-22,code review Spec 軸發現;真實 Playwright 觸控拖放驗證修復)。
 
-**記錄自**:#120(2026-09-20)。
+## 12. 跑完 integration 後 QA 環境落 `/access-denied` → 是整庫清空不是資料壞
+
+**症狀**:跑一次 `pnpm test:integration` 後,app 落 `/access-denied`(whitelist 404、`memberUids` 空),整個 QA 環境像壞了;但程式碼沒動。
+
+**根因**:integration 與 E2E 的 reset 都是對 emulator 專案發**整庫 DELETE**。舊版 integration 跑在共用專案 `demo-project`,而且清完**不還原**,於是把 QA seed、whitelist、household 全清掉,環境停在壞狀態。這與程式碼錯誤的症狀很像,容易往資料層/datastore 找錯方向。
+
+**現在的防護**(issue #208):integration 改跑**專屬**專案 `demo-integration`(`src/test/emulatorEnv.ts` 的 `INTEGRATION_FIREBASE_PROJECT_ID`,程式常數、不讀 `FIREBASE_PROJECT_ID`),`demo-project` 只給 dev/QA/E2E。`resetMockDb` 的 `assertIntegrationProject` guard 會拒絕清任何其他專案。E2E 仍在 `demo-project`,但清完立刻 `qa:init` + `qa:seed` 還原。
+
+**判別法**:若 QA 環境仍疑似被清空,先確認搭的是哪個專案——integration 應只動 `demo-integration`,不應摸到 `demo-project`。要重建 `demo-project`:`pnpm qa:init && pnpm qa:seed`。
+
+**記錄自**:#208(2026-09-27,PR #202 live emulator 驗證發現);#120(2026-09-20)。
+
+## 13. CI e2e job 被 cancelled → `--log-failed` 是空的
+
+**症狀**:`gh run view <run> --log-failed` 什麼都不印,看起來像 CI 沒錄到錯誤;於是轉向本地重現,但本地環境不同(例如 dev container 有設 `VITE_FIREBASE_API_KEY`)又重現不出來。
+
+**根因**:GitHub Actions 的 `--log-failed` 只取 **failed** step 的 log;若 step 是被 **cancelled**(例如 Playwright 的 CI retries 把全紅 suite 的 wall-clock 拉長、撞上 job 的 `timeout-minutes`),cancelled ≠ failed,log 就是空的。CI retries 同時掩蓋第一次失敗,讓錯誤更晚才浮現。
+
+**判別法**:改用 `gh run view <job> --log | grep -nE "Error|passed|failed|Timeout"` 取完整輸出,不要只看 `--log-failed`。要本地重現要先對齊 CI 環境(例如 `VITE_FIREBASE_API_KEY` 未設)。現在 CI 已設 `retries: 0`,第一次失敗立即浮現,job 遠早於 timeout 結束。
+
+**記錄自**:#285(2026-10-09 retro)。

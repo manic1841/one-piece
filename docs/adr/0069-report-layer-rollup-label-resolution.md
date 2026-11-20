@@ -1,7 +1,8 @@
 # 報表層對明細科目採父科目 roll-up 與凍結標籤解析
 
+**日期：** 2026-09-26
 **狀態：** 已接受
-**規範來源：** [financial_report.md](../financial_report.md) §1、§2
+**規範來源：** [financial_report.md](../financial_report.md) §3、§5
 
 明細科目（`type:category:detail`）不各自在報表上獨立成列，改為父科目 `type:category` 成列並加總金額，明細科目巢狀為其 `subItems`。理由是報表閱讀者先看類別總額、需要時再展開來源；獨立成列會讓使用者自建的明細科目把報表撐成不可掃描的長表。權益項不採同一條規則，直接呈現系統定義的五組。
 

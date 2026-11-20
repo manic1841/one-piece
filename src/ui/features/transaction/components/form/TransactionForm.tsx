@@ -39,9 +39,8 @@ interface TransactionFormProps {
   loading?: boolean;
   error?: string;
   projects: TransactionFormProjectOption[];
-  expenseCategories: TransactionFormCategoryOption[];
+  expenseCategoryOptions: TransactionFormCategoryOption[];
   incomeCategories: TransactionFormCategoryOption[];
-  advancedCategories: TransactionFormCategoryOption[];
   allActiveLedgerCodes: LedgerCodeItem[];
   loadIncomeAllocationTemplate?: (ledgerCode: string) => Promise<AllocationItemInput[] | null>;
 }
@@ -60,9 +59,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   loading = false,
   error,
   projects,
-  expenseCategories,
+  expenseCategoryOptions,
   incomeCategories,
-  advancedCategories,
   allActiveLedgerCodes,
   loadIncomeAllocationTemplate,
 }) => {
@@ -76,12 +74,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     previewDetails,
     submit,
   } = useTransactionFormState({
+    isOpen,
     initialOutput,
     onSubmit,
     projects,
-    expenseCategories,
-    incomeCategories,
-    advancedCategories,
+    ledgerCodes: allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
   });
 
@@ -110,7 +107,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
-
           <Tabs
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as TransactionFormTab)}
@@ -134,7 +130,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               <Form {...expenseForm}>
                 <ExpensePanel
                   projects={projects}
-                  categories={expenseCategories}
+                  categories={expenseCategoryOptions}
                   allLedgerCodes={allActiveLedgerCodes}
                 />
               </Form>
@@ -156,9 +152,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               </Form>
             </TabsContent>
           </Tabs>
-
           <Divider />
-
           {preview ? (
             <div className="rounded-lg bg-primary px-4 py-3 text-primary-foreground">
               <div className="text-xs uppercase tracking-[0.2em] text-primary-foreground">
@@ -177,7 +171,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               </div>
             </div>
           ) : null}
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               取消
@@ -185,7 +178,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <Button type="submit" disabled={loading || !preview}>
               {loading ? '送出中...' : mode === 'edit' ? '更新交易' : '送出'}
             </Button>
-          </DialogFooter>
+          </DialogFooter>{' '}
         </form>
       </DialogContent>
     </Dialog>

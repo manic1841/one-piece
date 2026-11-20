@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import {
-  type RouteAccessOutcome,
-  authorizeRouteAccessUseCase,
-} from '@/application/auth/use_cases/authorizeRouteAccessUseCase';
+import { type RouteAccessOutcome } from '@/application/auth/use_cases/authorizeRouteAccessUseCase';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 
@@ -42,8 +39,14 @@ export function useRouteAuthorization(requireHousehold: boolean): { outcome: Rou
 
     let cancelled = false;
 
-    void authorizeRouteAccessUseCase
-      .execute({ auth, householdId, requireHousehold })
+    void (async () => {
+      // Authorization reads the whitelist and membership from Firestore, so the
+      // workflow is imported on demand to keep Firestore out of the startup bundle.
+      const { authorizeRouteAccessUseCase } = await import(
+        '@/application/auth/use_cases/authorizeRouteAccessUseCase'
+      );
+      return authorizeRouteAccessUseCase.execute({ auth, householdId, requireHousehold });
+    })()
       .then((outcome) => {
         if (!cancelled) setResolved({ key: requestKey, outcome });
       })

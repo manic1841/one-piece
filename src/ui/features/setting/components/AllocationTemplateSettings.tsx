@@ -28,7 +28,7 @@ import { cn } from '@/ui/utils/cn';
 /**
  * The `isDefault` boolean is bound directly through `useFormField` — a Radix
  * checkbox is not a native value/onChange input, so it bypasses `FormControl`
- * (same pattern as `TransactionAllocationToggle`).
+ * (same pattern as other Radix controls bound through `useFormField`).
  */
 const DefaultCheckbox = () => {
   const { field } = useFormField();

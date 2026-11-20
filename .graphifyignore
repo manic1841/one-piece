@@ -1,0 +1,3 @@
+# Manifest files: their dependency nodes (react, vitest, ...) add nothing the
+# source graph doesn't already carry, and they pollute `graphify query` seeds.
+package.json

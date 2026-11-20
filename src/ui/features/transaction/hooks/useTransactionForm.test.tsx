@@ -12,7 +12,7 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
 }));
 
 vi.mock('@/ui/features/ledger/hooks/useLedgerCodes', () => ({
-  useLedgerCodes: () => ({ codes: [], loading: false }),
+  useLedgerCodes: () => ({ items: [], loading: false, errorMessage: null, reload: vi.fn() }),
 }));
 
 vi.mock('@/application/debt/use_cases/createDebtPaymentUseCase', () => ({

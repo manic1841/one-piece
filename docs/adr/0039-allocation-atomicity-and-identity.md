@@ -1,7 +1,8 @@
 # Allocation 建立與目前狀態取代的原子性與 identity
 
+**日期：** 2026-09-02
 **狀態：** 已接受
-**規範來源：** [transaction-flow.md](../transaction-flow.md)；[data-structure.md](../data-structure.md) §allocations
+**規範來源：** [transaction-flow.md](../transaction-flow.md)；[data-structure.md](../data-structure.md) §2
 
 Allocation 是管理會計決策，不是真實財務事件；Transaction 仍是財務 source，這項邊界由 [ADR-0011](0011-allocation-separate-collection.md) 定義。而現有的收入與支出表單會先建立 Transaction、再建立 Allocation、最後把 `allocationId` 回寫到來源 Transaction。這三個步驟若分開執行，可能留下孤立 Allocation，或在不確定的網路重試後產生重複財務 Transaction。
 

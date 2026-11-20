@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { GetFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { formatYearMonth } from '@/ui/utils';
@@ -23,10 +22,20 @@ export function useDashboardCloseStatus(householdId: string | undefined) {
     if (!householdId) return;
 
     const yearMonth = getPreviousYearMonth();
-    await run(async () => new GetFinancialPeriodUseCase().execute({ householdId, yearMonth }), {
-      writeBack: (result) =>
-        setVm(result.ok ? mapPeriodToCloseStatusVM(result.value, yearMonth) : null),
-    });
+    // Runs from the always-mounted header pet; imported on demand so Firestore
+    // is not part of the startup bundle.
+    await run(
+      async () => {
+        const { GetFinancialPeriodUseCase } = await import(
+          '@/application/monthly_close/use_cases/financialPeriodAccessUseCases'
+        );
+        return new GetFinancialPeriodUseCase().execute({ householdId, yearMonth });
+      },
+      {
+        writeBack: (result) =>
+          setVm(result.ok ? mapPeriodToCloseStatusVM(result.value, yearMonth) : null),
+      },
+    );
   }, [householdId, run]);
 
   useEffect(() => {

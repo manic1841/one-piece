@@ -6,7 +6,7 @@ import { reportRepository } from './reportRepository';
 
 // Mock only the BaseRepository methods that saveReport should NOT call (get, list)
 // and the ones it SHOULD call (set). We spy on the instance methods directly.
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
   doc: vi.fn(),
@@ -20,7 +20,9 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn(),
   limit: vi.fn(),
   serverTimestamp: vi.fn(() => ({})),
-  Timestamp: { fromDate: vi.fn(() => ({})) },
+  // Classes, because `sanitize` checks them with instanceof.
+  Timestamp: function MockTimestamp() {},
+  FieldValue: function MockFieldValue() {},
 }));
 
 describe('reportRepository.saveReport — no read-before-write', () => {

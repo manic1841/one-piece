@@ -27,10 +27,18 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
     isActive,
     monthGroups,
     summary,
+    balance,
+    balanceText,
+    latestSettledText,
+    hasMore,
+    loadMore,
     loading,
+    balanceLoading,
+    balanceError,
     error,
     notFound,
     reload,
+    retryBalance,
     handleRename,
     handleToggleActive,
     handleDelete,
@@ -38,6 +46,9 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
 
   const backToList = () => navigate('/projects');
 
+  // Only the first paint is gated: the figures mount once and count up from zero
+  // (motion-system §5.2), while a load-more refreshes in place so the scroll
+  // position and the load-more button survive. `loading` is false afterwards.
   if (loading) {
     return (
       <div role="status" className="space-y-6 pb-20">
@@ -118,9 +129,17 @@ export default function ProjectDetailPage({ project }: ProjectDetailPageProps) {
 
       <ProjectDetail
         summary={summary}
+        balance={balance}
+        balanceText={balanceText}
+        balanceLoading={balanceLoading}
+        balanceError={balanceError}
+        onRetryBalance={() => void retryBalance()}
+        latestSettledText={latestSettledText}
         projectDebt={projectDebt}
         monthGroups={monthGroups}
-        onDelete={() => void handleDelete()}
+        hasMore={hasMore}
+        onLoadMore={loadMore}
+        onDelete={handleDelete}
       />
     </div>
   );

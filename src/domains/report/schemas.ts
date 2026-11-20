@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { TimestampSchema } from '@/shared/schemas/date';
+
 export const IncomeStatementItemSchema: z.ZodType<IncomeStatementItem> = z.lazy(() =>
   z.object({
     code: z.string(),
@@ -129,8 +131,8 @@ export const FinancialReportSchema = z.discriminatedUnion('type', [
       yearMonth: z.string(),
       createdBy: z.string(),
       updatedBy: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      createdAt: TimestampSchema,
+      updatedAt: TimestampSchema,
     })
     .extend({ type: z.literal(ReportType.INCOME_STATEMENT), data: IncomeStatementDataSchema }),
   z
@@ -140,8 +142,8 @@ export const FinancialReportSchema = z.discriminatedUnion('type', [
       yearMonth: z.string(),
       createdBy: z.string(),
       updatedBy: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      createdAt: TimestampSchema,
+      updatedAt: TimestampSchema,
     })
     .extend({ type: z.literal(ReportType.BALANCE_SHEET), data: BalanceSheetDataSchema }),
   z
@@ -151,8 +153,8 @@ export const FinancialReportSchema = z.discriminatedUnion('type', [
       yearMonth: z.string(),
       createdBy: z.string(),
       updatedBy: z.string(),
-      createdAt: z.date(),
-      updatedAt: z.date(),
+      createdAt: TimestampSchema,
+      updatedAt: TimestampSchema,
     })
     .extend({ type: z.literal(ReportType.CASH_FLOW), data: CashFlowDataSchema }),
 ]);

@@ -1,0 +1,228 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { listAllLedgerCodesUseCase } from '@/application/ledger/use_cases/listAllLedgerCodesUseCase';
+import {
+  ProjectionCommandErrorCode,
+  type ProjectionFailure,
+} from '@/application/retirement/errors';
+import { loadLedgerNetsForYear } from '@/application/retirement/ledgerBaseline';
+import {
+  type CalculateProjectionRequest,
+  type ProjectionCalculation,
+} from '@/application/retirement/types';
+import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
+import { type AuthContext } from '@/application/types';
+import { baselineYearFor, calculateProjection } from '@/domains/retirement/calculators';
+import { type ProjectionRule } from '@/domains/retirement/projectionRules';
+import {
+  type ResolveProjectionInputParams,
+  resolveProjectionInput,
+} from '@/domains/retirement/resolveProjectionInput';
+import {
+  type ProjectionConfig,
+  createRetirementPlanCreateSchema,
+} from '@/domains/retirement/schemas';
+import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
+import { defaultProjectionName } from '@/shared/projectionName';
+
+export type CalculateProjectionOutcome =
+  | {
+      ok: true;
+      calculation: ProjectionCalculation;
+      comparisonInput: ResolveProjectionInputParams;
+    }
+  | ProjectionFailure;
+
+const currentYear = (): number => new Date().getFullYear();
+
+/** LOCAL time, matching the workspace dialog default. */
+export { defaultProjectionName };
+
+/**
+ * Rules may share a code with different baseline years, so merge per code
+ * instead of replacing the entry; neither year is lost.
+ */
+function mergeNets(
+  ledgerSources: Map<string, { netByYear: Map<number, number> }>,
+  year: number,
+  nets: Map<string, number>,
+): void {
+  for (const [id, net] of nets) {
+    const entry = ledgerSources.get(id);
+    if (entry === undefined) {
+      ledgerSources.set(id, { netByYear: new Map([[year, net]]) });
+      continue;
+    }
+    entry.netByYear.set(year, net);
+  }
+}
+
+async function gatherRuleSources(input: {
+  householdId: string;
+  auth: AuthContext;
+  startYear: number;
+  rules: ProjectionRule[];
+}) {
+  const { householdId, auth, startYear, rules } = input;
+  const ledgerSources = new Map<string, { netByYear: Map<number, number> }>();
+  const debtAccounts = new Map<string, { monthlyPayment: number; endDate: Date }>();
+
+  const ledgerRules = rules.filter((rule) => rule.source?.type === 'ledgerCode');
+  const debtRules = rules.filter((rule) => rule.source?.type === 'debtAccount');
+
+  if (ledgerRules.length > 0) {
+    const codes = await listAllLedgerCodesUseCase.execute({
+      householdId,
+      includeInactive: true,
+      auth,
+      labelResolver: (code) => code,
+    });
+    const existing = new Set(codes.map((code) => code.code));
+    /** Baseline year -> the codes that need it; one read serves them all. */
+    const codesByYear = new Map<number, Set<string>>();
+
+    for (const rule of ledgerRules) {
+      const source = rule.source;
+      if (source === undefined || !existing.has(source.id)) continue;
+
+      const year = baselineYearFor(rule, startYear);
+      const ids = codesByYear.get(year) ?? new Set<string>();
+      ids.add(source.id);
+      codesByYear.set(year, ids);
+    }
+
+    // One read per baseline year serves every code that needs that year.
+    for (const [year, ids] of codesByYear) {
+      mergeNets(ledgerSources, year, await loadLedgerNetsForYear(householdId, year, [...ids]));
+    }
+  }
+
+  if (debtRules.length > 0) {
+    const accounts = await debtAccountRepository.getDebtAccounts(householdId, true);
+    const byId = new Map(accounts.map((account) => [account.id, account]));
+
+    for (const rule of debtRules) {
+      const source = rule.source;
+      if (source === undefined) continue;
+      const account = byId.get(source.id);
+      if (account === undefined) continue;
+
+      debtAccounts.set(source.id, {
+        monthlyPayment: account.monthlyPayment,
+        endDate: account.endDate,
+      });
+    }
+  }
+
+  return { ledgerSources, debtAccounts };
+}
+
+/**
+ * Validate, resolve and calculate without writing. Sequences the opening
+ * resolution, the rule-source reads and the domain resolve/engine, so it is a
+ * workflow rather than a single-step use case. The returned calculation is the
+ * frozen input PERSIST reuses.
+ */
+export class CalculateProjectionWorkflow {
+  async execute(request: CalculateProjectionRequest): Promise<CalculateProjectionOutcome> {
+    const { householdId, auth, startYear, opening, assumptions, rules, lifeEvents } = request;
+
+    await householdPermissionService.assertWritePermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
+
+    const userEmail = auth.email ?? auth.uid;
+    const now = new Date();
+
+    const parsed = createRetirementPlanCreateSchema(currentYear()).safeParse({
+      name: defaultProjectionName(now),
+      assumptions,
+      projectionRules: rules,
+      lifeEvents,
+      createdBy: userEmail,
+      updatedBy: userEmail,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    if (!parsed.success) {
+      return {
+        ok: false,
+        code: ProjectionCommandErrorCode.PROJECTION_VALIDATION_FAILED,
+        issues: parsed.error.issues,
+      };
+    }
+
+    let openingAmount = opening.amount;
+    let anchorYearMonth: string | undefined;
+
+    if (opening.source === 'derived') {
+      const derived = await getProjectionOpeningUseCase.execute({ householdId, auth });
+      if ('reason' in derived) {
+        return {
+          ok: false,
+          code: ProjectionCommandErrorCode.PROJECTION_RESOLVE_FAILED,
+          errors: [{ code: 'MISSING_BASELINE', params: { kind: 'opening' }, severity: 'error' }],
+          warnings: [],
+        };
+      }
+      openingAmount = derived.openingNetWorth;
+      anchorYearMonth = derived.anchorYearMonth;
+    }
+
+    const { ledgerSources, debtAccounts } = await gatherRuleSources({
+      householdId,
+      auth,
+      startYear,
+      rules: parsed.data.projectionRules,
+    });
+
+    const comparisonInput: ResolveProjectionInputParams = {
+      assumptions: parsed.data.assumptions,
+      rules: parsed.data.projectionRules,
+      lifeEvents: parsed.data.lifeEvents,
+      startYear,
+      opening: { amount: openingAmount, source: opening.source, anchorYearMonth },
+      ledgerSources,
+      debtAccounts,
+    };
+    const resolved = resolveProjectionInput(comparisonInput);
+
+    if (!resolved.ok) {
+      return {
+        ok: false,
+        code: ProjectionCommandErrorCode.PROJECTION_RESOLVE_FAILED,
+        errors: resolved.errors,
+        warnings: resolved.warnings,
+      };
+    }
+
+    const result = calculateProjection(resolved.input);
+    const config: ProjectionConfig = {
+      startYear,
+      openingNetWorth: {
+        amount: resolved.input.openingNetWorth,
+        source: opening.source,
+        ...(anchorYearMonth === undefined ? {} : { anchorYearMonth }),
+      },
+      assumptions: parsed.data.assumptions,
+      projectionRules: parsed.data.projectionRules,
+      lifeEvents: parsed.data.lifeEvents,
+    };
+
+    return {
+      ok: true,
+      comparisonInput,
+      calculation: {
+        input: resolved.input,
+        result,
+        warnings: resolved.warnings,
+        config,
+        source: { ruleSources: resolved.ruleSources },
+      },
+    };
+  }
+}
+
+export const calculateProjectionWorkflow = new CalculateProjectionWorkflow();

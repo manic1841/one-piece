@@ -108,6 +108,48 @@ describe('docs:check staging-reference guard (issue #164)', () => {
     expect(runGuard([filePath]).status).toBe(0);
   });
 
+  it('flags a dead relative link and names the file', () => {
+    const filePath = writeFixture('dead-link.md', '見 [不存在](missing-doc.md#x)\n');
+
+    const result = runGuard([filePath]);
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain('dead relative links');
+    expect(result.output).toContain('missing-doc.md');
+  });
+
+  // The no-argument invocation targets `docs`, a directory; before the guard
+  // expanded directory targets the link check never ran in production.
+  it('flags a dead relative link inside a directory target', () => {
+    const dir = mkdtempSync(path.join(fixtureDir, 'topic-'));
+    const nested = path.join(dir, 'index.md');
+    writeFileSync(nested, '見 [不存在](missing-doc.md#x)\n', 'utf8');
+
+    const result = runGuard([dir]);
+
+    expect(result.status).toBe(1);
+    expect(result.output).toContain('dead relative links');
+    expect(result.output).toContain(nested);
+  });
+
+  // Same defect through the production entry point: no arguments resolves to
+  // `docs`, so a regression in the default target path stays green above.
+  it('flags a dead relative link under the default docs target', () => {
+    const topic = path.join(repoRoot, 'docs', 'zz-default-target-probe.md');
+    writeFileSync(topic, '見 [不存在](missing-doc.md#x)\n', 'utf8');
+
+    try {
+      const result = runGuard([]);
+
+      expect(result.status).toBe(1);
+      expect(result.output).toContain('dead relative links');
+      // The guard reports the target as given, i.e. repo-relative.
+      expect(result.output).toContain('docs/zz-default-target-probe.md');
+    } finally {
+      rmSync(topic, { force: true });
+    }
+  });
+
   it('fails when the retired staging folder is recreated, and recovers once removed', () => {
     const stagingDir = path.join(repoRoot, 'docs', 'new-design');
     // Non-recursive mkdir throws if the folder already exists, so a pre-existing

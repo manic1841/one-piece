@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { BaseSchema } from '@/shared/schemas/base';
+import { TimestampSchema } from '@/shared/schemas/date';
 
 export const AllocationItemSchema = z.object({
   projectId: z.string(),
@@ -10,7 +11,7 @@ export const AllocationItemSchema = z.object({
 export type AllocationItem = z.infer<typeof AllocationItemSchema>;
 
 export const AllocationCreateSchema = z.object({
-  date: z.date(),
+  date: TimestampSchema,
   yearMonth: z.string(),
   description: z.string().optional(),
   sourceTransactionId: z.string(),

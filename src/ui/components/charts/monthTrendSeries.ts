@@ -7,7 +7,7 @@
 import { formatCurrency } from '@/ui/utils';
 import { formatMonthLabel } from '@/ui/utils/date';
 
-import type { ChartPoint } from './chartInteraction';
+import { type ChartPoint, heroPoint } from './chartInteraction';
 
 export interface MonthTrendPoint {
   year: number;
@@ -43,11 +43,14 @@ export const toMonthTrendSeries = (
   return {
     values: ordered.map((point) => point.value),
     labels: ordered.map((point) => formatMonthLabel(point.year, point.month)),
-    points: ordered.map((point, index) => ({
-      title: formatMonthLabel(point.year, point.month),
-      value: formatCurrency(point.value),
-      meta: meta?.(point, index, ordered),
-    })),
+    points: ordered.map((point, index) => {
+      const change = meta?.(point, index, ordered);
+      return heroPoint(
+        formatMonthLabel(point.year, point.month),
+        { id: 'value', value: formatCurrency(point.value) },
+        [change === undefined ? null : { id: 'change', value: change }],
+      );
+    }),
     hasData: ordered.length > 0,
   };
 };

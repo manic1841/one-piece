@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GetFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
@@ -16,11 +16,17 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
 }));
 
 // The workspace has its own tests; this file only covers the route's decision.
-vi.mock('./MonthlyClosePage', () => ({
-  MonthlyClosePage: ({ yearMonth }: { yearMonth: string }) => (
-    <div data-testid="workspace">{yearMonth}</div>
-  ),
-}));
+// The stub seeds state once from the period it mounted with — the shape the real
+// stage drafts have — so a *reused* instance would keep the first period's value.
+vi.mock('./MonthlyClosePage', async () => {
+  const React = await import('react');
+  return {
+    MonthlyClosePage: ({ yearMonth }: { yearMonth: string }) => {
+      const [mountedYearMonth] = React.useState(yearMonth);
+      return React.createElement('div', { 'data-testid': 'workspace' }, mountedYearMonth);
+    },
+  };
+});
 
 const periodFixture = {
   id: '2026-09',
@@ -39,6 +45,27 @@ const renderAt = (path: string) =>
       </Routes>
     </MemoryRouter>,
   );
+
+/** A client-side period change: same route element, new param — no reload. */
+const renderWithSwitch = (from: string, to: string) =>
+  render(
+    <MemoryRouter initialEntries={[from]}>
+      <SwitchTo to={to} />
+      <Routes>
+        <Route path="/close" element={<div data-testid="picker" />} />
+        <Route path="/close/:yearMonth" element={<ClosePeriodRouteGate />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+
+const SwitchTo = ({ to }: { to: string }) => {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(to)}>
+      switch period
+    </button>
+  );
+};
 
 const executeSpy = () => vi.spyOn(GetFinancialPeriodUseCase.prototype, 'execute');
 
@@ -63,6 +90,24 @@ describe('ClosePeriodRouteGate', () => {
 
     await waitFor(() => expect(execute).toHaveBeenCalledTimes(1));
     expect(execute).toHaveBeenCalledWith({ householdId: 'household-1', yearMonth: '2026-09' });
+  });
+
+  // CONTEXT §預填: a period's drafts and prefill must retire when the period
+  // changes, so a param-only change must not leave the previous period's
+  // workspace — and the stage drafts inside it — mounted. Two things guarantee
+  // it: the gate renders the loading state while the new period is read (which
+  // unmounts the workspace), and the workspace is keyed by the period. This
+  // pins the outcome rather than either mechanism, so removing one of the two
+  // alone leaves it green.
+  it('does not carry the previous period into a param-only change', async () => {
+    executeSpy().mockResolvedValue(periodFixture as never);
+
+    renderWithSwitch('/close/2026-09', '/close/2026-08');
+    expect(await screen.findByTestId('workspace')).toHaveTextContent('2026-09');
+
+    fireEvent.click(screen.getByRole('button', { name: 'switch period' }));
+
+    await waitFor(() => expect(screen.getByTestId('workspace')).toHaveTextContent('2026-08'));
   });
 
   it('shows the loading state until the read settles', () => {

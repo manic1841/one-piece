@@ -6,6 +6,7 @@ import {
   DataTable,
   DataTableCell,
   DataTableColGroup,
+  DataTableDetailRow,
   DataTableHeadCell,
   DataTableHeadRow,
   DataTableRow,
@@ -14,6 +15,7 @@ import {
   TableBody,
   TableHeader,
 } from '@/ui/components/data-table';
+import { MONEY_TONE_CLASS } from '@/ui/components/moneyTone';
 import { Button } from '@/ui/components/ui/button';
 import {
   ACCOUNTING_DETAILS_CREDIT_LABEL,
@@ -87,7 +89,7 @@ function RowActions({
           size="icon"
           onClick={() => onEdit(transaction)}
           aria-label="編輯交易"
-          className="h-8 w-8 text-muted-foreground hover:text-primary"
+          className="h-11 w-11 text-muted-foreground hover:text-primary"
         >
           <Pencil size={15} />
         </Button>
@@ -98,7 +100,7 @@ function RowActions({
           size="icon"
           onClick={() => onDelete(transaction)}
           aria-label="刪除交易"
-          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          className="h-11 w-11 text-muted-foreground hover:text-destructive"
         >
           <Trash2 size={15} />
         </Button>
@@ -112,16 +114,9 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const {
-    displayTitle,
-    projectName,
-    categoryLabel,
-    dateText,
-    hasCashLedger,
-    isPositive,
-    signedAmountText,
-  } = transaction;
-  const amountColor = isPositive ? 'text-positive' : 'text-negative';
+  const { displayTitle, projectName, categoryLabel, dateText, hasCashLedger, signedAmountText } =
+    transaction;
+  const amountColor = MONEY_TONE_CLASS[transaction.tone];
   const [isExpanded, setIsExpanded] = useState(false);
   const hasEntries = (transaction.entries ?? []).length > 0;
 
@@ -171,15 +166,14 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
           </span>
         </DataTableCell>
       </DataTableRow>
-      {hasEntries && isExpanded ? (
-        <DataTableRow
-          className="hover:bg-transparent"
+      {hasEntries ? (
+        <DataTableDetailRow
+          open={isExpanded}
+          colSpan={ACCORDION_ROW_COL_SPAN}
           data-testid={`transaction-details-${transaction.id}`}
         >
-          <DataTableCell colSpan={ACCORDION_ROW_COL_SPAN} className="p-0">
-            <AccountingDetailsTable transaction={transaction} />
-          </DataTableCell>
-        </DataTableRow>
+          <AccountingDetailsTable transaction={transaction} />
+        </DataTableDetailRow>
       ) : null}
     </>
   );
@@ -190,16 +184,9 @@ export const TransactionItemMobile: React.FC<TransactionItemProps> = ({
   onEdit,
   onDelete,
 }) => {
-  const {
-    displayTitle,
-    projectName,
-    categoryLabel,
-    dateText,
-    hasCashLedger,
-    isPositive,
-    signedAmountText,
-  } = transaction;
-  const amountColor = isPositive ? 'text-positive' : 'text-negative';
+  const { displayTitle, projectName, categoryLabel, dateText, hasCashLedger, signedAmountText } =
+    transaction;
+  const amountColor = MONEY_TONE_CLASS[transaction.tone];
   const hasEntries = (transaction.entries ?? []).length > 0;
 
   return (

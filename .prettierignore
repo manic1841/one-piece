@@ -1,3 +1,5 @@
 # Dependency artifacts managed by their own tools, not prettier
 pnpm-lock.yaml
 skills-lock.json
+# Installed skills are vendor copies: skills-lock.json hashes depend on their bytes
+.agents/skills/

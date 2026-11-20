@@ -1,43 +1,154 @@
 import { Suspense, lazy } from 'react';
 
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import { firebaseAuthGateway } from '@/infra/contexts/firebaseAuthGateway';
+import { PageSkeleton } from '@/ui/components/PageSkeleton';
 import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
 import { AuthStateProvider } from '@/ui/contexts/AuthStateProvider';
-import AccountDetailPage from '@/ui/features/account/pages/AccountDetailPage';
-import Accounts from '@/ui/features/account/pages/AccountsPage';
 import { AuthGate } from '@/ui/features/app/AuthGate';
 import Layout from '@/ui/features/app/layout/Layout';
 import ProtectedRoute from '@/ui/features/app/router/ProtectedRoute';
 import AccessDenied from '@/ui/features/auth/pages/AccessDeniedPage';
 import Login from '@/ui/features/auth/pages/LoginPage';
-import Onboarding from '@/ui/features/auth/pages/OnboardingPage';
-import Dashboard from '@/ui/features/dashboard/pages/DashboardPage';
-import DebtDetailPage from '@/ui/features/debt/pages/DebtDetailPage';
-import DebtListPage from '@/ui/features/debt/pages/DebtListPage';
-import { ClosePeriodPickerPage } from '@/ui/features/monthly_close/pages/ClosePeriodPickerPage';
-import { ClosePeriodRouteGate } from '@/ui/features/monthly_close/pages/ClosePeriodRouteGate';
-import PortfolioDetailPage from '@/ui/features/portfolio/pages/PortfolioDetailPage';
-import PortfoliosPage from '@/ui/features/portfolio/pages/PortfoliosPage';
-import ProjectDetailPage from '@/ui/features/project/pages/ProjectDetailPage';
-import ProjectsPage from '@/ui/features/project/pages/ProjectsPage';
-import ReportDetailPage from '@/ui/features/report/pages/ReportDetailPage';
-import ReportListPage from '@/ui/features/report/pages/ReportListPage';
-import RetirementPlanForm from '@/ui/features/retirement/pages/RetirementPlanForm';
-import RetirementPlanList from '@/ui/features/retirement/pages/RetirementPlanList';
-import SettingsIndexRedirect from '@/ui/features/setting/pages/SettingsIndexRedirect';
-import SettingsLayout from '@/ui/features/setting/pages/SettingsLayout';
-import AccountingSettingsPage from '@/ui/features/setting/pages/sections/AccountingSettingsPage';
-import BackupSettingsPage from '@/ui/features/setting/pages/sections/BackupSettingsPage';
-import HouseholdSettingsPage from '@/ui/features/setting/pages/sections/HouseholdSettingsPage';
-import SystemSettingsPage from '@/ui/features/setting/pages/sections/SystemSettingsPage';
-import Transactions from '@/ui/features/transaction/pages/TransactionsPage';
+
+/**
+ * 只有 shell（provider／router／`AuthGate`／`Layout`）與登入、拒絕頁是靜態 import；
+ * 其餘頁面一律 `lazy()`，讓首屏不必下載任何一個 feature。chunk 檔名帶 hash，
+ * 回訪由 HTTP cache 承擔。
+ */
+const Dashboard = lazy(() => import('@/ui/features/dashboard/pages/DashboardPage'));
+const Transactions = lazy(() => import('@/ui/features/transaction/pages/TransactionsPage'));
+const Accounts = lazy(() => import('@/ui/features/account/pages/AccountsPage'));
+const AccountDetailPage = lazy(() => import('@/ui/features/account/pages/AccountDetailPage'));
+const ProjectsPage = lazy(() => import('@/ui/features/project/pages/ProjectsPage'));
+const ProjectDetailPage = lazy(() => import('@/ui/features/project/pages/ProjectDetailPage'));
+const PortfoliosPage = lazy(() => import('@/ui/features/portfolio/pages/PortfoliosPage'));
+const PortfolioDetailPage = lazy(() => import('@/ui/features/portfolio/pages/PortfolioDetailPage'));
+const ReportListPage = lazy(() => import('@/ui/features/report/pages/ReportListPage'));
+const ReportAnalysisPage = lazy(() => import('@/ui/features/report/pages/ReportAnalysisPage'));
+const ReportDetailPage = lazy(() => import('@/ui/features/report/pages/ReportDetailPage'));
+const DebtListPage = lazy(() => import('@/ui/features/debt/pages/DebtListPage'));
+const DebtDetailPage = lazy(() => import('@/ui/features/debt/pages/DebtDetailPage'));
+const Onboarding = lazy(() => import('@/ui/features/auth/pages/OnboardingPage'));
+const ClosePeriodPickerPage = lazy(() =>
+  import('@/ui/features/monthly_close/pages/ClosePeriodPickerPage').then((module) => ({
+    default: module.ClosePeriodPickerPage,
+  })),
+);
+const ClosePeriodRouteGate = lazy(() =>
+  import('@/ui/features/monthly_close/pages/ClosePeriodRouteGate').then((module) => ({
+    default: module.ClosePeriodRouteGate,
+  })),
+);
+const ProjectionListPage = lazy(() => import('@/ui/features/retirement/pages/ProjectionListPage'));
+const ProjectionViewPage = lazy(() => import('@/ui/features/retirement/pages/ProjectionViewPage'));
+const ProjectionWorkspacePage = lazy(
+  () => import('@/ui/features/retirement/pages/ProjectionWorkspacePage'),
+);
+const RetirementPlanListPage = lazy(
+  () => import('@/ui/features/retirement/pages/RetirementPlanListPage'),
+);
+const RetirementPlanCreatePage = lazy(
+  () => import('@/ui/features/retirement/pages/RetirementPlanCreatePage'),
+);
+const RetirementPlanViewPage = lazy(
+  () => import('@/ui/features/retirement/pages/RetirementPlanViewPage'),
+);
+const RetirementPlanEditPage = lazy(
+  () => import('@/ui/features/retirement/pages/RetirementPlanEditPage'),
+);
+const SettingsLayout = lazy(() => import('@/ui/features/setting/pages/SettingsLayout'));
+const SettingsIndexRedirect = lazy(
+  () => import('@/ui/features/setting/pages/SettingsIndexRedirect'),
+);
+const HouseholdSettingsPage = lazy(
+  () => import('@/ui/features/setting/pages/sections/HouseholdSettingsPage'),
+);
+const AccountingSettingsPage = lazy(
+  () => import('@/ui/features/setting/pages/sections/AccountingSettingsPage'),
+);
+const BackupSettingsPage = lazy(
+  () => import('@/ui/features/setting/pages/sections/BackupSettingsPage'),
+);
+const SystemSettingsPage = lazy(
+  () => import('@/ui/features/setting/pages/sections/SystemSettingsPage'),
+);
 
 const GalleryPage = import.meta.env.DEV
   ? lazy(() => import('@/ui/features/app/pages/GalleryPage'))
   : null;
+
+/** 路由樹外的頁面（`Layout` 之外）需要自己的 Suspense 邊界。 */
+const withSkeleton = (element: React.ReactNode): React.ReactNode => (
+  <Suspense fallback={<PageSkeleton />}>{element}</Suspense>
+);
+
+const router = createBrowserRouter([
+  // Gated on DEV so the production bundle drops the chunk instead of shipping it dead.
+  ...(import.meta.env.DEV && GalleryPage !== null
+    ? [
+        {
+          path: '/gallery',
+          element: withSkeleton(<GalleryPage />),
+        },
+      ]
+    : []),
+  { path: '/login', element: <Login /> },
+  { path: '/access-denied', element: <AccessDenied /> },
+  {
+    path: '/onboarding',
+    element: withSkeleton(
+      <ProtectedRoute>
+        <Onboarding />
+      </ProtectedRoute>,
+    ),
+  },
+  {
+    path: '/',
+    element: (
+      <ProtectedRoute requireHousehold>
+        <Layout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <Dashboard /> },
+      { path: 'close', element: <ClosePeriodPickerPage /> },
+      { path: 'close/:yearMonth', element: <ClosePeriodRouteGate /> },
+      { path: 'transactions', element: <Transactions /> },
+      { path: 'projects', element: <ProjectsPage /> },
+      { path: 'projects/:id', element: <ProjectDetailPage /> },
+      { path: 'accounts', element: <Accounts /> },
+      { path: 'accounts/:id', element: <AccountDetailPage /> },
+      { path: 'portfolios', element: <PortfoliosPage /> },
+      { path: 'portfolios/:id', element: <PortfolioDetailPage /> },
+      { path: 'reports', element: <ReportListPage /> },
+      { path: 'reports/analysis', element: <ReportAnalysisPage /> },
+      { path: 'reports/:period', element: <ReportDetailPage /> },
+      { path: 'retirement', element: <ProjectionListPage /> },
+      { path: 'retirement/new', element: <ProjectionWorkspacePage /> },
+      { path: 'retirement/projections/:id', element: <ProjectionViewPage /> },
+      { path: 'retirement/plans', element: <RetirementPlanListPage /> },
+      { path: 'retirement/plans/new', element: <RetirementPlanCreatePage /> },
+      { path: 'retirement/plans/:id', element: <RetirementPlanViewPage /> },
+      { path: 'retirement/plans/:id/edit', element: <RetirementPlanEditPage /> },
+      { path: 'debt', element: <DebtListPage /> },
+      { path: 'debt/:id', element: <DebtDetailPage /> },
+      {
+        path: 'settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <SettingsIndexRedirect /> },
+          { path: 'household', element: <HouseholdSettingsPage /> },
+          { path: 'accounting', element: <AccountingSettingsPage /> },
+          { path: 'backup', element: <BackupSettingsPage /> },
+          { path: 'system', element: <SystemSettingsPage /> },
+        ],
+      },
+    ],
+  },
+]);
 
 function App() {
   return (
@@ -45,63 +156,7 @@ function App() {
       <Toaster theme="dark" />
       <AuthGate>
         <ConfirmDialogProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Gated on DEV so the production bundle drops the chunk instead of shipping it dead. */}
-              {import.meta.env.DEV && GalleryPage !== null && (
-                <Route
-                  path="/gallery"
-                  element={
-                    <Suspense fallback={null}>
-                      <GalleryPage />
-                    </Suspense>
-                  }
-                />
-              )}
-              <Route path="/login" element={<Login />} />
-              <Route path="/access-denied" element={<AccessDenied />} />
-              <Route
-                path="/onboarding"
-                element={
-                  <ProtectedRoute>
-                    <Onboarding />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute requireHousehold>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="close" element={<ClosePeriodPickerPage />} />
-                <Route path="close/:yearMonth" element={<ClosePeriodRouteGate />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="projects" element={<ProjectsPage />} />
-                <Route path="projects/:id" element={<ProjectDetailPage />} />
-                <Route path="accounts" element={<Accounts />} />
-                <Route path="accounts/:id" element={<AccountDetailPage />} />
-                <Route path="portfolios" element={<PortfoliosPage />} />
-                <Route path="portfolios/:id" element={<PortfolioDetailPage />} />
-                <Route path="reports" element={<ReportListPage />} />
-                <Route path="reports/:period" element={<ReportDetailPage />} />
-                <Route path="retirement" element={<RetirementPlanList />} />
-                <Route path="retirement/:id" element={<RetirementPlanForm />} />
-                <Route path="debt" element={<DebtListPage />} />
-                <Route path="debt/:id" element={<DebtDetailPage />} />
-                <Route path="settings" element={<SettingsLayout />}>
-                  <Route index element={<SettingsIndexRedirect />} />
-                  <Route path="household" element={<HouseholdSettingsPage />} />
-                  <Route path="accounting" element={<AccountingSettingsPage />} />
-                  <Route path="backup" element={<BackupSettingsPage />} />
-                  <Route path="system" element={<SystemSettingsPage />} />
-                </Route>
-              </Route>
-            </Routes>
-          </BrowserRouter>
+          <RouterProvider router={router} />
         </ConfirmDialogProvider>
       </AuthGate>
     </AuthStateProvider>

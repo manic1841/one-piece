@@ -56,6 +56,13 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
   return `${value.toFixed(decimals)}%`;
 };
 
+/** The single placeholder shown for a missing value. */
+export const DASH = '—';
+
+/** Format a nullable percentage, dashing a missing value. */
+export const formatPercentageOrDash = (value: number | null, decimals: number = 1): string =>
+  value === null ? DASH : formatPercentage(value, decimals);
+
 /**
  * Format a large number with K/M/B suffixes
  * @param num - The number to format

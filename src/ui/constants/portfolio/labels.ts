@@ -30,6 +30,8 @@ export const PORTFOLIO_COLUMN_LABELS = {
 
 export const PORTFOLIO_DETAIL_LABELS = {
   DESCRIPTION: '一個證券帳戶連結一個銀行帳戶',
+  RENAME_FAILED: '無法重新命名投資組合。',
+  UPDATE_FAILED: '無法更新投資組合狀態。',
   CRUMB: 'PORTFOLIOS',
   LOADING_LABEL: '載入投資組合中',
   LOAD_ERROR: '無法載入投資組合。',
@@ -105,6 +107,7 @@ export const PORTFOLIO_DANGER_LABELS = {
   DELETE_TITLE: '刪除投資組合？',
   DELETE_DESCRIPTION: '刪除後無法復原，相關快照也會一併移除。',
   CONFIRM: '刪除',
+  DELETE_FAILED: '無法刪除投資組合。',
 } as const;
 
 export const portfolioReorderLabel = (name: string): string => `重新排序 ${name}`;

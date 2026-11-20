@@ -2,9 +2,11 @@
 
 > 依據：Apple《Designing Fluid Interfaces》(WWDC 2018)、《The Details of UI Typography》(WWDC 2020)、《Principles of Great Design》(WWDC 2026) 的 web 平台轉譯。
 >
-> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、動態、字體排印、元件尺寸與 hover／focus／disabled 等視覺狀態、spacing 級距）。**頁面層級的佈局、間距用途、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)；**分層、導航／Header 契約與 RWD 斷點**屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；**資料狀態義務與無障礙契約**屬 [`states-and-a11y.md`](states-and-a11y.md)。四份文件權威不重疊。
+> **邊界宣告**：本文件管**設計 token 與元件表面**（色彩、材質、字體排印、元件尺寸與 hover／focus／disabled 等視覺狀態、spacing 級距）。**動態**（動態 token、動畫清單、行為與驗收）屬 [`motion-system.md`](motion-system.md)；**頁面層級的佈局、間距用途、資料密度與互動標準**屬 [`visual-standards.md`](visual-standards.md)；**分層、導航／Header 契約與 RWD 斷點**屬 [`ui-layer-architecture.md`](ui-layer-architecture.md)；**資料狀態義務與無障礙契約**屬 [`states-and-a11y.md`](states-and-a11y.md)。五份文件權威不重疊。
 
 本文件是設計 token 與元件表面契約的唯一真相來源。實作以本文件為準；若與 `ui-layer-architecture.md` 的分層規則衝突，以分層規則為準——呈現層契約不涉入資料流、ViewModel/Hook 職責邊界與 display label API。
+
+**值與規範的分工**：本文件寫 token 的**用途、對應與禁止事項**，值一律以 `src/index.css`、`tailwind.config.js` 為準。文中出現的數值只有兩種情形會保留——拿掉它這句話就講不通（材質 recipe），或它記錄的是 code 推不回的來源（色碼 provenance）——兩者都標明為對照，牴觸時以 code 為準。
 
 **與 gallery 的分工**：`/gallery` 路由是全站畫面的規範樣板，它呈現的是本文件的契約，不是第二份規格——表面規格衝突時以本文件為準，場景組合方式以 gallery 為準（取捨見 [ADR-0075](../adr/0075-gallery-normative-template.md)）。
 
@@ -16,15 +18,16 @@
 
 - `primary` 為 teal（暗色底上承擔主要互動色）。
 - 顏色分兩層（見 [ADR-0081](../adr/0081-chart-tone-vs-categorical-palette.md)）：**語意 tone** 表達「資料的意義」，**`chart-*` 類別色板**表達「分類之間的差異」。硬編碼 hex 一律對齊 token。
-- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）改用 `chart-*` 類別色板（下段）。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。
-- **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-1..7` 為類別色板**：只在「以顏色編碼分類、而非編碼狀態」的並列拆解圖（donut）使用，依資料順序配色；不得用於金額或狀態呈現。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
+- 圖表色調由共用對應決定（`src/ui/components/charts/chartTheme.ts`）：語意圖表中 **accent 保留給「當前／選取／主要趨勢」**，其餘資料走語意 tone；分類拆解圖（donut）與隨時間的分類拆解圖（資產類別構成）改用 `chart-*` 類別色板（下段），後者經 `ComposedChart` 序列的 `colorToken` 指定。圖表保持安靜，不使用裝飾性漸層。面積填色只允許**單色資料歸屬漸層**（單一色相、取自序列自身顏色，且濃度端落在該帶自己的線上、往它的基線淡出），見 [ADR-0078](../adr/0078-single-colour-data-affiliation-gradient.md)。**次要脈絡序列**（同一張圖裡不是主體、只提供背景對照的線，例如收支圖上的淨資產）用細虛線（1.2px／`5 4`）而非實線，讓它不與主體爭視覺重量；主體序列維持實線 1.8px。
+- **語意 tone**（`positive`／`negative`／`warning`／`primary`／`neutral`／`investment`／`asset`）用於線圖、柱圖、金額與狀態，編碼資料的意義。**`chart-1..7` 為類別色板**：只在「以顏色編碼分類、而非編碼狀態」的並列拆解圖（donut）與隨時間的分類拆解圖（資產類別構成）使用，依資料順序配色；隨時間的拆解圖沿用 donut 的同一類別映射，不按色階連續性重排。不得用於金額或狀態呈現。`chart-3` 與 `warning` 同值但語意各自獨立；同圖並存時以線形（虛線參考線加 background casing）而非色差區隔。這是「Color communicates state」的具名例外（見 `visual-standards.md` 核心設計原則 4）。
 - 層級由材質（§3）而非色差承擔。
 - 金額語意 token `positive`（收入/資產）與 `negative`（支出/負債警示）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；全站金額一律經此 token 呈現。`destructive` 與 `negative` 同值（來源色板只有一個紅），仍僅用於不可逆動作與錯誤文字。
+- **零是沒有方向，不是收入**：金額為 `0` 時走 tone 的 `zero`（`text-muted-foreground`），由 `moneyTone.ts` 的 `signTone` 統一判定，呼叫端不自己寫三元式。金額變動行的 `muted` tone 與它同值，兩者語意不同：`zero` 是「值為零」，`muted` 是「這一行不是變動」。
 - `border-strong` token（比 `border` 亮一階）定義於 `src/index.css` 並註冊進 `tailwind.config.js`；`badge`/`alert` 等需要可見邊界的元件改用它，避免暗色底上邊界消失。
 
 ### 1.1 來源色碼 provenance
 
-現行色板取自**設計原型的元件 gallery**：介面視覺以該原型為來源依據。下表只記錄**來源色碼 → token** 的對應以防日後漂移；**現行值仍以 `src/index.css` 為唯一來源**，不在本文件複述。
+現行色板取自**設計原型的元件 gallery**：介面視覺以該原型為來源依據。下表只記錄**來源色碼 → token** 的對應以防日後漂移，是 provenance 對照，**不代表現行值**；現行值以 `src/index.css` 為唯一來源。
 
 | 來源色碼（原型）        | 對應 token                             |
 | ----------------------- | -------------------------------------- |
@@ -48,35 +51,20 @@
 
 ## 2. 動態（Motion）
 
-原則：**回饋在按下瞬間、動畫可被中斷、路徑對稱**。本專案的互動以點擊/觸發為主（無拖曳手勢），因此以 CSS transition + `tailwindcss-animate` 為動態基礎，不為觸發式動畫引入 spring 函式庫。
-
-Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
-
-| Token            | 值                                                                  | 對應                                               |
-| ---------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
-| `duration-fast`  | `120ms`                                                             | press 回饋、小狀態切換                             |
-| `duration-base`  | `240ms`                                                             | hover、開合、色彩過渡                              |
-| `duration-slow`  | `400ms`                                                             | 位移、materialize（對應 response 0.4s）            |
-| `ease-out-quint` | `cubic-bezier(0.22, 1, 0.36, 1)`                                    | 進場、展開（類似 critically damped，無 overshoot） |
-| `ease-in-quint`  | `cubic-bezier(0.75, 0, 0.85, 0.4)`（`ease-out-quint` 的反向控制點） | 退場，使路徑與進場對稱                             |
-
-規則：
-
-- 按壓回饋：`active:scale-[0.97]` + `duration-fast`，所有可互動元素一律具備。
-- 開合類（dialog、sheet、dropdown）：進場 `ease-out-quint`、退場 `ease-in-quint`，時長 `duration-slow` 內。
-- 可逆轉換（開 ↔ 關、進 ↔ 退）必須鏡像 easing；單向回饋（hover、focus）用單一 `ease-out`。
-- 僅動 `transform`、`opacity`、`backdrop-filter`；避免逐幀動 layout 屬性（width/height/top/left）。
+動態契約見 [`motion-system.md`](motion-system.md)：方向、token 對應、全域規則、動畫清單、場景、頁面層級套用與驗收都在那裡。本節不重述。
 
 ## 3. 材質與層級
 
-以半透明層 + `backdrop-filter` 建立層級，取代實心色 + 1px 邊框：
+以半透明層 + `backdrop-filter` 建立層級，取代實心色 + 1px 邊框。材質 recipe 住在 `src/index.css` 的 utility，表面只聲明自己用的層級：
 
-| 層級              | 材質                                                               | 適用                        |
-| ----------------- | ------------------------------------------------------------------ | --------------------------- |
-| L0 內容           | `bg-background`，無模糊                                            | 頁面主體                    |
-| L1 浮動 chrome    | `bg-background/75` + `blur(20px) saturate(180%)`，大表面配較深陰影 | sticky 系統狀態列（header） |
-| L2 對話框 / sheet | 更強模糊 + 最深陰影 + 週邊 scrim                                   | dialog、sheet               |
-| L3 小型元素       | 實心 `card` / `popover` + 陰影，不使用透明                         | dropdown、popover、toast    |
+| 層級              | 材質                                                  | 適用                        |
+| ----------------- | ----------------------------------------------------- | --------------------------- |
+| L0 內容           | `bg-background`，無模糊                               | 頁面主體                    |
+| L1 浮動 chrome    | `material-chrome`；大表面另配陰影                     | sticky 系統狀態列（header） |
+| L2 對話框 / sheet | `material-surface`（比 L1 厚）+ 最深陰影 + 週邊 scrim | dialog、sheet               |
+| L3 小型元素       | 實心 `card` / `popover` + 陰影，不使用透明            | dropdown、popover、toast    |
+
+不直接手寫 `bg-*`／`backdrop-blur-*` 組合出 L1/L2：新增浮出層時用 utility，recipe 要改只改 `src/index.css`，否則兩處會各自漂移。
 
 規則：
 
@@ -87,8 +75,8 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 ### 3.1 半徑與陰影收斂
 
-- `rounded-lg`（`--radius` = 0.25rem）為容器預設半徑；`rounded-xl` 已全站移除。`rounded-md`/`rounded-sm` 用於按鈕與小型 chip，`rounded` 用於 inline badge。
-- `rounded-full` 僅保留本質圓形元素：avatar、switch、spinner、狀態點、資料膠囊（progress 軌道）；pill / badge / icon button 類一律方角。
+- 半徑依表面尺度選擇。`rounded-lg` 是多數容器與互動元件的預設起點，不是硬性上限：次級元素往下降（`rounded-md`/`rounded-sm` 用於按鈕與小型 chip，`rounded` 用於 inline badge），需要更大圓角時往上升——目前只有貼齊視窗邊緣的 sheet 用 `rounded-t-2xl`，且只圓露出的一側。`rounded-xl` 已由守門測試排除，不再使用。表格內的細小格子（例如週期矩陣的月份格）屬次級元素，用 `rounded-md`，不跟外框同級。
+- `rounded-full` 僅保留本質圓形元素：avatar、switch、spinner、狀態點、資料膠囊（progress 軌道）、bottom sheet 的 drag handle。pill / badge / icon button 類一律方角。
 - 陰影預設不使用；僅浮出層保留（dialog、sheet、dropdown、popover、select、toast、command palette、switch knob、L1 浮動 chrome）。Card base 無陰影，hover 不升起陰影。
 - Summary / Metric / Section / History / Table / Workflow 表面不強制 Card，改以 Typography / Divider / Whitespace 分層；Card 保留給 distinct module、interactive module、alert、special state。
 
@@ -96,31 +84,34 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 字體一律使用**平台原生字族**（Apple 優先，其餘平台降級），不隨專案打包任何 webfont——與設計原型相同：原型的 `Inter` 在未安裝時即落到 `ui-sans-serif`（＝ Apple 系統字），因此原生堆疊才是與原型一致的做法。堆疊定義於 `tailwind.config.js` 的 `fontFamily`。
 
-| 角色       | 堆疊（依序）                                                                                                                                     | Apple           | Windows            |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------- | ------------------ |
-| UI／正文   | `-apple-system` → `BlinkMacSystemFont` → `"Segoe UI"` → `Roboto` → … → `"PingFang TC"` → `"Microsoft JhengHei"` → `"Noto Sans TC"` → `system-ui` | San Francisco   | Segoe UI           |
-| 中文       | 接在拉丁字族之後（逐字 fallback）                                                                                                                | PingFang TC     | Microsoft JhengHei |
-| 數字／等寬 | `"SFMono-Regular"` → `"SF Mono"` → `Menlo` → `Consolas` → `"Liberation Mono"` → … → `ui-monospace`                                               | SF Mono / Menlo | Consolas           |
+堆疊本身不複述，只留角色與它在各平台落到的字族：
+
+| 角色       | Tailwind class | Apple          | Windows  |
+| ---------- | -------------- | -------------- | -------- |
+| UI／正文   | `font-sans`    | San Francisco  | Segoe UI |
+| 數字／等寬 | `font-mono`    | SF Mono／Menlo | Consolas |
+
+中文（PingFang TC／Microsoft JhengHei／Noto Sans TC）接在拉丁字族之後，以逐字 fallback 取得。
 
 規則：
 
 - 中文字族排在拉丁字族**之後**是刻意的：拉丁字族不含 CJK，瀏覽器會逐字 fallback 到第一個有該字形的字族，順序不影響 Latin 的呈現。
 - **取捨**：原生字族讓畫面貼合各平台慣例（Apple 上與原型完全一致），代價是**同一份程式碼在不同 OS 的字寬與換行位置不同**、且無法保證離線環境的呈現一致。若日後需要跨平台逐像素一致，再引入打包的 webfont。
 - `font-mono` 為正式的資料樣式：金額、日期、代碼、badge、座標軸與標籤性 UI（FROM/TO/APPLY 等）一律使用；段落正文維持 UI 字族，不以等寬呈現長文。
-- Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display `-0.02em`、heading `-0.01em`、body `0`、caption `0.01em`。**11px 全大寫 mono 標籤**（eyebrow／label／module）用 `tracking-widest`（`0.1em`）——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
+- Tracking 隨尺寸變化，定義於 Tailwind `letterSpacing`：display 用 `tracking-tight`、heading 用對應的負字距 class、body 不設、caption 用 `tracking-wide` 級距。**11px 全大寫 mono 標籤**（eyebrow／label／module）用 `tracking-widest`——這類標籤的寬字距是刻意的，不要套 heading 的負字距。
 - **Section 標題與 eyebrow 標籤分屬兩級**：section 標題（`PageSection` 的 title）比 eyebrow 標籤大一階、用重量建立層級（14px、`font-semibold`、`text-foreground`，仍為 mono 全大寫，不套 `tracking-widest`）；module 標籤、metric label、eyebrow 等標籤性文字維持 11px mono `tracking-widest`（`eyebrowClass`）。
+- **三級標題層級由 `eyebrow.ts` 的三個具名 class 承擔**：`eyebrowClass`（11px 標籤）< `subSectionTitleClass`（13px 子區塊；用於一個 section 內的並列群組、表格標題、清單分組）< `sectionTitleClass`（14px section）。三者**只能依序使用**，不得跳級或自寫尺寸；`eyebrow.test.ts` 守著這個次序。子區塊標題只用在這三種群組，不取代 section，也不再加 `border-b`（那是 section 的分隔線，見 `visual-standards.md`）。`PageSection` 的標題渲染為 `h2`，只有帶標題的分帶才有 `border-b`。
+- **欄位標籤是第三級**：`FormLabel` / `Label` 預設 14px `font-medium`；密集表單用 `size="compact"`（12px）降一階。12px 仍在 11px 地板之上，且**永遠低於 section 標題**——section 標題與欄位標籤不得同尺寸，否則尺寸這條層級訊號整條失效。尺寸由 `Label` 的 `size` 承擔，不得再用頁面層級的 `[&_label]:text-xs` 覆寫。
 - Leading 與尺寸反比：標題 `leading-tight`、內文 `leading-relaxed`。
+- **字級地板 11px**：表頭、行動版欄位標籤與圖表座標軸／參考線標籤不得低於 11px（CJK 在 10px 以下失去字形細節）。其餘 11px 以上的標籤級距不受影響。`src/ui/design-contract.test.ts` 以此為 CI 守門，低於地板的檔案必須進 allowlist 並註明理由。
+- **標籤與標題一律走具名 class**：`eyebrowClass`（11px 標籤）與 `sectionTitleClass`（14px 標題）是唯一寫法；同一份 contract test 守著這條。
+- **圖表座標軸與 metric 附註也各有具名 class**：軸刻度與軸標籤一律用 `chartAxisLabelClass`（`chartTheme.ts`，11px mono `tabular-nums` muted），值下方那行附註用 metric 元件內部的 caption／change class。換句話說，y 刻度與 x 標籤不會一個 11px 一個 12px，不同圖表間也不會各自漂。
 - 間距一律用 `rem`/`em`，尊重使用者瀏覽器字體大小設定。
 - 頁面標題使用重量（`font-semibold`/`font-bold`）建立層級，不以加大尺寸為唯一手段。
 
 ## 5. 間距級距
 
-全站使用單一 spacing scale，對應 Tailwind 預設 spacing（一律以 `rem` 表達，對應 4px 網格）：
-
-```text
-0.25 · 0.5 · 0.75 · 1 · 1.5 · 2 · 3 · 4   (rem)
-  4  ·  8  ·  12  · 16 · 24 · 32 · 48 · 64   (px)
-```
+全站使用單一 spacing scale，即 Tailwind 預設 spacing（一律以 `rem` 表達，對應 4px 網格），由小到大的八個值依序是：最小、次小、小、中小、中、大、特大、最大。具體值不在此複述。
 
 > 各級距的**使用場景與禁止事項**屬頁面層級決策，見 [`visual-standards.md`](visual-standards.md) 的「間距」節；本節只定義級距本身。
 
@@ -145,20 +136,23 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
 
 - `badge`：小圓角 + `border-strong` 可見邊界 + `font-mono text-[11px]`，棄用 rounded-full 藥丸；`destructive` 變體以 `border-negative/40 text-negative` 呈現。
 - `alert`：單列模式——狀態 glyph + `AlertDescription` + 文字動作按鈕（`button-variants` 的 `text` variant）；不再提供 `AlertTitle` 標題槽。
-- `button`：新增 `text` variant（透明底、透明邊界、tertiary 動作），與 `outline`/`ghost` 互補。
+- `button`：新增 `text` variant（透明底、透明邊界、tertiary 動作），與 `outline`/`ghost` 互補。`text` variant 放在行內 meta 位置（欄位 label 列、`HouseholdSwitcher`）時要把盒子抹平——`h-auto px-0 py-0` 加上與該列同級的字級，取代 36px 的表單按鈕盒：主體是那一列，附屬動作不該長得比它還重。抹平一律用同一組 class，不另外硬寫高度。
 - `progress`：`bg-muted` 實心軌道 + `bg-accent` 填充。
-- `tabs`：全站統一**底線式**（取代原膠囊／segmented 樣式）。`TabsList` 無底色、無圓角、無內距，只有一條滿寬的 `border-b border-border` 細線，標籤靠左。`TabsTrigger` 無底色；active 態＝文字 `text-foreground` 且 `font-semibold`，並以 `border-b-2 border-primary` 的底線咬住細線（`-mb-px` 讓 2px 底線與 1px 細線重疊成單線）；未選中為 `text-muted-foreground` 且 hover **不提亮**（active 狀態只靠字重、字色與底線三個訊號）。移除 press 縮放；focus 為 `ring-2 ring-ring ring-offset-0`（光環貼齊觸發區）。同款底線亦可套用於語意為 filter 的篩選列——該列以 `role=group` 的容器包住 `role=button` 的選項（選取態以 `aria-pressed` 標示），對齊相同 class token，不因此變成 tab。
+- `tabs`：全站統一**底線式**（取代原膠囊／segmented 樣式）。`TabsList` 無底色、無圓角、無內距，只有一條滿寬的 `border-b border-border` 細線，標籤靠左。`TabsTrigger` 無底色；active 態＝文字 `text-foreground` 且 `font-semibold`，並以 `border-b-2 border-primary` 的底線咬住細線（`-mb-px` 讓 2px 底線與 1px 細線重疊成單線）；未選中為 `text-muted-foreground` 且 hover **不提亮**（active 狀態只靠字重、字色與底線三個訊號）。移除 press 縮放；focus 為 `ring-2 ring-ring ring-offset-0`（光環貼齊觸發區）。底線式**僅適用於 tab 語意**（內容區塊切換與路由導覽），filter 語意的篩選列不套用（見下方 `filter`）。觸發區本身 `min-h-11`（44px 命中區，見 [`states-and-a11y.md`](states-and-a11y.md)）——底線在觸發區底緣，`-mb-px` 讓它照樣咬住父層細線。細線的**擁有者必須是滿寬的父層**，不可掛在會收縮的 `inline-flex` `TabsList` 上，也不可在細線與觸發區之間留 `padding`（否則底線浮空、細線只畫到內容寬）。需要橫向捲動時，捲動容器放在 `TabsList` **外層**並加 `pb-px` 吸收 `-mb-px` 的 1px 外溢，避免 `overflow-x-auto` 連帶產生垂直捲軸。
+- `filter`：語意為 filter 的**按鈕切換列**——`role=group` 容器包住原生 `button` 選項（`aria-pressed` 標示選取）。未選中為 outline 按鈕、淡化字色；選中態＝primary 字色 ＋ 微抬升底色（與 material-chrome 選中表面同一語言），**框線不變**、不改字重。按鈕相連成一段：**無 gap、按鈕之間無分隔線**，整組只有兩端的圓角與外側邊界，內部由選中態的字色與底色承擔區別。hover 提亮與 press 縮放沿用 button 的標準回饋。與 tabs 的底線表面脫鉤，不因此變成 tab。
 - `YearMonthPicker`：按鈕式（`MON YYYY ▾` outline 按鈕）+ Popover 內雙 Select；選擇僅暫存在 picker 內部（draft state），按 APPLY 才 commit，Escape/外點取消。
 - **Popover 內 radio 單選**：用共用 `RadioGroup` / `Radio`（選項為原生 `input type="radio"` + `<label>` 包覆，以 `useId` 的 name 分組）。radix `DropdownMenuRadioGroup` 適合 dropdown 選單；popover 內需要即時 commit 的單選用共用 `RadioGroup`，測試與鍵盤語意都直接。
 - 確認對話：以 promise-based `useConfirm()`（`ConfirmDialogProvider` 全站掛載）取代 `window.confirm`；結構為 Title → Context → Consequence → Actions（outline Cancel + destructive 確認）。字串輸入預設 destructive "DELETE"（不可逆刪除）；可逆動作必須傳結構化 options 並使用非 destructive 標籤（如 "DISABLE"）。
+- `sheet`（`side="bottom"`）：頂端有一條固定的 drag handle 帶——高 `h-6`、垂直置中，帶上放 36×4 的 `rounded-full bg-border-strong` handle，`touch-none` 掛在帶上。帶固定在捲動區之外，內文由帶下的獨立捲動區承擔，`max-h` 留在 sheet 本身。handle 純視覺、`aria-hidden`，鍵盤仍靠 Escape 與關閉按鈕。可拖曳範圍與門檻屬 [`motion-system.md`](motion-system.md) §5.3。
 - `sortable-list`：共用 `src/ui/components/sortable/` 模式——`GripHandle` activator button（h-8 w-8、`touch-none`、focus ring、`active:scale-[0.97]`）+ 三感應器（Pointer distance 8px、Touch delay 180ms、Keyboard sortableKeyboardCoordinates）；僅 grip 可拖曳，row click 導覽不受干擾；DndContext 放在 Table 外層。細節見 ADR-0059。
 - `data-table`：全站表格共通原則。
   - **通則**：所有 Data Table 遵循同一標準——表頭 muted、數字右對齊、財務數字 monospace、細分隔線；不使用厚重 border、不使用 zebra striping。可查看 Detail 的資料整列可點擊（List → Detail），不用 row 端常駐 View/Edit 按鈕。
   - **結構**：真表格 `table-fixed` + `border-collapse`；欄寬為明確 % 數且總和必須＝100（瀏覽器會等比壓縮超寬表格，破壞跨表對齊）；同頁多表格共用欄寬常數以保持跨表同軸。
   - **外框**：表格上下各有一條 `border-border` 細線收邊——第一列上緣、最後列下緣（`dataTableFrameClass`，由 DataTable 統一套用）。因為 `border-collapse`，有表頭時第一列上緣與表頭底線會合併成單線；`TableBody` 的 last-child 重置會清掉最後列下緣，外框規則從表格根套用、specificity 高於重置。只有單列時上緣交給該列自帶的規則（見 terminus）。
-  - **Header**：10px / 500 / uppercase / 0.08em / muted、row 約 40px、`pb-[9px]`、`align-bottom`、底線 `border-b border-border`；文字欄表頭左對齊、數字欄表頭右對齊（與資料同軸）。
+  - **Header**：11px / 500 / uppercase / 0.08em / muted、row 約 40px、`pb-[9px]`、`align-bottom`、底線 `border-b border-border`；文字欄表頭左對齊、數字欄表頭右對齊（與資料同軸）。
   - **對齊**：一般文字欄左對齊；數字欄右對齊 + `font-mono` + `tabular-nums`；日期/代碼欄 mono。
   - **數字**：table 層級正常大小（`text-sm`）；不顯示無意義 `.00`；空值顯示「—」。
+  - **金額語意**：一列裡只有**淨額**帶語意色（正負走 `moneyTone` 的 `signTone`），毛額維持 muted；淨額若同時是該列的主要觀察值（如淨資產），再以字重加一級。同一列不得讓毛額與淨額爭色。
   - **報表語意階層（surface）**：財務報表的列樣式由**語意角色**決定，不由縮排深度決定；角色語意與不變式見 [`visual-standards.md`](visual-standards.md) 的「財務報表語意階層」。各角色的表面規格：
     - Section：`11px / 600 / uppercase / 0.08em / foreground`；`bg-muted/40` 微背景帶 + `border-b border-border`。
     - Group：`13px / 500 / foreground`；金額 13px。
@@ -169,13 +163,19 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
   - **Input 數字**：34px 高（子表格可 32px）、右對齊 mono、`tabular-nums`、無原生 spinner（`[appearance:textfield]` + webkit spin button `appearance-none`）、空值填「—」。這是 `NumberInput` 的 `surface="table"`（`compact` 為 32px）；子表格的文字輸入（如持倉的 Symbol／Name）共用同一個 32px 緊湊幾何，但左對齊、一般字體（`textInputCompactClass`）。
   - **列高/內距**：資料列 54px（`h-[54px]` 是**最小**列高）、td padding `9px 12px`（pr 用 `pr-3`）。垂直內距必須讓「最高的 cell 內容（34px 輸入框）＋上下內距＋1px 分隔線」≤ 54px，否則列高會被內容撐開——純文字列不受影響（本來就由最小列高撐滿）。`border-b border-border` 細分隔線、無 zebra。
   - **Vertical alignment**：th `align-bottom`、td `align-middle`。
-  - **Mobile**：`md:hidden` grouped cards——label 左 / 值右的 row representation；淡 row boundary（`border-t border-border/60`）可接受，不做成厚重 Card；禁止行動版橫向捲動。
+  - **Mobile**：`md:hidden` row representation——label 左 / 值右，淡 row boundary（`border-t border-border/60`）可接受，不做成厚重 Card；禁止行動版橫向捲動。只有兩個欄位時不保留欄寬分配，整列改為一筆資料：可摺疊列的 chevron 撐到 44px 命中區，語意角色與縮排級距沿用桌面表（見下方「報表語意階層」），因此同一份 `StatementRow` 兩邊都渲染得出來。原本靠右緣欄位承載的附加資訊（如漂移的「期初 → 期末」）折成值下方的第二行，不新增欄。
   - **Hover**：**僅整列可點擊的列**提供 `hover:bg-muted/50`。hover 底色是「這列可點擊」的 subtle feedback 契約，不是表格的預設裝飾——不可點擊的列（純資料列、編輯中的輸入列、展開中的子列）一律不得有 hover 底色，避免暗示不存在的互動。列內可互動元素（ghost icon action、grip handle）的 hover 由該元素自身承擔，不擴散成整列底色。
   - **Selected**：`bg-muted` 實心（`data-[state=selected]:bg-muted` 或條件 class），配合既有 `border-b-0` 與 `bg-muted/50` 展開列模式。
+  - **可點列的游標與提示**：整列可點擊時用 `INTERACTIVE_ROW_CLASS`（`src/ui/components/ui/table.tsx`）——`cursor-pointer`、hover 底色、hover 時列文字轉 `foreground`，並以 `after` 偽元素在右緣淡入一個 `›`。`›` 為 `pointer-events-none`、不佔欄寬、不做位移動畫（位移會與列底色打架）；**不用 `group-hover`**——列自己就是 `.group` 時不是自己的祖先，`group-hover` 不會觸發，一律用 `hover:` 變體。
   - **Card 包裹**：Table 不預設用 Card；Card 只在「需要明確包住一個獨立操作／狀態／資訊模組」時使用（snapshot history 等獨立模組可用，編輯中的 stage 表格不用）。
   - **列內動作**：有 detail 頁的資料整列可點擊走 List → Detail，不用 Actions 欄；無 detail 頁允許 row 端 ghost icon action（icon-only、muted、hover 語意）。
   - **Pointer event priority**：整列導覽與列內拖曳（grip）並存時，優先序為「點擊/輕觸列的普通區域 → 導覽 Detail；在 grip 上點擊/拖曳 → 拖曳排序，且不觸發導覽」。grip 的互動必須 stop propagation 並抑制拖曳結束後的一次 click，但**不得因此關閉整列的導覽能力**；reorder mode 期間整列導覽維持有效。三種禁止的實作缺陷：點 grip 同時開啟 Detail、drag 結束才觸發 row click、reorder mode 直接停用 row click。
   - **鍵盤可及性**：整列可點擊的列是 [`states-and-a11y.md`](states-and-a11y.md) §鍵盤可及性 明文列出的 **`<tr>` 例外**（`<tbody>` 的子項必須是 `row`）：以 `tabIndex={0}` + Enter／Space 承擔鍵盤等價（展開列另帶 `aria-expanded`），但**不得**加 `role`。不可點擊的列不給 `tabIndex`。
+- `chart-axis`：時間軸圖表（`LineChart` / `ComposedChart`）的座標軸。
+  - **y 標籤走側邊欄位**：值標籤放在圖旁邊的固定 48px gutter（`ChartAxisGutter`），不疊在繪圖區上——線與面積區因此永遠不會穿過數字。左軸走左側、右軸走右側；貼邊對齊、`tabular-nums`，行動版不縮寬。tick 的長度上限 6 字由 `formatAxisValue` 承擔，gutter 寬度跟著它走。
+  - **gutter 不吃 pointer**：gutter 是 `pointer-events-none`，hover／scrub 的命中區仍是繪圖區本身（overlay 與指標換算都以繪圖區為座標系）。沒有刻度可標時（`yAxis="none"`、資料為空、全部序列隱藏）不留 gutter。x 標籤列是繪圖欄的兄弟列，同樣以等寬空盒讓出 gutter，標籤才會從繪圖區左緣起算——標籤是絕對定位，`pl-12` 推不開。
+  - **格線一律由上往下**：`gridLines` 從頂端累加，兩張圖同一慣例；值標籤與格線同序（大到小、上到下）。反轉格線而保留標籤映射即可，不要改標籤。
+  - **刻度與標籤密度**：繪圖高度 < 140px 時 y 刻度降為 3，避免刻度壓線；x 標籤在槽寬不足時抽稀、最少留首末兩個、重複年份折掉。密度規則只在 `src/ui/components/charts/xLabels.ts`，寬度一律量繪圖欄本身（`useMeasuredWidth`），不量視窗——圖表在格線裡比視窗窄。
 - `form`：全站表單共通原則。表單狀態與驗證時機的規則（RHF、`useForm` 呼叫點、submit gate）見 `ui-layer-architecture.md` §4，此段只規範元件表面。
   - **欄位群組**：`FormItem` 是唯一決定 label / control / error 垂直佈局的地方（`space-y-2`）。欄位不得自行決定 label 或 error 的位置與間距。
   - **表面的分層**：表單內容以間距與細線分層，不套外框；Card 只保留給表單中的 alert 與狀態回報。
@@ -183,9 +183,12 @@ Token（定義於 `tailwind.config.js`，全部走 CSS 變數）：
   - **注入契約**：`FormControl` 以 `cloneElement` 注入 `value / onChange / onBlur / name / ref / error（boolean）/ aria-invalid / aria-describedby / id`。`error` 供視覺、`aria-*` 供無障礙，兩者缺一不可；欄位元件必須轉發 `ref` 至原生元素。
   - **Select 無值列**：Radix Select 禁止空字串作為 item value（空字串語意是「清除選擇、顯示 placeholder」）。optional select 的「無值」列以 `noneLabel` 表示（sentinel item value 內部承擔，欄位 value contract 仍為 string，選擇「無值」列時 emit `''`）；option 不得自帶 `value: ''`。
   - **Required**：必填欄位在 `FormLabel` 尾端加 `*`（`text-destructive`），不寫「必填」文字。
-  - **Error**：一律顯示在 control 下方，只顯示第一筆錯誤（`FormMessage`）；欄位錯誤時 `FormLabel` 轉 `text-destructive`。
+  - **標籤字級**：密集表單（多欄並排、行動版）的欄位標籤傳 `size="compact"`；單欄寬鬆表單省略。切換字級只改 `size`，不手寫 `text-*`，也不在父層寫 `[&_label]`。
+  - **Error**：一律顯示在 control 下方，只顯示第一筆錯誤（`FormMessage`）；欄位錯誤時 `FormLabel` 轉 `text-destructive`。無法用 `FormMessage` 的錯誤彙總（repeater 尾端、計算前的整批錯誤）沿用 `formMessageClass`，不另寫字級／字重。
   - **重複列的錯誤**：重複列（repeater）的逐列錯誤不佔控制項下方空間，改彙總於區塊底部，並以輸入框錯誤態標示問題列；每列仍保留供無障礙描述使用的訊息。
   - **Disabled**：使用 native `disabled`，統一 `opacity-50` 且不可 focus（由 input primitives 的 `disabled:` 樣式承擔，不另行手寫）。
   - **單一數字輸入**：全站數字欄位是單一 `NumberInput`（`src/ui/components/NumberInput.tsx`，form 與 data-table 兩個 barrel 都 re-export），以 `surface` 表達 form／table 兩種表面。兩者**共用高度（34px）與數字處理**（右對齊 mono `tabular-nums`、移除原生 spinner）**，surface 各自保留**——form 用 `rounded-md` + `border-input` + `bg-background`（即 `ui/input` 的樣式），table 用 `rounded-none` + `border-border` + `bg-muted`；共用的只有幾何與數字處理，不是整體外觀。
   - **Mobile**：輸入框聚焦時字級須 ≥ 16px（`text-base`，桌面 `md:text-sm`），避免 iOS Safari 聚焦自動縮放。
+  - **Slider**：原生 `input[type=range]` 一律自繪——軌道 `bg-muted`、拇指 `bg-primary` 圓形、focus 走 `ring-ring`。不用瀏覽器的 `accent-color`：原生繪製在各平台長相不一，站內也無從調整。軌道高度沿用 `h-1`，拇指 `h-3 w-3`。
+  - **Hero 金額**：表單裡只有一個數字輸入、且它就是入口欄位時（例如交易金額），該欄可放大為 `h-14` + `text-base md:text-2xl`，讓它成為視覺起點。這是 34px 契約的具名例外，只在 hero 用；同一表單裡的其他數字欄仍走 34px。
   - **單一貨幣符號來源**：`NumberInput` 不內建貨幣符號，`prefix` 由呼叫端提供。金額顯示一律經 `formatCurrency(amount, currency)`：本位幣（TWD）為預設，符號前置（`NT$`、`US$`、`€`、`¥`），0 位小數；非本位幣原幣金額傳入自身幣別，形狀與本位幣一致。

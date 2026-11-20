@@ -1,12 +1,8 @@
 import { useCallback } from 'react';
 
 import { getMonthInvestmentFinancingUseCase } from '@/application/monthly_close/use_cases/getMonthInvestmentFinancingUseCase';
-import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import type { CloseStageControl } from '@/ui/features/monthly_close/hooks/closeStageControl';
-import {
-  EMPTY_STAGE_CONFIRM_OPTIONS,
-  useConfirmStageControl,
-} from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
+import { useConfirmStageControl } from '@/ui/features/monthly_close/hooks/useConfirmStageControl';
 import { useSeededDraft } from '@/ui/features/monthly_close/hooks/useSeededDraft';
 import { useStageLoader } from '@/ui/features/monthly_close/hooks/useStageLoader';
 import { logger } from '@/utils/logger';
@@ -46,8 +42,6 @@ export const useSecuritiesTradeStage = ({
   totalPlannedTrades: number;
   errorMessage: string | null;
 } => {
-  const { confirm: confirmDialog } = useConfirm();
-
   // Prefill this month's investment and financing transactions as rows carrying their IDs (ADR-0052).
   const load = useCallback(async (): Promise<SecuritiesTradeDraft> => {
     try {
@@ -88,15 +82,6 @@ export const useSecuritiesTradeStage = ({
   );
 
   const { securities, financing, removedTransactionIds } = current;
-  const hasSecurities = securities.buys.length > 0 || securities.sells.length > 0;
-  const hasFinancing =
-    financing.shareholderFinancing.length > 0 || financing.dividendPayout.length > 0;
-  const needsWarning = !hasSecurities && !hasFinancing;
-
-  const confirmGate = useCallback(async () => {
-    if (!needsWarning) return true;
-    return confirmDialog({ ...EMPTY_STAGE_CONFIRM_OPTIONS });
-  }, [confirmDialog, needsWarning]);
 
   const control = useConfirmStageControl({
     stageId: 'SECURITIES_TRADE',
@@ -140,7 +125,6 @@ export const useSecuritiesTradeStage = ({
 
   return {
     ...control,
-    confirmGate,
     securities,
     financing,
     drawer,

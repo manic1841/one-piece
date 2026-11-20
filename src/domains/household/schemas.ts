@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { RoleEnum } from '@/domains/household/role';
 import { BaseSchema } from '@/shared/schemas/base';
+import { TimestampSchema } from '@/shared/schemas/date';
 
 export const HouseholdCreateSchema = z.object({
   name: z.string(),
@@ -10,7 +11,7 @@ export const HouseholdCreateSchema = z.object({
     z.string(),
     z.object({
       role: z.enum(RoleEnum).default(RoleEnum.GUEST),
-      joinedAt: z.date(),
+      joinedAt: TimestampSchema,
     }),
   ),
 });

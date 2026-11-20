@@ -69,8 +69,7 @@ const BarHoverLayer: React.FC<{
                   <ChartTooltip
                     ref={tooltipRef}
                     title={tip.title}
-                    value={tip.value}
-                    meta={tip.meta}
+                    content={tip.content}
                     className={cn('absolute z-10', anchor.className)}
                     style={{
                       top: `${Math.max(1 - column.ratio, allowedTopRatio) * 100}%`,

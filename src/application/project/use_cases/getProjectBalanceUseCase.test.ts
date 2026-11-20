@@ -52,11 +52,11 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
 
     await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
 
-    expect(transactionRepository.listByProject).toHaveBeenCalledWith(
-      'h1',
-      'p1',
-      expectedSnapshotDate,
-    );
+    expect(transactionRepository.listByProject).toHaveBeenCalledWith({
+      householdId: 'h1',
+      projectId: 'p1',
+      sinceDate: expectedSnapshotDate,
+    });
   });
 
   it('passes snapshot date to listTransfersByProject', async () => {
@@ -72,12 +72,11 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
 
     await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
 
-    expect(transactionRepository.listTransfersByProject).toHaveBeenCalledWith(
-      'h1',
-      'p1',
-      undefined,
-      expectedSnapshotDate,
-    );
+    expect(transactionRepository.listTransfersByProject).toHaveBeenCalledWith({
+      householdId: 'h1',
+      projectId: 'p1',
+      sinceDate: expectedSnapshotDate,
+    });
   });
 
   it('passes snapshot yearMonth to allocationRepository.listByProject', async () => {
@@ -92,12 +91,11 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
 
     await getProjectBalanceUseCase.execute({ householdId: 'h1', projectId: 'p1', auth });
 
-    expect(allocationRepository.listByProject).toHaveBeenCalledWith(
-      'h1',
-      'p1',
-      undefined,
-      '2025-07',
-    );
+    expect(allocationRepository.listByProject).toHaveBeenCalledWith({
+      householdId: 'h1',
+      projectId: 'p1',
+      sinceYearMonth: '2025-07',
+    });
   });
 
   it('preserves balance calculation with server-filtered data', async () => {
@@ -119,5 +117,21 @@ describe('getProjectBalanceUseCase — server-side date filtering', () => {
     });
 
     expect(result?.balance).toBe(1200); // 1000 base + 200 income
+    expect(result?.lastSettledYearMonth).toBe('2025-06');
+  });
+
+  it('reports no settled month when the project has no snapshot', async () => {
+    vi.mocked(projectSnapshotRepository.getLatest).mockResolvedValue(null);
+    vi.mocked(transactionRepository.listByProject).mockResolvedValue([] as never);
+    vi.mocked(transactionRepository.listTransfersByProject).mockResolvedValue([] as never);
+    vi.mocked(allocationRepository.listByProject).mockResolvedValue([] as never);
+
+    const result = await getProjectBalanceUseCase.execute({
+      householdId: 'h1',
+      projectId: 'p1',
+      auth,
+    });
+
+    expect(result?.lastSettledYearMonth).toBeNull();
   });
 });

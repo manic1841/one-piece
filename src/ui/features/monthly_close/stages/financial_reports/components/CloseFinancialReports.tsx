@@ -48,6 +48,14 @@ interface CloseFinancialReportsProps {
   reportsPersisted: boolean | null;
   /** Whether the cash-flow adjustment exceeds the confirmation threshold. */
   showAdjustmentWarning: boolean;
+  /**
+   * Whether any statement figure drifted from the persisted report (#234).
+   * Drift makes the stage's own confirmation stale, so it re-opens the
+   * regenerate action the completed stage would otherwise hide: the Close Period
+   * drift block sends the user back here to regenerate, and that instruction
+   * would be a dead end without it (ADR-0073).
+   */
+  hasDrift: boolean;
 }
 
 interface ReportsAlertsProps {
@@ -56,10 +64,14 @@ interface ReportsAlertsProps {
   showAdjustmentWarning: boolean;
   showExistingReportsWarning: boolean;
   showPersistenceUnknown: boolean;
+  /** Jumps to the cash-flow statement the adjustment warning is about. */
+  onShowAdjustment: () => void;
 }
 
 /**
- * The FINANCIAL_REPORTS warning surface: load error plus every pre-confirm/unknown alert.
+ * The FINANCIAL_REPORTS warning surface: the adjustment alert carries the way to
+ * inspect it, unknown-state alerts stay alerts, and the leftover-reports notice
+ * is a caption — two same-weight banners with no next step are just a wall.
  */
 const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
   error,
@@ -67,6 +79,7 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
   showAdjustmentWarning,
   showExistingReportsWarning,
   showPersistenceUnknown,
+  onShowAdjustment,
 }) => {
   const generatedAt = formatReportTimestamps(timestamps);
   return (
@@ -80,27 +93,32 @@ const ReportsAlerts: React.FC<ReportsAlertsProps> = ({
       {showAdjustmentWarning && (
         <Alert variant="warning">
           <StatusGlyph type="review" />
-          <AlertDescription>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</AlertDescription>
+          <AlertDescription className="flex flex-wrap items-center justify-between gap-3">
+            <span>{MONTHLY_CLOSE_LABELS.ADJUSTMENT_WARNING}</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="show-adjustment"
+              onClick={onShowAdjustment}
+              className="shrink-0"
+            >
+              {MONTHLY_CLOSE_LABELS.ADJUSTMENT_ACTION}
+            </Button>
+          </AlertDescription>
         </Alert>
       )}
 
       {/* Persisted reports without a completed stage are leftover files (legacy
           pre-workflow month or a reopened period). Confirm recomputes the
-          preview and overwrites them, so warn instead of claiming the stage is
-          done (#222). */}
+          preview and overwrites them, so say so instead of claiming the step is
+          done (#222). A warning banner would compete with the real blockers, so
+          it is a caption under the reports. */}
       {showExistingReportsWarning && (
-        <Alert variant="warning">
-          <StatusGlyph type="review" />
-          <AlertDescription>
-            <p>{MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}</p>
-            {generatedAt && (
-              <p>
-                {MONTHLY_CLOSE_LABELS.GENERATED_AT}
-                {generatedAt}
-              </p>
-            )}
-          </AlertDescription>
-        </Alert>
+        <p className="text-xs text-muted-foreground">
+          {MONTHLY_CLOSE_LABELS.EXISTING_REPORTS_WARNING}
+          {generatedAt && ` · ${MONTHLY_CLOSE_LABELS.GENERATED_AT}${generatedAt}`}
+        </p>
       )}
 
       {showPersistenceUnknown && (
@@ -129,6 +147,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   isStageCompleted,
   reportsPersisted,
   showAdjustmentWarning,
+  hasDrift,
 }) => {
   const { incomeStatement, balanceSheet, cashFlow } = reports;
 
@@ -156,6 +175,10 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
   const showExistingReportsWarning = !isStageCompleted && reportsPersisted === true;
   const showPersistenceUnknown =
     !isStageCompleted && !isLoading && error === null && reportsPersisted === null;
+  // A completed stage normally hides the action (its reports are the final
+  // record). Drift is the exception: a later entry made those reports stale, and
+  // this is the only way to clear it.
+  const showGenerate = !isReadOnly && (!isStageCompleted || hasDrift);
 
   return (
     <div className="space-y-6 pt-8">
@@ -179,6 +202,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
         showAdjustmentWarning={showAdjustmentWarning}
         showExistingReportsWarning={showExistingReportsWarning}
         showPersistenceUnknown={showPersistenceUnknown}
+        onShowAdjustment={() => handleViewChange('CASH_FLOW')}
       />
 
       {isStageCompleted && (
@@ -192,12 +216,17 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
               {MONTHLY_CLOSE_LABELS.GENERATED_AT}
               {formatReportTimestamps(timestamps)}
             </p>
+            {hasDrift && (
+              <p className="text-xs text-warning">
+                {MONTHLY_CLOSE_LABELS.GENERATED_REPORTS_DRIFT_HINT}
+              </p>
+            )}
             <div className="flex justify-end">
               <Button
                 variant="link"
                 size="sm"
                 onClick={onContinue}
-                className="h-auto p-0 text-xs font-semibold uppercase tracking-[0.08em]"
+                className="h-auto min-h-11 p-0 text-xs font-semibold uppercase tracking-[0.08em]"
               >
                 {MONTHLY_CLOSE_LABELS.CONTINUE}
               </Button>
@@ -208,7 +237,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
 
       {hasAnyData && (
         <Tabs value={view} onValueChange={handleViewChange} className="space-y-4">
-          <TabsList className="hidden md:inline-flex">
+          <TabsList className="max-w-full overflow-x-auto [scrollbar-width:none]">
             {(Object.keys(REPORT_VIEW_TITLES) as Array<keyof typeof REPORT_VIEW_TITLES>).map(
               (viewId) => (
                 <TabsTrigger key={viewId} value={viewId}>
@@ -220,7 +249,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           <TabsContent
             forceMount
             value="INCOME_STATEMENT"
-            className="md:hidden md:data-[state=active]:block"
+            className="hidden data-[state=active]:block"
           >
             <IncomeStatementView
               data={incomeStatement}
@@ -231,7 +260,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
           <TabsContent
             forceMount
             value="BALANCE_SHEET"
-            className="md:hidden md:data-[state=active]:block"
+            className="hidden data-[state=active]:block"
           >
             <BalanceSheetView
               data={balanceSheet}
@@ -239,11 +268,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
               onToggle={toggleCollapsed}
             />
           </TabsContent>
-          <TabsContent
-            forceMount
-            value="CASH_FLOW"
-            className="md:hidden md:data-[state=active]:block"
-          >
+          <TabsContent forceMount value="CASH_FLOW" className="hidden data-[state=active]:block">
             <CashFlowView data={cashFlow} collapsed={collapsedKeys} onToggle={toggleCollapsed} />
           </TabsContent>
         </Tabs>
@@ -255,7 +280,7 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border pt-[26px]">
+      <div className="flex flex-col-reverse items-stretch gap-3 border-t border-border pt-[26px] pb-16 pr-20 sm:flex-row sm:items-center sm:justify-between md:pb-0 md:pr-24">
         <Button
           variant="text"
           size="sm"
@@ -265,16 +290,18 @@ export const CloseFinancialReports: React.FC<CloseFinancialReportsProps> = ({
         >
           {MONTHLY_CLOSE_LABELS.BACK_TO_CURRENT}
         </Button>
-        {!isStageCompleted && !isReadOnly && (
+        {showGenerate && (
           <Button
             data-testid="generate-reports"
             onClick={onGenerate}
             disabled={confirming || isGenerateBlocked || isLoading || !isConfirmable}
-            className="h-[38px] px-[18px] text-xs font-semibold uppercase tracking-[0.08em]"
+            className="min-h-11 w-full px-[18px] text-xs font-semibold uppercase tracking-[0.08em] sm:w-auto"
           >
             {confirming || isLoading
               ? MONTHLY_CLOSE_LABELS.LOADING
-              : MONTHLY_CLOSE_LABELS.GENERATE_REPORTS}
+              : isStageCompleted
+                ? MONTHLY_CLOSE_LABELS.REGENERATE_REPORTS
+                : MONTHLY_CLOSE_LABELS.GENERATE_REPORTS}
           </Button>
         )}
       </div>

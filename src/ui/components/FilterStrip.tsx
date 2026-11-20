@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
-import { tabTriggerBaseClass } from './ui/tabs-styles';
+import { buttonVariants } from './ui/button-variants';
 
 export type FilterStripItem = {
   id: string;
@@ -24,25 +24,28 @@ export const FilterStrip: React.FC<FilterStripProps> = ({
   ariaLabel,
   className,
 }) => (
-  <div
-    role="group"
-    aria-label={ariaLabel}
-    className={cn('inline-flex items-center gap-6', className)}
-  >
-    {items.map((item) => (
-      <button
-        key={item.id}
-        type="button"
-        aria-pressed={item.id === value}
-        onClick={() => onValueChange(item.id)}
-        className={cn(
-          tabTriggerBaseClass,
-          'aria-pressed:border-primary aria-pressed:font-semibold aria-pressed:text-foreground',
-        )}
-      >
-        {item.label}
-      </button>
-    ))}
+  <div role="group" aria-label={ariaLabel} className={cn('inline-flex items-center', className)}>
+    {items.map((item, index) => {
+      const isFirst = index === 0;
+      const isLast = index === items.length - 1;
+      return (
+        <button
+          key={item.id}
+          type="button"
+          aria-pressed={item.id === value}
+          onClick={() => onValueChange(item.id)}
+          className={cn(
+            buttonVariants({ variant: 'outline', size: 'sm' }),
+            'text-muted-foreground aria-pressed:text-primary aria-pressed:bg-elevated',
+            isFirst && !isLast && 'rounded-r-none border-r-0',
+            isLast && !isFirst && 'rounded-l-none border-l-0',
+            !isFirst && !isLast && 'rounded-none border-x-0',
+          )}
+        >
+          {item.label}
+        </button>
+      );
+    })}
   </div>
 );
 FilterStrip.displayName = 'FilterStrip';

@@ -12,7 +12,7 @@ import {
   type DebtSnapshotCreate,
   DebtSnapshotSchema,
 } from '@/domains/debt/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 
 export { type DebtSnapshot, type DebtSnapshotCreate };

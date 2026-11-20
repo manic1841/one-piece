@@ -2,7 +2,7 @@ import { runTransaction } from 'firebase/firestore';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { allocationRepository } from '@/infra/repositories/allocationRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 

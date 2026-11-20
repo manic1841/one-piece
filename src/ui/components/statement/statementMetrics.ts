@@ -13,6 +13,10 @@ import { REPORT_METRIC_LABELS } from '@/ui/constants/report/reportMetricLabels';
 export interface StatementMetricValue {
   /** 已格式化的當期值。 */
   value: string;
+  /** 當期原始數值；提供時由 `AnimatedNumber` 補間（M07）。 */
+  animatedValue?: number;
+  /** 補間的格式化函式，與 `animatedValue` 成對。 */
+  animateFormat?: (value: number) => string;
   tone?: MoneyTone;
   /** 已格式化的變化行（如漂移的 `A -> B`）。 */
   change?: string;

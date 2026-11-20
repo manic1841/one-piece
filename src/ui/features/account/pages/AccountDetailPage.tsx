@@ -42,6 +42,8 @@ const AccountDetailPage: React.FC<AccountDetailPageProps> = ({ account }) => {
 
   const backToList = () => navigate('/accounts');
 
+  // Every load blanks and remounts the figures, so they count up from zero each
+  // time instead of only interpolating the first difference (motion-system §5.2).
   if (loading) {
     return (
       <div role="status" className="space-y-6 pb-20">

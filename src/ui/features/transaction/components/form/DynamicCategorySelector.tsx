@@ -33,12 +33,9 @@ export function DynamicCategorySelector({ allLedgerCodes }: DynamicCategorySelec
 
   return (
     <div className="space-y-4">
-      <Divider />
       <FormField name="ledgerCode">
         <FormItem>
-          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            屬性 / 詳細類別
-          </FormLabel>
+          <FormLabel required>詳細類別</FormLabel>
           <FormControl>
             <SelectField
               options={options.map((option) => ({ value: option.code, label: option.label }))}
@@ -48,6 +45,7 @@ export function DynamicCategorySelector({ allLedgerCodes }: DynamicCategorySelec
           <FormMessage />
         </FormItem>
       </FormField>
+      <Divider />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 **日期：** 2026-10-06
 **狀態：** 已接受
-**規範來源：** [design-system.md](../ui/design-system.md) §1、[development-guide.md](../development-guide.md) §8、[visual-standards.md](../ui/visual-standards.md) 反模式 checklist
+**規範來源：** [design-system.md](../ui/design-system.md) §1、[development-guide.md](../development-guide.md) §5、[visual-standards.md](../ui/visual-standards.md) 反模式 checklist
 
 原本三處明文禁止圖表使用漸層，理由是漸層會掩蓋資料、把圖表變成裝飾。退休現金流投影圖需要以「面積帶」分辨收入與投資報酬兩條堆疊序列，而單色淡出的填充（自線本身 `0.38` 淡出到該帶的基線 `0`）不是裝飾：它讓面積的**歸屬**（這片屬於哪條線）可讀，且淡出方向正好遠離讀者視線焦點。因此把禁令收窄為「**禁止裝飾性漸層**」，允許「單色、取自序列自身顏色、且有基線」的資料歸屬漸層；裝飾性漸層（多色、斜向、與序列無關的裝飾）仍禁止。
 

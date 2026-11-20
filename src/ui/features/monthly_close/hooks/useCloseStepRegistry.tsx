@@ -309,6 +309,7 @@ export const useCloseStepRegistry = ({
           isStageCompleted={isFinancialReportsCompleted}
           reportsPersisted={financialReportsStage.reportsPersisted}
           showAdjustmentWarning={financialReportsStage.showAdjustmentWarning}
+          hasDrift={hasDrift}
         />
       ),
     },
@@ -320,6 +321,7 @@ export const useCloseStepRegistry = ({
       render: (ctx) => (
         <CloseSummaryPanel
           summary={closeSummaryVM}
+          periodTitle={pageVM.periodTitle}
           loadErrorMessage={financialReportsStage.error}
           hasDrift={hasDrift}
           onReviewReports={() => ctx.onGoToStage('FINANCIAL_REPORTS')}

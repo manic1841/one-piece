@@ -6,7 +6,6 @@ import { getProjectUseCase } from '@/application/project/use_cases/getProjectUse
 import { type Project } from '@/domains/project/schemas';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
-  PROJECT_BALANCE_MISSING,
   PROJECT_DANGER_LABELS,
   PROJECT_DETAIL_LABELS,
 } from '@/ui/constants/project/projectDetailLabels';
@@ -58,10 +57,16 @@ const buildProject = (overrides: Partial<Project> = {}): Project => ({
 const learnViewResult = {
   monthGroups: [],
   totals: { income: 150000, expense: 90000, net: 60000 },
-  latestSnapshot: null,
+  balance: null,
+  lastSettledYearMonth: null,
+  hasMore: false,
+  loadMore: vi.fn(),
   loading: false,
+  balanceLoading: false,
+  balanceError: null,
   error: null,
   reload: vi.fn(),
+  retryBalance: vi.fn(),
 };
 
 const renderDetail = (project: Project) =>
@@ -163,10 +168,22 @@ describe('ProjectDetailPage states', () => {
       loading: true,
     } as never);
 
-    renderDetail(buildProject());
+    renderDetailWithoutProject();
 
     expect(screen.getByRole('status')).toBeInTheDocument();
     expect(screen.getByText(PROJECT_DETAIL_LABELS.LOADING_LABEL)).toBeInTheDocument();
+  });
+
+  it('gates the first paint even when the project came from the list', () => {
+    mockUseProjectDetailView.mockReturnValue({
+      ...learnViewResult,
+      loading: true,
+    } as never);
+
+    renderDetail(buildProject());
+
+    // The figures must not mount from stale data before their own load lands.
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders the error alert with a retry action when the view fails', () => {
@@ -205,33 +222,82 @@ describe('ProjectDetailPage states', () => {
     expect(screen.queryByText(PROJECT_DETAIL_LABELS.NOT_FOUND_TITLE)).not.toBeInTheDocument();
   });
 
-  it('renders the summary metrics and the cash-flow panel', () => {
+  it('renders the summary metrics and the cash-flow panel', async () => {
     mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
 
     renderDetail(buildProject());
 
     expect(screen.getByText(PROJECT_DETAIL_LABELS.SUMMARY_SECTION_TITLE)).toBeInTheDocument();
-    expect(screen.getByText('NT$150,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$90,000')).toBeInTheDocument();
+    // The summary figures count up from zero on mount (M07), so the settled values are awaited.
+    expect(await screen.findByText('NT$150,000')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('NT$90,000')).toBeInTheDocument());
+    // The summary never claims to be more than the recent window.
+    expect(screen.getAllByText(/近 12 個月/)).toHaveLength(3);
     expect(screen.getByText(PROJECT_DETAIL_LABELS.CASH_FLOW_SECTION_TITLE)).toBeInTheDocument();
     expect(screen.getByText(PROJECT_DETAIL_LABELS.CASH_FLOW_EMPTY_HINT)).toBeInTheDocument();
   });
 
-  it('takes the summary balance from the latest snapshot, never from the period net', () => {
-    mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
-    const { unmount } = renderDetail(buildProject());
-
-    expect(screen.getByText(PROJECT_BALANCE_MISSING)).toBeInTheDocument();
-    unmount();
-
+  it('renders the live balance and its last settled month', async () => {
     mockUseProjectDetailView.mockReturnValue({
       ...learnViewResult,
-      latestSnapshot: { closingBalanceText: 'NT$40,000' },
+      balance: 40000,
+      lastSettledYearMonth: '2026-09',
     } as never);
+
     renderDetail(buildProject());
 
-    expect(screen.getByText('NT$40,000')).toBeInTheDocument();
-    expect(screen.queryByText(PROJECT_BALANCE_MISSING)).not.toBeInTheDocument();
+    // The hero counts up from zero on mount, so the settled figure is awaited.
+    expect(await screen.findByText('NT$40,000')).toBeInTheDocument();
+    expect(screen.getByText(/最後結算月份 2026-09/)).toBeInTheDocument();
+  });
+
+  it('says a project was never settled rather than hiding the context', () => {
+    mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
+
+    renderDetail(buildProject());
+
+    expect(screen.getByText(/最後結算月份 未曾結算/)).toBeInTheDocument();
+  });
+
+  it('shows the balance failure in place with its own retry', () => {
+    const retryBalance = vi.fn();
+    mockUseProjectDetailView.mockReturnValue({
+      ...learnViewResult,
+      balanceError: { message: PROJECT_DETAIL_LABELS.BALANCE_LOAD_ERROR, detail: 'boom' },
+      retryBalance,
+    } as never);
+
+    renderDetail(buildProject());
+
+    fireEvent.click(screen.getByRole('button', { name: PROJECT_DETAIL_LABELS.RETRY_ACTION }));
+    expect(retryBalance).toHaveBeenCalled();
+  });
+
+  it('offers load more only while older months exist', () => {
+    mockUseProjectDetailView.mockReturnValue({ ...learnViewResult, hasMore: true } as never);
+    const { unmount } = renderDetail(buildProject());
+
+    expect(
+      screen.getByRole('button', { name: PROJECT_DETAIL_LABELS.LOAD_MORE_ACTION }),
+    ).toBeInTheDocument();
+    unmount();
+
+    mockUseProjectDetailView.mockReturnValue(learnViewResult as never);
+    renderDetail(buildProject());
+    expect(
+      screen.queryByRole('button', { name: PROJECT_DETAIL_LABELS.LOAD_MORE_ACTION }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('still offers load more and says so when the probe failed', () => {
+    mockUseProjectDetailView.mockReturnValue({ ...learnViewResult, hasMore: null } as never);
+
+    renderDetail(buildProject());
+
+    expect(
+      screen.getByRole('button', { name: PROJECT_DETAIL_LABELS.LOAD_MORE_ACTION }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(PROJECT_DETAIL_LABELS.LOAD_MORE_UNKNOWN_HINT)).toBeInTheDocument();
   });
 });
 

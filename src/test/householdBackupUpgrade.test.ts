@@ -3,8 +3,8 @@
  * backup upgrade).
  *
  * The fixture is the real live backup exported 2026-09-12 (v0 era). Expected
- * values are independent worked examples of the authoritative
- * migrate-retirement-v1 rules, not restatements of the transform.
+ * values are independent worked examples of the authoritative backup upgrade
+ * rules, not restatements of the transform.
  *
  * The upgrade gate is the full-collection parse against the CURRENT schemas:
  * import writes raw docs, and read-time parsing (baseRepository) is what
@@ -29,12 +29,7 @@ import {
 import { PortfolioSchema, PortfolioSnapshotSchema } from '../../src/domains/portfolio/schemas';
 import { ProjectSchema, ProjectSnapshotSchema } from '../../src/domains/project/schemas';
 import { FinancialReportSchema } from '../../src/domains/report/schemas';
-import {
-  RetirementExpenseCategorySchema,
-  RetirementIncomeSourceSchema,
-  RetirementOneTimeEventSchema,
-  RetirementPlanSchema,
-} from '../../src/domains/retirement/schemas';
+import { createRetirementPlanCreateSchema } from '../../src/domains/retirement/schemas';
 
 const BACKUP_PATH = 'examples/household-backup-6UpTVwd6O3vt0a8QDYJw-2026-09-12T07-57-08-648Z.json';
 
@@ -45,26 +40,9 @@ const hasFixture = existsSync(BACKUP_PATH);
 const loadBackup = (): HouseholdBackupPayload =>
   JSON.parse(readFileSync(BACKUP_PATH, 'utf8')) as HouseholdBackupPayload;
 
-const ISO_DATE_TIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
-
-// Mirrors the import path's reviveDates so schema date fields parse the way
-// Firestore restore would produce them.
-const reviveDates = (value: unknown): unknown => {
-  if (value instanceof Date) return value;
-  if (Array.isArray(value)) return value.map(reviveDates);
-  if (typeof value === 'string' && ISO_DATE_TIME_RE.test(value)) {
-    return new Date(value);
-  }
-  if (value && typeof value === 'object') {
-    const out: Record<string, unknown> = {};
-    Object.entries(value as Record<string, unknown>).forEach(([key, val]) => {
-      out[key] = reviveDates(val);
-    });
-    return out;
-  }
-  return value;
-};
-
+// Schemas parse the raw JSON as-is: persisted timestamps are ISO strings, and
+// the shared TimestampSchema accepts them and revives them to Date (issue #281).
+// There is no lexical revival step anywhere on the import path.
 const expectAllParse = (
   label: string,
   schema: { parse: (value: unknown) => unknown },
@@ -72,7 +50,7 @@ const expectAllParse = (
 ): void => {
   docs.forEach((doc, index) => {
     try {
-      schema.parse(reviveDates(doc));
+      schema.parse(doc);
     } catch (error) {
       throw new Error(`${label}[${index}] failed schema parse: ${(error as Error).message}`);
     }
@@ -119,68 +97,25 @@ describe('upgradeHouseholdBackup', () => {
     },
   );
 
-  it.skipIf(!hasFixture)('emits the hand-computed v1 retirement plan', () => {
+  it.skipIf(!hasFixture)('emits the new-model retirement plan', () => {
     const upgraded = upgradeHouseholdBackup(loadBackup());
     const plan = upgraded.collections.retirementPlans[0] as Record<string, unknown>;
 
     expect(upgraded.collections.retirementPlans).toHaveLength(1);
     expect(plan.id).toBe('lGcR485GBAfcl8AWqJyN');
     expect(plan.name).toBe('偉大的航道');
-    // v1 flat shape: no legacy mode/derived fields, no plan-level removed fields.
-    expect(plan).not.toHaveProperty('currentSavings');
-    expect(plan).not.toHaveProperty('salaryGrowthRate');
-    expect(plan).not.toHaveProperty('retirementTransition');
-    expect(plan).not.toHaveProperty('summary');
-
-    const incomes = plan.incomes as Array<Record<string, unknown>>;
-    const byName = Object.fromEntries(incomes.map((income) => [income.name, income]));
-    // DERIVED flattening: round(base x 0.4).
-    expect(byName['妹妹獎金'].currentAnnual).toBe(300692);
-    expect(byName['哥哥獎金'].currentAnnual).toBe(375859);
-    // IMPORTED incomes keep their base level.
-    expect(byName['妹妹薪資'].currentAnnual).toBe(751731);
-    expect(byName['哥哥薪資'].currentAnnual).toBe(939648);
-    // Non-pension streams keep their level after retirement.
-    incomes.forEach((income) => expect(income.retirementAnnual).toBe(income.currentAnnual));
-    // No legacy mode fields survive.
-    incomes.forEach((income) => {
-      expect(income).not.toHaveProperty('baseAmount');
-      expect(income).not.toHaveProperty('incomeCalculationMode');
-      expect(income).not.toHaveProperty('derivedFrom');
-      // reviveDates would turn calculatedFrom.importedAt into a Date and fail
-      // the v1 schema's importedAt: string, so incomes omit calculatedFrom.
-      expect(income).not.toHaveProperty('calculatedFrom');
+    expect(plan.assumptions).toEqual({
+      birthYear: 1995,
+      retirementAge: 45,
+      lifeExpectancy: 100,
+      inflationRate: 0.02,
+      annualReturnRate: 0.06,
     });
-
-    const expenses = plan.expenses as Array<Record<string, unknown>>;
-    const expenseByName = Object.fromEntries(expenses.map((expense) => [expense.name, expense]));
-    // SALARY_PERCENTAGE flattening: round(linked baseline x percentage), with
-    // the all-salary baseline for 生活費.
-    expect(expenseByName['汽車-妹妹'].currentAnnual).toBe(58559);
-    expect(expenseByName['居住-妹妹'].currentAnnual).toBe(234234);
-    expect(expenseByName['保險-妹妹'].currentAnnual).toBe(35135);
-    expect(expenseByName['生活費'].currentAnnual).toBe(1106748);
-    expect(expenseByName['汽車-哥哥'].currentAnnual).toBe(73197);
-    expect(expenseByName['居住-哥哥'].currentAnnual).toBe(292788);
-    expect(expenseByName['保險-哥哥'].currentAnnual).toBe(43918);
-    expenses.forEach((expense) => {
-      expect(expense).not.toHaveProperty('calculationMode');
-      expect(expense).not.toHaveProperty('baseAmount');
-      expect(expense).not.toHaveProperty('salaryPercentage');
-      expect(expense).not.toHaveProperty('linkedIncomeId');
-      expect(expense.retirementMultiplier).toBe(0.7);
-    });
-
-    const events = plan.events as Array<Record<string, unknown>>;
-    const renovation = events.find((event) => event.name === '房屋裝修');
-    expect(renovation).toMatchObject({ year: 2026, amount: 500000 });
-    const child = events.find((event) => event.name === '小孩');
-    expect(child).not.toHaveProperty('calculationMode');
-    (child?.phases as Array<Record<string, unknown>>).forEach((phase) => {
-      expect(phase).not.toHaveProperty('mode');
-      expect(phase).not.toHaveProperty('percentage');
-      expect(typeof phase.amount).toBe('number');
-    });
+    // v0 flat amounts are not converted to rules (ADR-0089): the projection is
+    // recomputed, so rules and events start empty.
+    expect(plan).not.toHaveProperty('incomes');
+    expect(plan).not.toHaveProperty('expenses');
+    expect(plan).not.toHaveProperty('events');
   });
 
   it.skipIf(!hasFixture)('keeps every other collection byte-for-byte intact', () => {
@@ -207,7 +142,7 @@ describe('upgradeHouseholdBackup', () => {
     const upgraded = upgradeHouseholdBackup(loadBackup());
     const c = upgraded.collections;
 
-    expect(() => HouseholdSchema.parse(reviveDates(upgraded.household))).not.toThrow();
+    expect(() => HouseholdSchema.parse(upgraded.household)).not.toThrow();
     expectAllParse(
       'accounts',
       AccountSchema,
@@ -256,17 +191,7 @@ describe('upgradeHouseholdBackup', () => {
     expectAllParse('intentMappings', IntentMappingSchema, c.intentMappings);
 
     const plan = c.retirementPlans[0];
-    expect(() => RetirementPlanSchema.parse(reviveDates(plan))).not.toThrow();
-    const planRecord = plan as Record<string, unknown>;
-    (planRecord.incomes as unknown[]).forEach((income) =>
-      expect(() => RetirementIncomeSourceSchema.parse(reviveDates(income))).not.toThrow(),
-    );
-    (planRecord.expenses as unknown[]).forEach((expense) =>
-      expect(() => RetirementExpenseCategorySchema.parse(reviveDates(expense))).not.toThrow(),
-    );
-    (planRecord.events as unknown[]).forEach((event) =>
-      expect(() => RetirementOneTimeEventSchema.parse(reviveDates(event))).not.toThrow(),
-    );
+    expect(() => createRetirementPlanCreateSchema(2025).parse(plan)).not.toThrow();
   });
 
   it.skipIf(!hasFixture)(

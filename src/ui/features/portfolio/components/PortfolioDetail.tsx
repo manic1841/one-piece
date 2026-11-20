@@ -30,6 +30,7 @@ import {
   PORTFOLIO_PERFORMANCE_COLUMN_WIDTHS,
 } from '@/ui/constants/portfolio/labels';
 import { type PortfolioDetailVM } from '@/ui/features/portfolio/viewmodels/portfolioDisplay.vm';
+import { formatCurrency, formatPercentage } from '@/ui/utils';
 
 import HoldingsAllocation from './HoldingsAllocation';
 
@@ -44,7 +45,13 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
     <div className="space-y-8">
       <PageSection title={PORTFOLIO_DETAIL_LABELS.VALUE_SECTION} spacing="compact" className="pt-0">
         <div className="flex items-baseline justify-between">
-          <FinancialNumber value={vm.totalValueText} size="hero" />
+          <FinancialNumber
+            value={vm.totalValueText}
+            animatedValue={vm.totalValue}
+            animateFormat={formatCurrency}
+            animateOnMount
+            size="hero"
+          />
           {vm.asOfText && (
             <span className="font-mono text-xs tabular-nums text-muted-foreground">
               {vm.asOfText}
@@ -89,8 +96,20 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
         }
       >
         <MetricGroup columns={2}>
-          <Metric label={PORTFOLIO_DETAIL_LABELS.MONTHLY} value={vm.monthlyReturnText} />
-          <Metric label={PORTFOLIO_DETAIL_LABELS.CUMULATIVE} value={vm.cumulativeReturnText} />
+          <Metric
+            label={PORTFOLIO_DETAIL_LABELS.MONTHLY}
+            value={vm.monthlyReturnText}
+            animatedValue={vm.monthlyReturn}
+            animateFormat={(raw) => formatPercentage(raw, 2)}
+            animateOnMount
+          />
+          <Metric
+            label={PORTFOLIO_DETAIL_LABELS.CUMULATIVE}
+            value={vm.cumulativeReturnText}
+            animatedValue={vm.cumulativeReturn}
+            animateFormat={(raw) => formatPercentage(raw, 2)}
+            animateOnMount
+          />
         </MetricGroup>
       </PageSection>
 
@@ -99,18 +118,30 @@ const PortfolioDetail: React.FC<PortfolioDetailProps> = ({ vm, onDelete }) => {
           <Metric
             label={PORTFOLIO_DETAIL_LABELS.PREVIOUS_VALUE}
             value={vm.breakdown.previousValueText}
+            animatedValue={vm.breakdown.previousValue}
+            animateFormat={formatCurrency}
+            animateOnMount
           />
           <Metric
             label={PORTFOLIO_DETAIL_LABELS.CURRENT_VALUE}
             value={vm.breakdown.currentValueText}
+            animatedValue={vm.breakdown.currentValue}
+            animateFormat={formatCurrency}
+            animateOnMount
           />
           <Metric
             label={PORTFOLIO_DETAIL_LABELS.INVESTMENT_CASH_FLOW}
             value={vm.breakdown.investmentCashFlowText}
+            animatedValue={vm.breakdown.investmentCashFlow}
+            animateFormat={formatCurrency}
+            animateOnMount
           />
           <Metric
             label={PORTFOLIO_DETAIL_LABELS.CALCULATED_RETURN}
             value={vm.breakdown.calculatedReturnText}
+            animatedValue={vm.breakdown.calculatedReturn}
+            animateFormat={formatCurrency}
+            animateOnMount
           />
         </MetricGroup>
       </PageSection>

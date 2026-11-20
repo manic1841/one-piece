@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { InteractiveBarChart } from './InteractiveBarChart';
+import { heroPoint } from './chartInteraction';
 
 const LABELS = ['APR', 'MAY', 'JUN'];
 const SERIES = [
@@ -9,9 +10,15 @@ const SERIES = [
   { tone: 'negative' as const, values: [28, 34, 43] },
 ];
 const POINTS = [
-  { title: 'APR 2026', value: 'INCOME +NT$55,000', meta: 'EXPENSE −NT$28,000' },
-  { title: 'MAY 2026', value: 'INCOME +NT$70,000', meta: 'EXPENSE −NT$34,000' },
-  { title: 'JUN 2026', value: 'INCOME +NT$64,000', meta: 'EXPENSE −NT$43,000' },
+  heroPoint('APR 2026', { id: 'inflow', label: 'INCOME', value: '+NT$55,000' }, [
+    { id: 'outflow', label: 'EXPENSE', value: '−NT$28,000' },
+  ]),
+  heroPoint('MAY 2026', { id: 'inflow', label: 'INCOME', value: '+NT$70,000' }, [
+    { id: 'outflow', label: 'EXPENSE', value: '−NT$34,000' },
+  ]),
+  heroPoint('JUN 2026', { id: 'inflow', label: 'INCOME', value: '+NT$64,000' }, [
+    { id: 'outflow', label: 'EXPENSE', value: '−NT$43,000' },
+  ]),
 ];
 
 const renderChart = () =>

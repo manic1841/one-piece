@@ -4,15 +4,10 @@ import {
   CLOSE_STAGE_LABELS,
   CLOSE_STAGE_ORDER,
   MONTHLY_CLOSE_LABELS,
+  PERIOD_STATUS_TEXT,
 } from '@/ui/constants/monthlyClose';
 
 import type { CloseStageItemVM, MonthlyClosePageVM } from '../viewmodels/monthlyClose.vm';
-
-const STATUS_TEXT_MAP: Record<string, string> = {
-  IN_PROGRESS: MONTHLY_CLOSE_LABELS.IN_PROGRESS,
-  NEEDS_REVIEW: MONTHLY_CLOSE_LABELS.NEEDS_REVIEW,
-  CLOSED: MONTHLY_CLOSE_LABELS.CLOSED,
-};
 
 /** A `YYYY-MM` period as its display title, e.g. "2026 年 9 月". */
 export const formatYearMonthTitle = (yearMonth: string): string => {
@@ -61,7 +56,7 @@ export const mapPeriodToPageVM = (period: FinancialPeriod): MonthlyClosePageVM =
     periodText: period.yearMonth,
     periodTitle: formatYearMonthTitle(period.yearMonth),
     status: period.status,
-    statusText: STATUS_TEXT_MAP[period.status] ?? period.status,
+    statusText: PERIOD_STATUS_TEXT[period.status] ?? period.status,
     isPaused: period.status === 'NEEDS_REVIEW',
     isClosed: period.status === 'CLOSED',
     isCascadeDemoted: isCascadeDemoted(period),

@@ -3,39 +3,24 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
+import { type TransactionDoc } from '@/test/factories';
 import { db, resetMockDb } from '@/test/mocks/firebase';
+import { seedDebtAccount as seedDebtAccountDoc } from '@/test/seeds';
 
-const seedDebtAccount = async (
+const seedDebtAccount = (
   targetHouseholdId: string,
   debtAccountId: string,
   linkedLedgerCode: string,
-) => {
-  await setDoc(doc(db, 'households', targetHouseholdId, 'debtAccounts', debtAccountId), {
-    id: debtAccountId,
+) =>
+  seedDebtAccountDoc(targetHouseholdId, debtAccountId, {
     name: `貸款 ${debtAccountId}`,
-    type: 'mortgage',
-    repaymentType: 'equal_payment',
-    originalAmount: 1000000,
-    currentBalance: 900000,
-    interestRate: 2.1,
-    startDate: serverTimestamp(),
-    endDate: serverTimestamp(),
-    graceEndDate: null,
-    monthlyPayment: 35000,
     linkedLedgerCode,
-    linkedProjectId: null,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
   });
-};
 
 const seedPaymentTransaction = async (
   targetHouseholdId: string,
   transactionId: string,
-  data: Record<string, unknown>,
+  data: Partial<TransactionDoc>,
 ) => {
   await setDoc(doc(db, 'households', targetHouseholdId, 'transactions', transactionId), {
     id: transactionId,

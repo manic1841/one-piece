@@ -31,4 +31,20 @@ describe('PageHeader', () => {
     fireEvent.click(screen.getByRole('button'));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
+
+  it('names the icon-only back button', () => {
+    render(<PageHeader title="DETAIL" onBack={vi.fn()} backLabel="Back to projections" />);
+
+    expect(screen.getByRole('button', { name: 'Back to projections' })).toBeInTheDocument();
+  });
+
+  it('stacks the actions full width on mobile and returns them to a row at sm', () => {
+    const { container } = render(
+      <PageHeader title="ACCOUNTS" actions={<button type="button">新增</button>} />,
+    );
+
+    const actions = container.querySelector('button')?.parentElement as HTMLElement;
+    expect(actions.className).toContain('flex-col');
+    expect(actions.className).toContain('sm:flex-row');
+  });
 });

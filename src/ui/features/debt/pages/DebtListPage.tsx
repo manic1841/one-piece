@@ -55,7 +55,7 @@ export default function DebtListPage() {
   const householdId = userProfile?.householdId ?? '';
   const navigate = useNavigate();
 
-  const { debtAccountViews, projects, totalDebt, loading, errorMessage, reload } =
+  const { debtAccountViews, projects, totalDebt, totalMonthlyDue, loading, errorMessage, reload } =
     useDebtPage(householdId);
 
   const [dialogMode, setDialogMode] = useState<DialogMode | null>(null);
@@ -135,17 +135,31 @@ export default function DebtListPage() {
             spacing="compact"
             className="border-b-0"
           >
-            <MetricGroup columns={2} lastSpansFull>
+            <MetricGroup columns={3} lastSpansFull>
               <Metric
                 testId="debt-total-outstanding"
                 label={DEBT_SUMMARY_LABELS.TOTAL_OUTSTANDING}
                 value={formatCurrency(totalDebt)}
+                animatedValue={totalDebt}
+                animateFormat={formatCurrency}
+                animateOnMount
                 tone="negative"
               />
               <Metric
                 testId="debt-active-count"
                 label={DEBT_SUMMARY_LABELS.ACTIVE_ACCOUNTS}
                 value={String(activeCount)}
+                animatedValue={activeCount}
+                animateFormat={(raw) => String(Math.round(raw))}
+                animateOnMount
+              />
+              <Metric
+                testId="debt-total-monthly-due"
+                label={DEBT_SUMMARY_LABELS.TOTAL_MONTHLY_DUE}
+                value={formatCurrency(totalMonthlyDue)}
+                animatedValue={totalMonthlyDue}
+                animateFormat={formatCurrency}
+                animateOnMount
               />
             </MetricGroup>
           </PageSection>

@@ -10,8 +10,9 @@ import { householdRepository } from '@/infra/repositories/householdRepository';
 import { intentMappingRepository } from '@/infra/repositories/intentMappingRepository';
 import { portfolioRepository } from '@/infra/repositories/portfolioRepository';
 import { projectRepository } from '@/infra/repositories/projectRepository';
+import { projectionRepository } from '@/infra/repositories/projectionRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
-import { retirementRepository } from '@/infra/repositories/retirementRepository';
+import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 
 import { HouseholdBackupPayloadSchema } from './backupSchema';
@@ -22,10 +23,7 @@ import {
   buildSetOps,
   commitDeletes,
   commitSets,
-  isRecord,
 } from './householdBackupRestoreOps';
-
-const ISO_DATE_TIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 
 export interface ImportHouseholdBackupRequest {
   householdId: string;
@@ -42,25 +40,14 @@ const isHouseholdAdminRole = (role: string | undefined) => {
   return role === RoleEnum.OWNER || role === RoleEnum.ADMIN;
 };
 
-const reviveDates = (value: unknown): unknown => {
-  if (value instanceof Date) return value;
-  if (Array.isArray(value)) return value.map(reviveDates);
-  if (typeof value === 'string' && ISO_DATE_TIME_RE.test(value)) return new Date(value);
-
-  if (isRecord(value)) {
-    const out: Record<string, unknown> = {};
-    Object.entries(value).forEach(([key, val]) => {
-      out[key] = reviveDates(val);
-    });
-    return out;
-  }
-
-  return value;
-};
-
 class ImportHouseholdBackupUseCase {
-  private validateBackup(backup: HouseholdBackupPayload): void {
-    if (!backup || backup.schemaVersion !== 1) {
+  /**
+   * Validates the payload and returns the parsed form. The schema's timestamp
+   * type revives ISO strings back to Date here, so callers must write the
+   * returned value rather than the raw request payload.
+   */
+  private validateBackup(backup: HouseholdBackupPayload): HouseholdBackupPayload {
+    if (!backup || backup.schemaVersion !== 2) {
       throw new Error('Invalid backup file: unsupported schema version');
     }
 
@@ -74,6 +61,8 @@ class ImportHouseholdBackupUseCase {
       const path = first ? first.path.join('.') : '(unknown)';
       throw new Error(`Invalid backup file: payload failed validation at ${path}`);
     }
+
+    return result.data;
   }
 
   private async loadExistingData(householdId: string): Promise<ExistingHouseholdData> {
@@ -83,6 +72,7 @@ class ImportHouseholdBackupUseCase {
       portfolios,
       debtAccounts,
       retirementPlans,
+      projections,
       transactions,
       reports,
       allocations,
@@ -95,7 +85,8 @@ class ImportHouseholdBackupUseCase {
       projectRepository.getProjects(householdId, true),
       portfolioRepository.list([householdId]),
       debtAccountRepository.getDebtAccounts(householdId, true),
-      retirementRepository.getPlans(householdId),
+      retirementPlanRepository.listPlans(householdId),
+      projectionRepository.listProjections(householdId),
       transactionRepository.list([householdId]),
       reportRepository.list([householdId]),
       allocationRepository.list([householdId]),
@@ -111,6 +102,7 @@ class ImportHouseholdBackupUseCase {
       portfolios,
       debtAccounts,
       retirementPlans,
+      projections,
       transactions,
       reports,
       allocations,
@@ -127,7 +119,7 @@ class ImportHouseholdBackupUseCase {
     if (!householdId) throw new Error('householdId is required');
     if (!auth.uid) throw new Error('User must be authenticated');
 
-    this.validateBackup(backup);
+    const revivedBackup = this.validateBackup(backup);
     if (backup.householdId !== householdId) {
       throw new Error('Backup household does not match current household');
     }
@@ -147,8 +139,7 @@ class ImportHouseholdBackupUseCase {
         .map(([key]) => key),
     );
     const deleteRefs = await buildDeleteRefs(householdId, existingData, includedCollections);
-    const backupData = reviveDates(backup) as HouseholdBackupPayload;
-    const setOps = buildSetOps(householdId, backupData);
+    const setOps = buildSetOps(householdId, revivedBackup);
     // CONTRACT: Deletes commit before writes. If the write phase fails
     // partway, existing data is already deleted — the household will be
     // in a partially restored state. Validation runs before any deletes,

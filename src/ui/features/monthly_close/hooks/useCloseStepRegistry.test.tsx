@@ -242,6 +242,18 @@ describe('useCloseStepRegistry', () => {
       issues: [],
     });
     vi.mocked(previewProjectSettlementsUseCase.execute).mockResolvedValue([]);
+    // Same reason: the report preview / baseline / persistence mocks are
+    // per-test overrides too.
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(null);
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue({
+      incomeStatement: null,
+      balanceSheet: null,
+      cashFlow: null,
+    } as never);
+    vi.mocked(getReportPersistenceStateUseCase.execute).mockResolvedValue({
+      isPersisted: false,
+      timestamps: {},
+    } as never);
   });
 
   it('registers all eight close steps', () => {
@@ -388,6 +400,36 @@ describe('useCloseStepRegistry', () => {
     expect(screen.queryByTestId('generate-reports')).not.toBeInTheDocument();
   });
 
+  // #234/ADR-0073: drift on a completed stage keeps the regenerate action, so
+  // the Close Period drift block's instruction is followable.
+  it('keeps the regenerate action on a completed reports stage once it drifted', async () => {
+    vi.mocked(previewFinancialReportsWorkflow.execute).mockResolvedValue(
+      previewWithTotals({ netIncome: 117_000 }),
+    );
+    vi.mocked(getStoredReportsBundleUseCase.execute).mockResolvedValue(
+      persistedWithTotals({ netIncome: 100_000 }),
+    );
+
+    function DriftedReportsHarness() {
+      const registry = useCloseStepRegistry({
+        ...baseArgs,
+        pageVM: pageVMWithReportsStage('COMPLETED'),
+      });
+      return <>{registry.FINANCIAL_REPORTS.render(baseContext)}</>;
+    }
+
+    render(<DriftedReportsHarness />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('reports-generated-panel')).toHaveTextContent(
+        MONTHLY_CLOSE_LABELS.GENERATED_REPORTS_DRIFT_HINT,
+      ),
+    );
+    expect(screen.getByTestId('generate-reports')).toHaveTextContent(
+      MONTHLY_CLOSE_LABELS.REGENERATE_REPORTS,
+    );
+  });
+
   it('renders the shared chrome frame for a stage with inputs', () => {
     const { result } = renderRegistry();
 
@@ -470,11 +512,11 @@ describe('useCloseStepRegistry', () => {
 
     render(<ClosePeriodHarness />);
 
-    await waitFor(() => expect(screen.getByText('NT$10,500,000')).toBeInTheDocument());
-    expect(screen.getByText('NT$6,200,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$4,300,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$117,000')).toBeInTheDocument();
-    expect(screen.getByText('NT$179,000')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('NT$10,500,000')).toHaveLength(2));
+    expect(screen.getAllByText('NT$6,200,000')).toHaveLength(2);
+    expect(screen.getAllByText('NT$4,300,000')).toHaveLength(2);
+    expect(screen.getAllByText('NT$117,000')).toHaveLength(2);
+    expect(screen.getAllByText('NT$179,000')).toHaveLength(2);
   });
 
   it('annotates a CLOSE_PERIOD figure that drifted from the persisted report while live', async () => {
@@ -504,9 +546,9 @@ describe('useCloseStepRegistry', () => {
 
     render(<ClosePeriodHarness />);
 
-    await waitFor(() =>
-      expect(screen.getByText('NT$4,200,000 -> NT$4,300,000')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getAllByText('NT$4,300,000').length).toBeGreaterThan(0));
+    // Both surfaces name both ends instead of an unlabelled arrow.
+    expect(screen.getAllByText(/期初 NT\$4,200,000 → 期末 NT\$4,300,000/)).toHaveLength(2);
   });
 
   it('renders the persisted CLOSE_PERIOD record with no drift marks for a CLOSED period', async () => {
@@ -540,8 +582,9 @@ describe('useCloseStepRegistry', () => {
 
     render(<ClosedHarness />);
 
-    await waitFor(() => expect(screen.getByText('NT$4,200,000')).toBeInTheDocument());
-    expect(screen.queryByText(/->/)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText('NT$4,200,000')).toHaveLength(2));
+    expect(screen.queryByText('->')).not.toBeInTheDocument();
+    expect(screen.queryByText(/期初 /)).not.toBeInTheDocument();
   });
 
   // T11 (#235): the page refreshes stages through `control.refresh` and never

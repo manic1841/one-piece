@@ -6,6 +6,7 @@ import {
   DataTable,
   DataTableCell,
   DataTableColGroup,
+  DataTableDetailRow,
   DataTableHeadCell,
   DataTableHeadRow,
   DataTableRow,
@@ -89,48 +90,44 @@ export const DebtHistoryTable: React.FC<DebtHistoryTableProps> = ({ months }) =>
                   <DataTableCell align="number">{month.interestText}</DataTableCell>
                   <DataTableCell align="number">{month.closingText}</DataTableCell>
                 </DataTableRow>
-                {isOpen && (
-                  <DataTableRow
-                    className="hover:bg-transparent"
-                    data-testid={`debt-month-payments-${month.key}`}
-                  >
-                    <DataTableCell colSpan={MONTH_COL_SPAN} className="bg-muted/30 px-3 py-3">
-                      {month.payments.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">當月沒有還款紀錄</p>
-                      ) : (
-                        <DataTable>
-                          <DataTableColGroup widths={PAYMENT_COLUMN_WIDTHS} />
-                          <TableHeader>
-                            <DataTableHeadRow>
-                              <DataTableHeadCell>Date</DataTableHeadCell>
-                              <DataTableHeadCell>Description</DataTableHeadCell>
-                              <DataTableHeadCell align="number">Principal</DataTableHeadCell>
-                              <DataTableHeadCell align="number">Interest</DataTableHeadCell>
-                              <DataTableHeadCell align="number">Total</DataTableHeadCell>
-                            </DataTableHeadRow>
-                          </TableHeader>
-                          <TableBody>
-                            {month.payments.map((payment) => (
-                              <DataTableRow key={payment.id}>
-                                <DataTableCell className="font-mono text-[12px]">
-                                  {payment.dateText}
-                                </DataTableCell>
-                                <DataTableCell className="text-muted-foreground">
-                                  {payment.descriptionText}
-                                </DataTableCell>
-                                <DataTableCell align="number">
-                                  {payment.principalText}
-                                </DataTableCell>
-                                <DataTableCell align="number">{payment.interestText}</DataTableCell>
-                                <DataTableCell align="number">{payment.totalText}</DataTableCell>
-                              </DataTableRow>
-                            ))}
-                          </TableBody>
-                        </DataTable>
-                      )}
-                    </DataTableCell>
-                  </DataTableRow>
-                )}
+                <DataTableDetailRow
+                  open={isOpen}
+                  colSpan={MONTH_COL_SPAN}
+                  contentClassName="bg-muted/30 px-3 py-3"
+                  data-testid={`debt-month-payments-${month.key}`}
+                >
+                  {month.payments.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">當月沒有還款紀錄</p>
+                  ) : (
+                    <DataTable>
+                      <DataTableColGroup widths={PAYMENT_COLUMN_WIDTHS} />
+                      <TableHeader>
+                        <DataTableHeadRow>
+                          <DataTableHeadCell>Date</DataTableHeadCell>
+                          <DataTableHeadCell>Description</DataTableHeadCell>
+                          <DataTableHeadCell align="number">Principal</DataTableHeadCell>
+                          <DataTableHeadCell align="number">Interest</DataTableHeadCell>
+                          <DataTableHeadCell align="number">Total</DataTableHeadCell>
+                        </DataTableHeadRow>
+                      </TableHeader>
+                      <TableBody>
+                        {month.payments.map((payment) => (
+                          <DataTableRow key={payment.id}>
+                            <DataTableCell className="font-mono text-[12px]">
+                              {payment.dateText}
+                            </DataTableCell>
+                            <DataTableCell className="text-muted-foreground">
+                              {payment.descriptionText}
+                            </DataTableCell>
+                            <DataTableCell align="number">{payment.principalText}</DataTableCell>
+                            <DataTableCell align="number">{payment.interestText}</DataTableCell>
+                            <DataTableCell align="number">{payment.totalText}</DataTableCell>
+                          </DataTableRow>
+                        ))}
+                      </TableBody>
+                    </DataTable>
+                  )}
+                </DataTableDetailRow>
               </React.Fragment>
             );
           })}

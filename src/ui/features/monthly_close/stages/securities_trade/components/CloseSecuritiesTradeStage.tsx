@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseStageChrome';
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
@@ -63,6 +64,13 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
 }) => {
   const projectNameOf = (projectId: string | null | undefined) =>
     projects.find((project) => project.id === projectId)?.name ?? null;
+  // An empty step is not a blocker, so it says so inline instead of gating the
+  // confirm behind a modal that only repeats the same sentence.
+  const isEmpty =
+    securities.buys.length === 0 &&
+    securities.sells.length === 0 &&
+    financing.shareholderFinancing.length === 0 &&
+    financing.dividendPayout.length === 0;
 
   return (
     <CloseStageChrome
@@ -78,6 +86,24 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
       onBackToCurrent={onBackToCurrent}
     >
       <CloseStageLoadError message={loadErrorMessage} />
+      {isEmpty && (
+        /* Nothing to fill in, so the confirmation sits where the emptiness is
+           instead of interrupting with a dialog. */
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+          <p className="text-xs text-muted-foreground">{MONTHLY_CLOSE_LABELS.EMPTY_STAGE_NOTE}</p>
+          {!isReadOnly && (
+            <Button
+              size="sm"
+              data-testid="confirm-empty-stage"
+              disabled={!isConfirmable || confirming}
+              onClick={onConfirm}
+              className="min-h-11 shrink-0 active:scale-[0.97]"
+            >
+              {MONTHLY_CLOSE_LABELS.RECONFIRM_ACTION}
+            </Button>
+          )}
+        </div>
+      )}
       <div className="space-y-6">
         <TradeTable
           title={MONTHLY_CLOSE_LABELS.SECURITIES_TRANSACTIONS}

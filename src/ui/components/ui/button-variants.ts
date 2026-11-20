@@ -18,7 +18,10 @@ export const buttonVariants = cva(
         default: 'h-10 px-4 py-2',
         sm: 'h-9 rounded-md px-3',
         lg: 'h-11 rounded-md px-8',
-        icon: 'h-10 w-10',
+        // The visible box stays 40px so toolbar rhythm holds; the `after` layer
+        // is a pseudo-element, so it enlarges the hit area to 44px without
+        // moving a single pixel of layout (states-and-a11y §命中區).
+        icon: 'relative h-10 w-10 after:absolute after:-inset-0.5 after:content-[""]',
       },
     },
     defaultVariants: {

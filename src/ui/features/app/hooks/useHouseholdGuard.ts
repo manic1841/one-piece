@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 
-import { getHouseholdUseCase } from '@/application/household/use_cases/getHouseholdUseCase';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 
 export function useHouseholdGuard(): { familyName: string; loadingHousehold: boolean } {
@@ -25,6 +24,11 @@ export function useHouseholdGuard(): { familyName: string; loadingHousehold: boo
       }
 
       try {
+        // The household name is a Firestore read; importing on demand keeps
+        // Firestore out of the startup bundle (the login screen never needs it).
+        const { getHouseholdUseCase } = await import(
+          '@/application/household/use_cases/getHouseholdUseCase'
+        );
         const household = await getHouseholdUseCase.execute({
           householdId: userProfile.householdId,
         });

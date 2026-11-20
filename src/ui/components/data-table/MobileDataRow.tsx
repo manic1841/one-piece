@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { cn } from '@/ui/utils/cn';
 
+import { disclosureBodyClass } from '../ui/disclosure-styles';
 import {
   dataTableLabelClass,
   mobileDataListClass,
@@ -50,6 +51,14 @@ interface MobileExpandableRowProps extends Omit<React.HTMLAttributes<HTMLDivElem
   actions?: React.ReactNode;
   /** 展開後內容；提供時整列成為可展開控件。 */
   details?: React.ReactNode;
+  /**
+   * 列點擊是否切換展開（預設 true）。傳 false 時列點擊只交給 `onClick`，展開由
+   * `actions` 裡的獨立控件承擔——用於「選取」與「展開」是兩個意圖的列。
+   */
+  expandOnRowClick?: boolean;
+  /** 受控的展開狀態；未提供時由列自管。 */
+  expanded?: boolean;
+  onExpandedChange?: (next: boolean) => void;
 }
 
 /**
@@ -64,28 +73,44 @@ export const MobileExpandableRow: React.FC<MobileExpandableRowProps> = ({
   actions,
   details,
   className,
+  expandOnRowClick = true,
+  expanded,
+  onExpandedChange,
+  onClick,
+  onKeyDown,
   ...props
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [internalExpanded, setInternalExpanded] = React.useState(false);
   const isExpandable = details !== undefined;
+  const isExpanded = expanded ?? internalExpanded;
 
-  const toggle = () => setIsExpanded((previous) => !previous);
+  const toggle = () => {
+    const next = !isExpanded;
+    setInternalExpanded(next);
+    onExpandedChange?.(next);
+  };
+
+  const activate = (event: React.SyntheticEvent<HTMLDivElement>) => {
+    if (expandOnRowClick) toggle();
+    onClick?.(event as React.MouseEvent<HTMLDivElement>);
+  };
 
   return (
     <div
       role={isExpandable ? 'button' : undefined}
       tabIndex={isExpandable ? 0 : undefined}
       aria-expanded={isExpandable ? isExpanded : undefined}
-      onClick={isExpandable ? toggle : undefined}
+      onClick={isExpandable ? activate : onClick}
       onKeyDown={
         isExpandable
           ? (event) => {
               if (event.target !== event.currentTarget) return;
               if (event.key !== 'Enter' && event.key !== ' ') return;
               event.preventDefault();
-              toggle();
+              activate(event);
+              onKeyDown?.(event);
             }
-          : undefined
+          : onKeyDown
       }
       className={cn(
         mobileDataRowClass,
@@ -112,8 +137,18 @@ export const MobileExpandableRow: React.FC<MobileExpandableRowProps> = ({
       {meta !== undefined && (
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">{meta}</div>
       )}
-      {isExpandable && isExpanded && (
-        <div className="mt-3 border-t border-border pt-2">{details}</div>
+      {isExpandable && (
+        // Stays mounted so the collapse can animate too. `height: auto <-> 0`
+        // interpolates under `interpolate-size: allow-keywords`, so the height is
+        // never measured (motion-system §5.1 M05). `grid-rows-[0fr]` would rest at
+        // content height here because the container has no definite height.
+        <div
+          data-state={isExpanded ? 'open' : 'closed'}
+          inert={!isExpanded}
+          className={disclosureBodyClass}
+        >
+          <div className="mt-3 border-t border-border pt-2">{details}</div>
+        </div>
       )}
     </div>
   );

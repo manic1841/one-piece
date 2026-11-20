@@ -1,28 +1,54 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 
 import { Search } from 'lucide-react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useMatches, useNavigate } from 'react-router-dom';
 
+import { PageSkeleton } from '@/ui/components/PageSkeleton';
 import { StatusGlyph } from '@/ui/components/StatusGlyph';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
-import { usePetReaction } from '../hooks/usePetReaction';
+import { usePetMood } from '../hooks/usePetMood';
+import { prefetchLikelyNextRoutes } from '../prefetchRoutes';
 import CommandPalette from './CommandPalette';
 import HouseholdSwitcher from './HouseholdSwitcher';
 import PixelPet from './PixelPet';
 import SiteFooter from './SiteFooter';
 import { UserMenu } from './UserMenu';
 import { APP_BRAND } from './brand';
+import { useBottomOverlayInset } from './useBottomOverlayInset';
 
 const Layout: React.FC = () => {
   const { userProfile, logout } = useAuthState();
   const navigate = useNavigate();
   const { familyName, loadingHousehold } = useHouseholdGuard();
-  const petReaction = usePetReaction(userProfile?.householdId);
+  const pet = usePetMood();
+  const notifyPet = pet.notify;
   const [today, setToday] = useState(() => new Date());
+  useBottomOverlayInset();
+
+  // Layout 只在已登入且有家戶時掛載，因此這裡是「使用者真的會繼續用」的第一個
+  // 時機；預取不會發生在登入頁訪客身上。
+  useEffect(() => {
+    prefetchLikelyNextRoutes();
+  }, []);
+
+  // Route ids are positional tree paths, so they change between routes but not
+  // when only a param does — `/reports/:period` must not replay the entry when
+  // the period changes (motion-system.md §5.2).
+  const routeKey = useMatches().at(-1)?.id ?? 'root';
+
+  // Navigating makes the pet walk; the first render is not a navigation.
+  const firstRoute = useRef(true);
+  useEffect(() => {
+    if (firstRoute.current) {
+      firstRoute.current = false;
+      return;
+    }
+    notifyPet('move');
+  }, [routeKey, notifyPet]);
 
   useEffect(() => {
     const scheduleNextTick = () => {
@@ -83,13 +109,19 @@ const Layout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="material-chrome sticky top-0 z-50 bg-background/75 backdrop-blur-xl backdrop-saturate-150 border-b border-border">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-[60] focus:rounded focus:bg-elevated focus:px-3 focus:py-2 focus:text-sm focus:text-foreground focus:ring-1 focus:ring-ring"
+      >
+        跳至主要內容
+      </a>
+      <header className="material-chrome sticky top-0 z-50 border-b border-border">
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-3">
           <NavLink
             to="/"
             className="flex items-center gap-3 shrink-0 transition-opacity duration-fast ease-out-quint hover:opacity-80"
           >
-            <h1 className="text-lg font-bold tracking-heading text-foreground">{APP_BRAND}</h1>
+            <p className="text-lg font-bold tracking-heading text-foreground">{APP_BRAND}</p>
           </NavLink>
           <div className="hidden sm:flex items-center gap-3 shrink-0">
             <StatusGlyph type="active" label="SYSTEM ONLINE" />
@@ -129,15 +161,25 @@ const Layout: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto p-4 md:p-8">
-          <Outlet />
+      {/* The emulator banner is fixed at the viewport bottom; this reserves
+          its height plus the safe area so the footer and sticky docks clear it. */}
+      <main id="main" tabIndex={-1} className="flex-1 pb-[var(--bottom-overlay,0px)]">
+        <div key={routeKey} className="max-w-7xl mx-auto p-4 md:p-8 animate-page-enter">
+          {/* Page chunks are lazy; the shell (header, footer, pet) stays mounted while one loads. */}
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 
       <SiteFooter />
 
-      <PixelPet reaction={petReaction} />
+      <PixelPet
+        mood={pet.mood}
+        seq={pet.seq}
+        onEnd={pet.endEvent}
+        onActivate={() => notifyPet('nod')}
+      />
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );

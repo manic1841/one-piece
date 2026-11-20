@@ -153,6 +153,14 @@ const ReportDetailPage: React.FC = () => {
         description={formatReportPeriodDisplay(period)}
         actions={
           <div className="flex items-center gap-2">
+            {period.mode === 'YEARLY' && (
+              <Button
+                variant="text"
+                onClick={() => navigate(`/reports/analysis?period=${period.raw}`)}
+              >
+                {REPORT_DETAIL_LABELS.VIEW_YEAR_ANALYSIS}
+              </Button>
+            )}
             {showCloseAction && (
               <Button variant="text" onClick={() => navigate(`/close/${period.raw}`)}>
                 {REPORT_DETAIL_LABELS.GO_TO_CLOSE} →
@@ -209,7 +217,13 @@ const ReportDetailPage: React.FC = () => {
           onValueChange={(value) => setActiveTab(value as ReportViewId)}
           className="space-y-4"
         >
-          <TabsList className="hidden md:inline-flex" aria-label={REPORT_DETAIL_LABELS.TABS_LABEL}>
+          {/* The list is not a desktop affordance: with every panel force-mounted
+              the phone would otherwise stack all three statements and never let
+              the user switch. It scrolls when the labels outgrow the width. */}
+          <TabsList
+            className="max-w-full overflow-x-auto [scrollbar-width:none]"
+            aria-label={REPORT_DETAIL_LABELS.TABS_LABEL}
+          >
             {REPORT_TAB_ORDER.map((view) => (
               <TabsTrigger key={view} value={view}>
                 {REPORT_VIEW_TITLES[view]}
@@ -222,7 +236,7 @@ const ReportDetailPage: React.FC = () => {
               key={view}
               forceMount
               value={view}
-              className="md:hidden md:data-[state=active]:block"
+              className="hidden data-[state=active]:block"
             >
               <PageSection spacing="compact" className="border-b-0">
                 <ReportStatement

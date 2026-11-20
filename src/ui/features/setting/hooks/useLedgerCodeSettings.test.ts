@@ -58,7 +58,7 @@ describe('useLedgerCodeSettings', () => {
     } as never);
 
     vi.mocked(useLedgerCodes).mockReturnValue({
-      codes: [
+      items: [
         {
           code: 'expense:food',
           label: '餐飲',
@@ -68,7 +68,8 @@ describe('useLedgerCodeSettings', () => {
         },
       ],
       loading: false,
-      refresh,
+      errorMessage: null,
+      reload: refresh,
       getLabel: vi.fn(),
     });
 
@@ -144,7 +145,7 @@ describe('useLedgerCodeSettings', () => {
     );
 
     vi.mocked(useLedgerCodes).mockReturnValue({
-      codes: [
+      items: [
         {
           code: 'asset:property',
           label: '不動產',
@@ -154,7 +155,8 @@ describe('useLedgerCodeSettings', () => {
         },
       ],
       loading: false,
-      refresh,
+      errorMessage: null,
+      reload: refresh,
       getLabel: vi.fn(),
     });
 
@@ -178,7 +180,7 @@ describe('useLedgerCodeSettings', () => {
     );
 
     vi.mocked(useLedgerCodes).mockReturnValue({
-      codes: [
+      items: [
         {
           code: 'asset:cash',
           label: '現金與銀行存款',
@@ -188,7 +190,8 @@ describe('useLedgerCodeSettings', () => {
         },
       ],
       loading: false,
-      refresh,
+      errorMessage: null,
+      reload: refresh,
       getLabel: vi.fn(),
     });
 
@@ -263,7 +266,7 @@ describe('useLedgerCodeSettings', () => {
     );
 
     vi.mocked(useLedgerCodes).mockReturnValue({
-      codes: [
+      items: [
         {
           code: 'asset:property',
           label: '不動產',
@@ -280,7 +283,8 @@ describe('useLedgerCodeSettings', () => {
         },
       ],
       loading: false,
-      refresh,
+      errorMessage: null,
+      reload: refresh,
       getLabel: vi.fn(),
     });
 

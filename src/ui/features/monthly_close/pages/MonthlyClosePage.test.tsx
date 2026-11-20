@@ -233,11 +233,16 @@ describe('MonthlyClosePage (closed period)', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('links back to the period picker', async () => {
+  it('offers a way back to the month picker from the header', async () => {
     renderWorkspace(inProgressPeriod());
 
-    const switcher = await screen.findByRole('link', { name: MONTHLY_CLOSE_LABELS.SWITCH_PERIOD });
-    expect(switcher).toHaveAttribute('href', '/close');
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'CONTINUE →' })).toBeInTheDocument(),
+    );
+    expect(screen.getByRole('link', { name: MONTHLY_CLOSE_LABELS.SWITCH_PERIOD })).toHaveAttribute(
+      'href',
+      '/close',
+    );
   });
 });
 

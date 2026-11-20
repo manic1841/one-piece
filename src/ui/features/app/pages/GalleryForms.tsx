@@ -22,11 +22,18 @@ import {
   TextArea,
   TextInput,
 } from '@/ui/components/form';
+import { ComboboxField } from '@/ui/components/form/Combobox';
 import { DateInput } from '@/ui/components/form/DateInput';
 import { SelectField } from '@/ui/components/form/Select';
 import { Button } from '@/ui/components/ui/button';
 import { Checkbox } from '@/ui/components/ui/checkbox';
 import { Switch } from '@/ui/components/ui/switch';
+import { getIntentLabel } from '@/ui/constants/transaction';
+import { ExpenseCategoryPicker } from '@/ui/features/transaction/components/form/ExpenseCategoryPicker';
+import {
+  MORE_EXPENSE_INTENTS,
+  QUICK_EXPENSE_INTENTS,
+} from '@/ui/features/transaction/components/form/expenseCategoryGroups';
 
 import { GalleryCaption, GalleryGroup, GalleryModule, GallerySection } from './GalleryScaffold';
 
@@ -201,7 +208,22 @@ const SelectSection: React.FC = () => (
           ]}
         />
       </FieldDemo>
+      <FieldDemo label="LEDGER CODE · SEARCHABLE">
+        <ComboboxField
+          aria-label="Ledger code"
+          placeholder="Search ledger codes"
+          options={[
+            { value: 'salary', label: 'Salary', hint: '12 uses' },
+            { value: 'rent', label: 'Rent', hint: '10 uses' },
+            { value: 'groceries', label: 'Groceries', group: 'UNUSED' },
+            { value: 'insurance', label: 'Insurance', group: 'UNUSED' },
+          ]}
+        />
+      </FieldDemo>
     </div>
+    <GalleryCaption>
+      清單長到不能捲、或選項需要脈絡（`hint`／`group`）才用 `Combobox`；5 項以內用 `Select`。
+    </GalleryCaption>
   </GallerySection>
 );
 
@@ -247,8 +269,20 @@ const SwitchSection: React.FC = () => {
             <span className="text-sm">Notifications</span>
             <Switch checked={notify} onCheckedChange={setNotify} aria-label="Notifications" />
           </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Reconcile on save</span>
+            <Switch
+              checked={reconcile}
+              onCheckedChange={setReconcile}
+              error
+              aria-label="Reconcile on save"
+            />
+          </div>
         </div>
       </GalleryModule>
+      <GalleryCaption>
+        `switch` 沒有自己的錯誤樣式，只把 `FormControl` 注入的 `error` 轉成 `aria-invalid`。
+      </GalleryCaption>
     </GallerySection>
   );
 };
@@ -284,6 +318,36 @@ const CheckboxSection: React.FC = () => {
   );
 };
 
+/**
+ * Curated category picker demo: one live instance (expand it to see the whole
+ * set) and one seeded with a hidden choice to show the pinning rule. Both are
+ * bound to a real `Form` because the picker reads its value from `FormField`.
+ */
+const CategoryPickerDemo: React.FC<{ initial?: string; label?: string }> = ({
+  initial = '',
+  label,
+}) => {
+  const form = useForm<{ intent: string }>({ defaultValues: { intent: initial } });
+  const categories = [...QUICK_EXPENSE_INTENTS, ...MORE_EXPENSE_INTENTS].map((intent) => ({
+    value: intent,
+    label: getIntentLabel(intent),
+  }));
+
+  return (
+    <Form {...form}>
+      <form aria-label={label} onSubmit={(event) => event.preventDefault()}>
+        <FormField name="intent">
+          <FormItem>
+            <FormLabel required>類別</FormLabel>
+            <ExpenseCategoryPicker categories={categories} />
+            <FormMessage />
+          </FormItem>
+        </FormField>
+      </form>
+    </Form>
+  );
+};
+
 const SelectionSection: React.FC = () => {
   const [cadence, setCadence] = React.useState('monthly');
 
@@ -296,6 +360,16 @@ const SelectionSection: React.FC = () => {
           <Radio value="yearly" label="Yearly" />
         </RadioGroup>
       </GalleryModule>
+      <GalleryModule label="QUICK SET + MORE · CURATED CATEGORY PICKER">
+        <div className="grid max-w-xl gap-6 md:grid-cols-2">
+          <CategoryPickerDemo />
+          <CategoryPickerDemo initial="RENT" label="pinned hidden choice" />
+        </div>
+      </GalleryModule>
+      <GalleryCaption>
+        長清單只露高頻的一列，其餘收在「+
+        更多」後面原地展開；從收起的那組挑中的項目會被釘回可見列，選中的類別 不會因為收合而消失。
+      </GalleryCaption>
     </GallerySection>
   );
 };

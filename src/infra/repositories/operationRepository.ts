@@ -12,7 +12,7 @@ import {
   OperationRecordSchema,
   type OperationResultReference,
 } from '@/domains/operation/schemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 
 export const buildOperationRecordId = (operationType: string, idempotencyKey: string): string =>
   encodeURIComponent(`${operationType}:${idempotencyKey}`);

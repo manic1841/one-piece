@@ -11,7 +11,7 @@ export interface FormLabelProps extends React.ComponentPropsWithoutRef<typeof La
 }
 
 export const FormLabel = React.forwardRef<React.ElementRef<typeof Label>, FormLabelProps>(
-  ({ className, required, children, ...props }, ref) => {
+  ({ className, required, size, children, ...props }, ref) => {
     const { fieldState } = useFormField();
     const id = useFormItemId();
 
@@ -19,6 +19,7 @@ export const FormLabel = React.forwardRef<React.ElementRef<typeof Label>, FormLa
       <Label
         ref={ref}
         htmlFor={formControlId(id)}
+        size={size}
         className={cn(fieldState.error && 'text-destructive', className)}
         {...props}
       >

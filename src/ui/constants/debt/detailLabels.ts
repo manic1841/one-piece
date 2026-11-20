@@ -1,6 +1,7 @@
 /** 貸款詳情頁的靜態文案，比照 `constants/account/detailLabels.ts`。 */
 export const DEBT_DETAIL_LABELS = {
   CRUMB: 'DEBT',
+  UPDATE_FAILED: '無法更新貸款狀態。',
   BACK_LABEL: '返回債務列表',
   EDIT_ACTION: '編輯貸款',
   ACTIVATE_ACTION: '啟用貸款',
@@ -27,6 +28,7 @@ export const DEBT_DANGER_LABELS = {
   DELETE_TITLE: '刪除貸款？',
   DELETE_CONSEQUENCE: '刪除後無法復原。',
   CONFIRM: '刪除',
+  DELETE_FAILED: '無法刪除貸款。',
 } as const;
 
 export const DEBT_LIFECYCLE_LABELS = {

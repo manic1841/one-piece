@@ -37,7 +37,7 @@ const renderPipeline = (
       viewingStageId={null}
       isClosed={overrides.isClosed ?? false}
       isPaused={overrides.isPaused ?? false}
-      statusText="IN PROGRESS"
+      statusText="進行中"
       positionText="02 / 08"
       onSelectStage={onSelectStage}
     />,
@@ -48,7 +48,7 @@ describe('ClosePipeline', () => {
   it('is collapsed by default and shows the position progress header', () => {
     renderPipeline();
 
-    expect(screen.queryByRole('list', { name: 'Close workflow pipeline' })).toBeNull();
+    expect(screen.queryByRole('list', { name: '關帳流程' })).toBeNull();
     expect(screen.getByTestId('close-pipeline-toggle')).toHaveTextContent('SHOW WORKFLOW');
     expect(screen.getByText('02 / 08')).toBeInTheDocument();
   });
@@ -63,21 +63,25 @@ describe('ClosePipeline', () => {
 
     fireEvent.click(screen.getByTestId('close-pipeline-toggle'));
 
-    const list = screen.getByRole('list', { name: 'Close workflow pipeline' });
+    const list = screen.getByRole('list', { name: '關帳流程' });
     expect(list).toBeInTheDocument();
+    expect(list).toHaveAttribute('style', expect.stringContaining('--pipeline-cols: 8'));
     expect(screen.getAllByRole('button')).toHaveLength(CLOSE_STAGE_ORDER.length + 1);
     expect(screen.getByRole('button', { name: /帳戶餘額/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /帳戶餘額/ })).toHaveTextContent('✓');
     expect(screen.getByRole('button', { name: /證券買入／賣出/ })).toHaveAttribute(
       'aria-current',
       'step',
     );
+    expect(screen.getByRole('button', { name: /證券買入／賣出/ })).toHaveTextContent('02');
     expect(screen.getByRole('button', { name: /Portfolio 金流/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Portfolio 金流/ })).toHaveTextContent('03');
 
     fireEvent.click(screen.getByRole('button', { name: /帳戶餘額/ }));
     expect(onSelectStage).toHaveBeenCalledWith('ACCOUNT_BALANCE');
 
     fireEvent.click(screen.getByTestId('close-pipeline-toggle'));
-    expect(screen.queryByRole('list', { name: 'Close workflow pipeline' })).toBeNull();
+    expect(screen.queryByRole('list', { name: '關帳流程' })).toBeNull();
     expect(screen.getByTestId('close-pipeline-toggle')).toHaveTextContent('SHOW WORKFLOW');
   });
 
@@ -91,11 +95,11 @@ describe('ClosePipeline', () => {
 
     fireEvent.click(screen.getByTestId('close-pipeline-toggle'));
 
-    expect(screen.getByRole('button', { name: /Close Period/ })).toBeEnabled();
-    expect(screen.getByRole('button', { name: /Financial Reports/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /正式關帳/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /財務報表/ })).toBeEnabled();
     expect(screen.getByRole('button', { name: /帳戶餘額/ })).toBeEnabled();
 
-    fireEvent.click(screen.getByRole('button', { name: /Financial Reports/ }));
+    fireEvent.click(screen.getByRole('button', { name: /財務報表/ }));
     expect(onSelectStage).toHaveBeenCalledWith('FINANCIAL_REPORTS');
   });
 });

@@ -2,11 +2,15 @@ import { isTransactionProjectIncome } from '@/domains/ledger/intentMapping';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { type ProjectSnapshot } from '@/domains/project/schemas';
 import {
+  PROJECT_SETTLED_LABELS,
+  PROJECT_SUMMARY_LABELS,
+} from '@/ui/constants/project/projectDetailLabels';
+import {
   getIntentLabel,
   getIntentTypeLabel,
   getUnifiedLedgerCodeLabel,
 } from '@/ui/constants/transaction';
-import { formatCurrency, formatDate } from '@/ui/utils';
+import { formatCurrency, formatCurrencyOrDash, formatDate } from '@/ui/utils';
 
 export const ProjectDetailItemType = {
   RECORD: 'RECORD',
@@ -56,6 +60,13 @@ export interface ProjectMonthGroup {
   income: number;
   expense: number;
   net: number;
+  incomeText: string;
+  expenseText: string;
+  netText: string;
+  openingBalance: number | null;
+  closingBalance: number | null;
+  openingBalanceText: string;
+  closingBalanceText: string;
 }
 
 export interface ProjectTotals {
@@ -69,7 +80,12 @@ export interface ProjectSummary {
   income: number;
   expense: number;
   net: number;
-  balanceText: string;
+  incomeText: string;
+  expenseText: string;
+  netText: string;
+  incomeLabel: string;
+  expenseLabel: string;
+  netLabel: string;
 }
 
 /** 專案詳情「連結貸款」表的列。 */
@@ -172,21 +188,49 @@ export const toRecentTotals = (
   return { income, expense, net: income - expense };
 };
 
-/** 有快照的月份以快照數值為準（權威結算值），否則退回明細合計。 */
+/** Hero balance text; `null` keeps the dash so an unknown balance stays honest. */
+export const toBalanceText = (balance: number | null): string | null =>
+  balance === null ? null : formatCurrency(balance);
+
+/** Settled-context line that sits under the hero balance. */
+export const toLatestSettledText = (lastSettledYearMonth: string | null): string =>
+  `${PROJECT_SETTLED_LABELS.PREFIX} ${lastSettledYearMonth ?? PROJECT_SETTLED_LABELS.NEVER}`;
+
+export const toProjectSummaryVM = (totals: ProjectTotals): ProjectSummary => ({
+  ...totals,
+  incomeText: formatCurrency(totals.income),
+  expenseText: formatCurrency(totals.expense),
+  netText: formatCurrency(totals.net),
+  incomeLabel: `${PROJECT_SUMMARY_LABELS.INCOME} · ${PROJECT_SUMMARY_LABELS.WINDOW_NOTE}`,
+  expenseLabel: `${PROJECT_SUMMARY_LABELS.EXPENSE} · ${PROJECT_SUMMARY_LABELS.WINDOW_NOTE}`,
+  netLabel: `${PROJECT_SUMMARY_LABELS.NET_CASH_FLOW} · ${PROJECT_SUMMARY_LABELS.WINDOW_NOTE}`,
+});
+
+/**
+ * Groups records and snapshots by month, newest first.
+ *
+ * A month with a snapshot uses the settled figures for both its income/expense
+ * and its opening/closing. A month without one falls back to its record totals
+ * and has its balances rolled backwards from `balance` — the live balance is the
+ * newest month's closing, so an unsettled newest month still has a real opening.
+ * `balance` is `null` while it is loading or when it failed to load; the
+ * balances are then `null` and render as a dash.
+ */
 export const toProjectMonthGroups = (
   records: ProjectRecordItemVM[],
   snapshots: ProjectSnapshotItemVM[],
+  balance: number | null = null,
 ): ProjectMonthGroup[] => {
-  const groups = new Map<string, ProjectMonthGroup>();
+  type DraftGroup = Omit<
+    ProjectMonthGroup,
+    'incomeText' | 'expenseText' | 'netText' | 'openingBalanceText' | 'closingBalanceText'
+  >;
+  const groups = new Map<string, DraftGroup>();
 
-  const ensureGroup = (
-    key: string,
-    year: number | null,
-    month: number | null,
-  ): ProjectMonthGroup => {
+  const ensureGroup = (key: string, year: number | null, month: number | null): DraftGroup => {
     const existing = groups.get(key);
     if (existing) return existing;
-    const group: ProjectMonthGroup = {
+    const group: DraftGroup = {
       key,
       label: key,
       year,
@@ -196,6 +240,8 @@ export const toProjectMonthGroups = (
       income: 0,
       expense: 0,
       net: 0,
+      openingBalance: null,
+      closingBalance: null,
     };
     groups.set(key, group);
     return group;
@@ -220,13 +266,28 @@ export const toProjectMonthGroups = (
     group.net = group.income - group.expense;
   }
 
-  return [...groups.values()].sort((a, b) => b.key.localeCompare(a.key));
-};
+  const sorted = [...groups.values()].sort((a, b) => b.key.localeCompare(a.key));
 
-export const toLatestSnapshot = (
-  snapshots: ProjectSnapshotItemVM[],
-): ProjectSnapshotItemVM | null =>
-  snapshots.reduce<ProjectSnapshotItemVM | null>(
-    (latest, snapshot) => (!latest || snapshot.monthKey > latest.monthKey ? snapshot : latest),
-    null,
-  );
+  let closingCursor: number | null = balance;
+  sorted.forEach((group, index) => {
+    if (group.snapshot) {
+      group.openingBalance = group.snapshot.openingBalance;
+      group.closingBalance = group.snapshot.closingBalance;
+    } else {
+      group.closingBalance = index === 0 ? balance : closingCursor;
+      group.openingBalance =
+        group.closingBalance === null ? null : group.closingBalance - group.net;
+    }
+
+    closingCursor = group.openingBalance;
+  });
+
+  return sorted.map((group) => ({
+    ...group,
+    incomeText: formatCurrency(group.income),
+    expenseText: formatCurrency(group.expense),
+    netText: formatCurrency(group.net),
+    openingBalanceText: formatCurrencyOrDash(group.openingBalance),
+    closingBalanceText: formatCurrencyOrDash(group.closingBalance),
+  }));
+};

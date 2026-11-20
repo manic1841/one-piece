@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { transactionRepository } from './transactionRepository';
 
-vi.mock('@/firebase', () => ({ db: {} }));
+vi.mock('@/infra/firestore', () => ({ db: {} }));
 
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
@@ -14,7 +14,9 @@ vi.mock('firebase/firestore', () => ({
   orderBy: vi.fn(),
   limit: vi.fn(),
   serverTimestamp: vi.fn(() => ({})),
-  Timestamp: { fromDate: vi.fn(() => ({})) },
+  // Classes, because `sanitize` checks them with instanceof.
+  Timestamp: function MockTimestamp() {},
+  FieldValue: function MockFieldValue() {},
   updateDoc: vi.fn(),
 }));
 

@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   mapSnapshotToProjectDetailVM,
   mapTransactionToProjectDetailVM,
-  toLatestSnapshot,
   toProjectMonthGroups,
   toRecentTotals,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
@@ -111,13 +110,34 @@ describe('projectDetail.vm', () => {
     expect(totals.net).toBe(0);
   });
 
-  it('picks the latest snapshot by month key', () => {
-    const latest = toLatestSnapshot([
-      mapSnapshotToProjectDetailVM(snapshot({ id: 'older', month: 1 })),
-      mapSnapshotToProjectDetailVM(snapshot({ id: 'newer', month: 5, closingBalance: 999 })),
-    ]);
+  it('rolls the newest unsettled month forward from the live balance', () => {
+    const groups = toProjectMonthGroups(
+      [
+        mapTransactionToProjectDetailVM(
+          transaction({ id: 'b', date: new Date('2026-04-01'), amount: 300 }),
+        ),
+      ],
+      [mapSnapshotToProjectDetailVM(snapshot({ id: 'older', month: 3 }))],
+      14000,
+    );
 
-    expect(latest?.id).toBe('newer');
-    expect(toLatestSnapshot([])).toBeNull();
+    const [april, march] = groups;
+    // April has no snapshot: its closing is the live balance, its opening backs out the net.
+    expect(april.closingBalance).toBe(14000);
+    expect(april.openingBalance).toBe(13700);
+    // March keeps the settled figures.
+    expect(march.closingBalance).toBe(13000);
+    expect(march.openingBalance).toBe(10000);
+  });
+
+  it('renders a dash for balances while the live balance is unknown', () => {
+    const groups = toProjectMonthGroups(
+      [mapTransactionToProjectDetailVM(transaction({ date: new Date('2026-04-01') }))],
+      [],
+      null,
+    );
+
+    expect(groups[0].openingBalanceText).toBe('—');
+    expect(groups[0].closingBalanceText).toBe('—');
   });
 });

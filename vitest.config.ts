@@ -30,6 +30,23 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/vite-env.d.ts'],
+      // Ratchet policy (docs/testing.md §覆蓋率政策): thresholds sit at the measured
+      // baseline and may only be raised, never lowered. Domain logic carries the
+      // real risk, so it holds its own higher bar; UI deliberately has no threshold
+      // to avoid render-only tests written just to pad the number. Percentages live
+      // here, not in prose, so a bump in coverage updates one place.
+      thresholds: {
+        statements: 65,
+        functions: 64,
+        branches: 61,
+        lines: 65,
+        'src/domains/**': {
+          statements: 84,
+          functions: 88,
+          branches: 80,
+          lines: 84,
+        },
+      },
     },
   },
 });

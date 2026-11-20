@@ -180,18 +180,16 @@ const FilterSection: React.FC = () => {
     <GallerySection number="34" title="Filter Strip & Search Field">
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <GalleryModule label="CONTEXTUAL FILTER">
-          <div className="border-b border-border">
-            <FilterStrip
-              items={[
-                { id: 'ALL', label: '全部' },
-                { id: 'EXPENSE', label: '支出' },
-                { id: 'INCOME', label: '收入' },
-              ]}
-              value={filter}
-              onValueChange={setFilter}
-              ariaLabel="交易類型篩選"
-            />
-          </div>
+          <FilterStrip
+            items={[
+              { id: 'ALL', label: '全部' },
+              { id: 'EXPENSE', label: '支出' },
+              { id: 'INCOME', label: '收入' },
+            ]}
+            value={filter}
+            onValueChange={setFilter}
+            ariaLabel="交易類型篩選"
+          />
         </GalleryModule>
         <GalleryModule label="CONTEXTUAL SEARCH">
           <SearchField
@@ -203,9 +201,10 @@ const FilterSection: React.FC = () => {
         </GalleryModule>
       </div>
       <GalleryCaption>
-        情境篩選列是底線式，沿用 tabs 的觸發區 token（選中態 2px 底線咬住列的細線），但維持
-        role=group 與 aria-pressed——它是篩選，不是 tab；細線由呼叫端的列提供。搜尋欄是模組內
-        情境搜尋，不同於全域 Command Palette。
+        情境篩選列是按鈕切換：未選中為 outline 按鈕（text-muted-foreground），選中態以 primary 字色
+        ＋ bg-elevated 底色標示（aria-pressed），框線不變。按鈕相連成一段，無 gap、按鈕之間
+        無分隔線，整組只有兩端圓角與外側邊界。維持 role=group——它是篩選，不是 tab，不沿用 tabs
+        的底線表面。搜尋欄是模組內情境搜尋，不同於全域 Command Palette。
       </GalleryCaption>
     </GallerySection>
   );

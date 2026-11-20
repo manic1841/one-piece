@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 import { z } from 'zod';
 
+import { fromFirestore, sanitize, toFirestore } from '@/infra/repositories/firestorePayload';
 import { type Base } from '@/shared/schemas/base';
 
 export type ExcludedColumn = 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy';
@@ -32,40 +33,11 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
   protected abstract getDomainSchema(): z.ZodType<Base>;
 
   protected convertDateToTimestamp(value: unknown): unknown {
-    if (value instanceof Date) {
-      return Timestamp.fromDate(value);
-    }
-
-    if (Array.isArray(value)) {
-      return value.map((item) => this.convertDateToTimestamp(item));
-    }
-
-    if (value && typeof value === 'object') {
-      const convertedObject: Record<string, unknown> = {};
-      for (const [key, val] of Object.entries(value)) {
-        convertedObject[key] = this.convertDateToTimestamp(val);
-      }
-      return convertedObject;
-    }
-
-    return value;
+    return toFirestore(value);
   }
 
   protected convertTimestampToDate(value: unknown): unknown {
-    if (value instanceof Timestamp) {
-      return value.toDate();
-    }
-    if (Array.isArray(value)) {
-      return value.map((item) => this.convertTimestampToDate(item));
-    }
-    if (value && typeof value === 'object') {
-      const convertedObject: Record<string, unknown> = {};
-      for (const [key, val] of Object.entries(value)) {
-        convertedObject[key] = this.convertTimestampToDate(val);
-      }
-      return convertedObject;
-    }
-    return value;
+    return fromFirestore(value as DocumentData);
   }
 
   protected convertToFirestore(entity: TDomain): Partial<DocumentData> {
@@ -73,6 +45,9 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
 
     const payload = this.convertDateToTimestamp(rest) as Partial<DocumentData>;
 
+    // Not redundant: a normal create/update omits `createdAt` (the signature is
+    // `Omit<TDomain, ExcludedColumn>`) so the server clock fills it, while a
+    // backup restore carries the original instant and must keep it.
     return {
       ...payload,
       createdAt: createdAt ? Timestamp.fromDate(createdAt) : serverTimestamp(),
@@ -92,24 +67,9 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
     } as unknown as TDomain;
   }
 
+  /** Delegates: `firestorePayload` is the one home of the payload rules. */
   protected sanitize(value: unknown): unknown {
-    if (value === undefined) return undefined;
-
-    if (value instanceof Date) return value;
-
-    if (Array.isArray(value)) {
-      return value.map((item) => this.sanitize(item)).filter((item) => item !== undefined);
-    }
-
-    if (typeof value === 'object' && value !== null) {
-      const entries = Object.entries(value)
-        .map(([k, v]) => [k, this.sanitize(v)] as const)
-        .filter(([, v]) => v !== undefined);
-
-      return Object.fromEntries(entries);
-    }
-
-    return value;
+    return sanitize(value);
   }
 
   // create

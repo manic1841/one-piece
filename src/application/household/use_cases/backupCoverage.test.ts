@@ -21,7 +21,6 @@ const RESTORE_OPS_FILE = path.join(USE_CASES_DIR, 'householdBackupRestoreOps.ts'
 
 /** DB collection name -> backup payload key. Absent = identity mapping. */
 const PAYLOAD_KEY_BY_DB_NAME: Record<string, string> = {
-  retirement_plans: 'retirementPlans',
   intent_mappings: 'intentMappings',
 };
 
@@ -29,7 +28,7 @@ const PAYLOAD_KEY_BY_DB_NAME: Record<string, string> = {
 const EXCLUDED_DB_NAMES = new Set(['operations', 'users', 'access_control', 'households']);
 
 /** Subcollections embedded inside their parent payload key, not backed up separately. */
-const EMBEDDED_SUBCOLLECTIONS = new Set(['snapshots', 'incomeStreams', 'expenseCategories']);
+const EMBEDDED_SUBCOLLECTIONS = new Set(['snapshots', 'config', 'source', 'annual']);
 
 const collectSourceFiles = (dir: string): string[] => {
   return readdirSync(dir).flatMap((entry) => {
@@ -95,7 +94,8 @@ const literalBlockKeys = (block: string): string[] => {
     const isSeparator = (ch === ',' || ch === ';') && memberDepth === 0;
     if (isSeparator || i === block.length) {
       const member = block.slice(memberStart, i).trim();
-      const keyed = member.match(/^(\w+)\s*:/);
+      // A member may carry a leading comment and/or be optional (`key?:`).
+      const keyed = member.match(/^(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*)?\s*(\w+)\s*\??\s*:/);
       if (keyed) {
         keys.push(keyed[1]);
       } else if (/^\w+$/.test(member)) {
@@ -165,8 +165,8 @@ describe('household backup coverage contract (issue #256)', () => {
   it('scanner finds the known household collections', () => {
     const scanned = scannedCollectionNames();
     expect(
-      ['accounts', 'transactions', 'retirement_plans', 'financialPeriods'].every((name) =>
-        scanned.has(name),
+      ['accounts', 'transactions', 'retirementPlans', 'projections', 'financialPeriods'].every(
+        (name) => scanned.has(name),
       ),
       `scanner missed known collections; found: ${[...scanned].sort().join(', ')}`,
     ).toBe(true);

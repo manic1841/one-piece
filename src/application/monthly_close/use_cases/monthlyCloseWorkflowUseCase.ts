@@ -9,20 +9,12 @@ import {
   SaveFinancialPeriodUseCase,
 } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import {
-  CheckCloseReadinessUseCase,
-  RunFinancialReportsUseCase,
-} from '@/application/monthly_close/use_cases/financialReportsWorkflowUseCases';
-import {
   type MonthlyCloseConfirmRequest,
   type MonthlyCloseConfirmResult,
   type MonthlyCloseResetStagesRequest,
   type MonthlyCloseStartRequest,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
-import { RecordDebtRepaymentsUseCase } from '@/application/monthly_close/use_cases/recordDebtRepaymentsUseCase';
-import { RecordMonthSnapshotsUseCase } from '@/application/monthly_close/use_cases/recordMonthSnapshotsUseCase';
-import { RecordPortfolioCashFlowsUseCase } from '@/application/monthly_close/use_cases/recordPortfolioCashFlowsUseCase';
-import { SyncInvestmentFinancingTransactionsUseCase } from '@/application/monthly_close/use_cases/syncInvestmentFinancingTransactionsUseCase';
-import { settleProjectsUseCase } from '@/application/settlement/use_cases/settleProjectsUseCase';
+import { closeStageActions } from '@/application/monthly_close/use_cases/stageActions';
 import { type AuthContext } from '@/application/types';
 import {
   type CloseStageId,
@@ -33,7 +25,6 @@ import {
 import {
   closePeriodInState,
   confirmStageInState,
-  isReadyToClose,
   isReconfirmableStage,
   isReopenablePeriod,
   reconfirmStageInState,
@@ -55,25 +46,10 @@ export type {
   SecuritiesTradeInput,
 } from '@/application/monthly_close/use_cases/monthlyCloseRequests';
 
-/** A confirm result before its period is attached. */
-type StageConfirmOutcome = Pick<MonthlyCloseConfirmResult, 'stageId' | 'data'>;
-
-/** Attaches the period to a stage's outcome, keeping `stageId` correlated to `data`. */
-const withPeriod = <S extends CloseStageId>(
-  outcome: Pick<MonthlyCloseConfirmResult<S>, 'stageId' | 'data'>,
-  period: FinancialPeriod,
-): MonthlyCloseConfirmResult<S> => ({ stageId: outcome.stageId, period, data: outcome.data });
-
 export class MonthlyCloseWorkflowUseCase {
   private readonly getPeriod = new GetFinancialPeriodUseCase();
   private readonly savePeriod = new SaveFinancialPeriodUseCase();
   private readonly listPeriods = new ListFinancialPeriodsUseCase();
-  private readonly syncInvestmentFinancing = new SyncInvestmentFinancingTransactionsUseCase();
-  private readonly recordMonthSnapshots = new RecordMonthSnapshotsUseCase();
-  private readonly recordPortfolioCashFlows = new RecordPortfolioCashFlowsUseCase();
-  private readonly recordDebtRepayments = new RecordDebtRepaymentsUseCase();
-  private readonly runFinancialReports = new RunFinancialReportsUseCase();
-  private readonly checkCloseReadiness = new CheckCloseReadinessUseCase();
 
   async start(request: MonthlyCloseStartRequest): Promise<FinancialPeriod> {
     const { householdId, yearMonth, userEmail, auth } = request;
@@ -183,7 +159,7 @@ export class MonthlyCloseWorkflowUseCase {
 
   /** Single-phase stage confirmation (ADR-0052): creates the stage's data, then completes it. */
   async confirmStage(request: MonthlyCloseConfirmRequest): Promise<MonthlyCloseConfirmResult> {
-    const { householdId, yearMonth, userEmail, auth, stageId } = request;
+    const { householdId, yearMonth, auth, stageId } = request;
     await this.assertMember(householdId, auth);
 
     const current = await this.getPeriod.execute({ householdId, yearMonth });
@@ -196,21 +172,25 @@ export class MonthlyCloseWorkflowUseCase {
 
     this.assertStageConfirmable(current, stageId);
 
-    if (
-      current.status === 'NEEDS_REVIEW' &&
-      current.reviewSourceStageId === 'COMPLETENESS_CHECK' &&
-      stageId === 'COMPLETENESS_CHECK'
-    ) {
-      // ADR-0052: resolving the review means completing the stage confirmation,
-      // which returns the workflow to IN_PROGRESS without re-running the check.
-      const period = await this.completeConfirm(current, stageId, userEmail, householdId);
-      return withPeriod({ stageId, data: undefined }, period);
-    }
+    return this.confirmStageCore(request, current);
+  }
 
-    const outcome = await this.runStageAction(yearMonth, auth, request, current);
-
-    const period = await this.completeConfirm(current, stageId, userEmail, householdId);
-    return withPeriod(outcome, period);
+  /**
+   * The correlation seam: indexing the registry with a generic `stageId` keeps
+   * the request, the stage's own data slice and the mutated period in one type.
+   */
+  private async confirmStageCore<S extends CloseStageId>(
+    request: Extract<MonthlyCloseConfirmRequest, { stageId: S }>,
+    current: FinancialPeriod,
+  ): Promise<MonthlyCloseConfirmResult<S>> {
+    const data = await closeStageActions[request.stageId](request, current);
+    const period = await this.completeConfirm(
+      current,
+      request.stageId,
+      request.userEmail,
+      request.householdId,
+    );
+    return { stageId: request.stageId, period, data };
   }
 
   private async completeConfirm(
@@ -271,99 +251,6 @@ export class MonthlyCloseWorkflowUseCase {
         `while paused, only the walk position (${resolveWalkPosition(period) ?? 'none'}) is confirmable`,
       );
     }
-  }
-
-  /** Runs the stage's data creation; only SECURITIES_TRADE returns rows. */
-  private async runStageAction(
-    yearMonth: string,
-    auth: AuthContext,
-    request: MonthlyCloseConfirmRequest,
-    current: FinancialPeriod,
-  ): Promise<StageConfirmOutcome> {
-    const { householdId, userEmail, stageId } = request;
-
-    switch (stageId) {
-      case 'ACCOUNT_BALANCE': {
-        await this.recordMonthSnapshots.execute({
-          householdId,
-          year: this.yearOf(yearMonth),
-          month: this.monthOf(yearMonth),
-          accountBalances: request.accountBalances ?? [],
-          userEmail,
-          auth,
-        });
-        return { stageId, data: undefined };
-      }
-      case 'SECURITIES_TRADE': {
-        const securities = request.securities;
-        const financing = request.financing;
-        const result = await this.syncInvestmentFinancing.execute({
-          householdId,
-          userEmail,
-          auth,
-          securities: securities ?? { buys: [], sells: [] },
-          financing: financing ?? { shareholderFinancing: [], dividendPayout: [] },
-          removedTransactionIds: request.removedTransactionIds,
-        });
-        return { stageId, data: result };
-      }
-      case 'PORTFOLIO_CASH_FLOW': {
-        await this.recordPortfolioCashFlows.execute({
-          householdId,
-          year: this.yearOf(yearMonth),
-          month: this.monthOf(yearMonth),
-          portfolioCashFlows: request.portfolioCashFlows ?? {},
-          userEmail,
-          auth,
-        });
-        return { stageId, data: undefined };
-      }
-      case 'PROJECT_SETTLEMENT': {
-        await settleProjectsUseCase.execute({ householdId, yearMonth, userEmail, auth });
-        return { stageId, data: undefined };
-      }
-      case 'DEBT_REPAYMENT': {
-        await this.recordDebtRepayments.execute({
-          householdId,
-          yearMonth,
-          repayments: request.repayments ?? [],
-          userEmail,
-          auth,
-        });
-        return { stageId, data: undefined };
-      }
-      case 'COMPLETENESS_CHECK': {
-        return { stageId, data: undefined };
-      }
-      case 'FINANCIAL_REPORTS': {
-        await this.runFinancialReports.execute({
-          householdId,
-          auth,
-          year: this.yearOf(yearMonth),
-          month: this.monthOf(yearMonth),
-          labelResolver: request.labelResolver,
-        });
-        return { stageId, data: undefined };
-      }
-      case 'CLOSE_PERIOD': {
-        await this.checkCloseReadiness.execute({ householdId, yearMonth, period: current });
-        if (!isReadyToClose(current)) {
-          throw new MonthlyCloseCommandError(
-            MonthlyCloseCommandErrorCode.STAGES_INCOMPLETE,
-            'every stage must be completed before closing',
-          );
-        }
-        return { stageId, data: undefined };
-      }
-    }
-  }
-
-  private yearOf(yearMonth: string): number {
-    return Number(yearMonth.slice(0, 4));
-  }
-
-  private monthOf(yearMonth: string): number {
-    return Number(yearMonth.slice(5, 7));
   }
 
   private async assertMember(householdId: string, auth: AuthContext): Promise<void> {

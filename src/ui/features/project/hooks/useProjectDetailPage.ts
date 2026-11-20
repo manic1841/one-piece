@@ -6,7 +6,6 @@ import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAc
 import { type Project } from '@/domains/project/schemas';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import {
-  PROJECT_BALANCE_MISSING,
   PROJECT_DANGER_LABELS,
   PROJECT_DETAIL_LABELS,
 } from '@/ui/constants/project/projectDetailLabels';
@@ -16,7 +15,12 @@ import { useProjectDetailView } from '@/ui/features/project/hooks/useProjectDeta
 import {
   type ProjectDebtRow,
   type ProjectSummary,
+  toBalanceText,
+  toLatestSettledText,
+  toProjectSummaryVM,
 } from '@/ui/features/project/viewmodels/projectDetail.vm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { formatCurrency } from '@/ui/utils';
 
@@ -37,10 +41,16 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const {
     monthGroups,
     totals,
-    latestSnapshot,
+    balance,
+    lastSettledYearMonth,
+    hasMore,
+    loadMore,
     loading: viewLoading,
+    balanceLoading,
+    balanceError,
     error: viewError,
     reload,
+    retryBalance,
   } = useProjectDetailView(householdId, id || '');
 
   const { updateProject, deleteProject } = useProjectCmds(householdId);
@@ -115,7 +125,11 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
   const handleRename = useCallback(
     async (name: string) => {
       if (!activeProject) return;
-      await updateProject(activeProject.id, { name });
+      const result = await updateProject(activeProject.id, { name });
+      if (!result.ok) {
+        notifyFailed(getTaskErrorMessage(result, PROJECT_DETAIL_LABELS.RENAME_FAILED));
+        return;
+      }
       setNameOverride(name);
     },
     [activeProject, updateProject],
@@ -125,18 +139,19 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     if (!activeProject) return;
     const nextActive = !isActive;
     const result = await updateProject(activeProject.id, { isActive: nextActive });
-    if (!result.ok) return;
+    if (!result.ok) {
+      notifyFailed(getTaskErrorMessage(result, PROJECT_DETAIL_LABELS.UPDATE_FAILED));
+      return;
+    }
     setStatusOverride(nextActive);
   }, [activeProject, isActive, updateProject]);
 
-  const summary = useMemo<ProjectSummary>(
-    () => ({
-      income: totals.income,
-      expense: totals.expense,
-      net: totals.net,
-      balanceText: latestSnapshot?.closingBalanceText ?? PROJECT_BALANCE_MISSING,
-    }),
-    [totals, latestSnapshot],
+  const summary = useMemo<ProjectSummary>(() => toProjectSummaryVM(totals), [totals]);
+
+  const balanceText = useMemo(() => toBalanceText(balance), [balance]);
+  const latestSettledText = useMemo(
+    () => toLatestSettledText(lastSettledYearMonth),
+    [lastSettledYearMonth],
   );
 
   const handleDelete = useCallback(async () => {
@@ -147,7 +162,12 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
       confirmLabel: PROJECT_DANGER_LABELS.CONFIRM,
     });
     if (!confirmed) return;
-    await deleteProject(activeProject.id);
+    const task = await deleteProject(activeProject.id);
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, PROJECT_DANGER_LABELS.DELETE_FAILED));
+      return;
+    }
+    celebrate();
     navigate('/projects');
   }, [activeProject, confirm, deleteProject, navigate]);
 
@@ -165,10 +185,18 @@ export const useProjectDetailPage = ({ project }: UseProjectDetailPageArgs) => {
     isActive,
     monthGroups,
     summary,
+    balance,
+    balanceText,
+    latestSettledText,
+    hasMore,
+    loadMore,
     loading: fetchState === 'loading' || viewLoading,
+    balanceLoading,
+    balanceError,
     error,
     notFound,
     reload: reloadAll,
+    retryBalance,
     handleRename,
     handleToggleActive,
     handleDelete,

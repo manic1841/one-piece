@@ -5,5 +5,5 @@ export const DASHBOARD_STAT_ROW_LABELS = {
   MONTHLY_CASH_FLOW: '月現金流',
   PORTFOLIO_RETURN: '投資報酬率',
   INVESTMENT_LEVERAGE: '投資槓桿',
-  ANCHOR_PREFIX: 'ANCHORED',
+  ANCHOR_PREFIX: '錨定',
 } as const;

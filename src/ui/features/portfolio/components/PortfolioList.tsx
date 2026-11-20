@@ -28,6 +28,7 @@ import {
   PORTFOLIO_PAGE_LABELS,
 } from '@/ui/constants/portfolio/labels';
 import { usePortfolioListController } from '@/ui/features/portfolio/hooks/usePortfolioListController';
+import { formatCurrency } from '@/ui/utils';
 
 import HoldingsAllocation from './HoldingsAllocation';
 import PortfolioForm from './PortfolioForm';
@@ -54,6 +55,8 @@ const PortfolioList: React.FC = () => {
   } = usePortfolioListController();
 
   const renderContent = () => {
+    // Every load blanks the list so the total value remounts and counts from zero
+    // (motion-system §5.2).
     if (loading) {
       return (
         <div role="status" className="space-y-2 py-2">
@@ -94,7 +97,14 @@ const PortfolioList: React.FC = () => {
     return (
       <>
         <PageSection title={PORTFOLIO_PAGE_LABELS.TOTAL_VALUE_LABEL} spacing="compact">
-          <FinancialNumber value={overview.totalValueText} size="large" className="mt-2" />
+          <FinancialNumber
+            value={overview.totalValueText}
+            animatedValue={overview.totalValue}
+            animateFormat={formatCurrency}
+            animateOnMount
+            size="large"
+            className="mt-2"
+          />
         </PageSection>
 
         <HoldingsAllocation vm={allocation} emptyText={PORTFOLIO_ALLOCATION_LABELS.EMPTY_LIST} />

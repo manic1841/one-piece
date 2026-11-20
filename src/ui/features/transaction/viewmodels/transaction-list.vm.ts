@@ -5,6 +5,7 @@ import {
   type JournalEntryLine,
   type Transaction as LedgerTransaction,
 } from '@/domains/ledger/schemas';
+import { type MoneyTone, signTone } from '@/ui/components/moneyTone';
 import { getTransactionCategoryLabel } from '@/ui/constants/transaction';
 import { formatCurrency, formatDate } from '@/ui/utils';
 
@@ -75,6 +76,8 @@ export type TransactionListItemVM = {
   amountText: string;
   signedAmountText: string;
   isPositive: boolean;
+  /** Value tone by sign; a zero amount stays muted instead of reading as a gain. */
+  tone: MoneyTone;
   hasCashLedger: boolean;
   projectName?: string;
   entries: TransactionListEntryVM[];
@@ -113,7 +116,11 @@ export const mapTransactionToListItemVM = (
   const monthHeaderText = formatMonthHeader(monthKey);
   const sortTimestamp = date.getTime();
   const isPositive = signedAmount >= 0;
-  const signedAmountText = `${isPositive ? '+' : '-'}${formatCurrency(Math.abs(signedAmount))}`;
+  // Zero wears no sign: the `zero` tone is already saying it is neither.
+  const signedAmountText =
+    signedAmount === 0
+      ? formatCurrency(0)
+      : `${isPositive ? '+' : '-'}${formatCurrency(Math.abs(signedAmount))}`;
 
   const entries: TransactionListEntryVM[] = transaction.entries.map((entry: JournalEntryLine) => ({
     ledgerCode: entry.ledgerCode,
@@ -140,6 +147,7 @@ export const mapTransactionToListItemVM = (
     amountText: formatCurrency(Math.abs(signedAmount)),
     signedAmountText,
     isPositive,
+    tone: signTone(signedAmount),
     hasCashLedger,
     projectName: options?.projectName,
     entries,

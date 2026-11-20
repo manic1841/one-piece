@@ -1,4 +1,4 @@
-import { CHART_DONUT_COLORS } from './chartTheme';
+import { chartCategoricalColor } from './chartTheme';
 
 export type DonutSegment = {
   label: string;
@@ -24,7 +24,7 @@ export function buildDonutSlices(segments: DonutSegment[]): DonutSlice[] {
   const shares = segments.map((segment) => (Math.max(0, segment.value) / safeTotal) * 100);
 
   return segments.map((_, index) => {
-    const color = CHART_DONUT_COLORS[index % CHART_DONUT_COLORS.length];
+    const color = chartCategoricalColor(index);
     const start = shares.slice(0, index).reduce((sum, share) => sum + share, 0);
     return {
       color,

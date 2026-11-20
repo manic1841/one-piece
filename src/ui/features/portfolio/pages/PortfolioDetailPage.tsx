@@ -32,6 +32,8 @@ const PortfolioDetailPage: React.FC = () => {
     handleDelete,
   } = usePortfolioDetailPage();
 
+  // Every load blanks and remounts the figures, so they count up from zero each
+  // time (motion-system §5.2).
   if (loading) {
     return (
       <div role="status" className="space-y-6 pb-20">

@@ -26,10 +26,11 @@ import {
   mapTransactionVMToDomain,
   parseTransactionFormVM,
 } from '@/ui/features/transaction/viewmodels/transaction.vm';
+import { alert } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { logger } from '@/utils/logger';
 
-const expenseCategories: TransactionFormCategoryOption[] = [
+const expenseCategoryOptions: TransactionFormCategoryOption[] = [
   ...DEFAULT_INTENT_MAPPINGS.filter((mapping) => mapping.type === 'EXPENSE').map((mapping) => ({
     value: mapping.intent,
     label: getIntentLabel(mapping.intent),
@@ -41,11 +42,6 @@ const incomeCategories: TransactionFormCategoryOption[] = [
     value: mapping.intent,
     label: getIntentLabel(mapping.intent),
   })),
-];
-
-const advancedCategories: TransactionFormCategoryOption[] = [
-  ...expenseCategories,
-  ...incomeCategories,
 ];
 
 type TransactionWithAllocationAttempt = {
@@ -77,7 +73,7 @@ export const useTransactionForm = (
   const [error, setError] = useState('');
   const incomeTemplateCacheRef = useRef<Map<string, AllocationItemInput[] | null>>(new Map());
   const transactionWithAllocationAttemptRef = useRef<TransactionWithAllocationAttempt | null>(null);
-  const { codes: allActiveLedgerCodes } = useLedgerCodes(false);
+  const { items: allActiveLedgerCodes } = useLedgerCodes(false);
 
   const getTransactionWithAllocationIdempotencyKey = (vm: TransactionFormVM): string => {
     const signature = getTransactionWithAllocationAttemptSignature(vm);
@@ -190,6 +186,7 @@ export const useTransactionForm = (
       transactionWithAllocationAttemptRef.current = null;
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
+      alert();
       if (err instanceof z.ZodError) {
         setError(err.issues[0]?.message || 'Invalid transaction form input.');
       } else {
@@ -251,6 +248,7 @@ export const useTransactionForm = (
       onClose();
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
+      alert();
       if (err instanceof z.ZodError) {
         setError(err.issues[0]?.message || 'Invalid transaction form input.');
       } else {
@@ -263,9 +261,8 @@ export const useTransactionForm = (
   };
 
   return {
-    expenseCategories,
+    expenseCategoryOptions,
     incomeCategories,
-    advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
     loading,

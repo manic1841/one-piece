@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { listDebtPaymentsUseCase } from '@/application/debt/use_cases/listDebtPaymentsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
@@ -21,6 +22,8 @@ import {
 } from '@/ui/features/debt/viewmodels/debtDisplay.vm';
 import { useDebtAccountFormViewModel } from '@/ui/features/debt/viewmodels/useDebtAccountFormViewModel';
 import { useProjects } from '@/ui/features/project/hooks/useProjects';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface UseDebtDetailPageArgs {
@@ -101,9 +104,6 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     if (!activeAccount) return;
     void (async () => {
       try {
-        const { listDebtPaymentsUseCase } = await import(
-          '@/application/debt/use_cases/listDebtPaymentsUseCase'
-        );
         const transactions = await listDebtPaymentsUseCase.execute({
           householdId,
           debtAccountId: activeAccount.id,
@@ -154,7 +154,11 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
       confirmLabel: DEBT_LIFECYCLE_LABELS.DISABLE_CONFIRM,
     });
     if (!confirmed) return;
-    await updateDebtAccount(activeAccount.id, { isActive: false });
+    const task = await updateDebtAccount(activeAccount.id, { isActive: false });
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, DEBT_DETAIL_LABELS.UPDATE_FAILED));
+      return;
+    }
     await refetchAccount();
   }, [activeAccount, confirm, refetchAccount, updateDebtAccount]);
 
@@ -166,13 +170,22 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
       confirmLabel: DEBT_DANGER_LABELS.CONFIRM,
     });
     if (!confirmed) return;
-    await removeDebtAccount(activeAccount.id);
+    const task = await removeDebtAccount(activeAccount.id);
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, DEBT_DANGER_LABELS.DELETE_FAILED));
+      return;
+    }
+    celebrate();
     navigate('/debt');
   }, [activeAccount, confirm, navigate, removeDebtAccount]);
 
   const handleEnable = useCallback(async () => {
     if (!activeAccount) return;
-    await updateDebtAccount(activeAccount.id, { isActive: true });
+    const task = await updateDebtAccount(activeAccount.id, { isActive: true });
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, DEBT_DETAIL_LABELS.UPDATE_FAILED));
+      return;
+    }
     await refetchAccount();
   }, [activeAccount, refetchAccount, updateDebtAccount]);
 

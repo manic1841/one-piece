@@ -2,7 +2,7 @@ import { collection, doc } from 'firebase/firestore';
 
 import { UserProfileSchema } from '@/domains/auth/user/schemas';
 import { type UserProfile } from '@/domains/auth/user/types';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 
 class UserRepository extends BaseRepository<UserProfile, [string?]> {

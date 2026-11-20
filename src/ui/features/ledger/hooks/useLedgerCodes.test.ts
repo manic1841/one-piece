@@ -71,7 +71,7 @@ describe('useLedgerCodes', () => {
       },
       labelResolver: expect.any(Function),
     });
-    expect(result.current.codes).toEqual(
+    expect(result.current.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'asset:cash', label: '現金與銀行存款', isCustom: false }),
         expect.objectContaining({ code: 'expense:travel', label: '差旅費', isCustom: true }),

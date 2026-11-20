@@ -1,5 +1,6 @@
 # Workflow-first 介面：Monthly Close、Portfolio Detail、Debt、Header（S10）
 
+**日期：** 2026-09-21
 **狀態：** 已接受（2026-09）
 **規範來源：** [ui-layer-architecture.md](../ui/ui-layer-architecture.md) §6.1；[visual-standards.md](../ui/visual-standards.md) 工作流
 

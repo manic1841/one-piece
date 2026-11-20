@@ -36,15 +36,18 @@ export function DonutChart({
 
   return (
     <div className={cn('flex items-center gap-8', className)}>
-      <div
-        className="relative flex-none rounded-full"
-        style={{
-          width: size,
-          height: size,
-          background: `conic-gradient(${slices.map((slice) => slice.stop).join(', ')})`,
-        }}
-        {...a11yProps}
-      >
+      <div className="relative flex-none" style={{ width: size, height: size }} {...a11yProps}>
+        {/* The ring is masked by an animating stop angle, so it sweeps in
+            clockwise (motion-system §5.7). The hole and the caption are siblings
+            rather than children: a mask would otherwise eat into them too. */}
+        <div
+          className="absolute inset-0 rounded-full animate-chart-sweep"
+          style={{
+            background: `conic-gradient(${slices.map((slice) => slice.stop).join(', ')})`,
+            maskImage: 'conic-gradient(#000 var(--chart-sweep), transparent 0)',
+            WebkitMaskImage: 'conic-gradient(#000 var(--chart-sweep), transparent 0)',
+          }}
+        />
         <div
           className="absolute rounded-full bg-card"
           style={{ inset: `${Math.round(size * 0.21)}px` }}

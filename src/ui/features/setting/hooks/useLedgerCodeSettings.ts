@@ -59,7 +59,7 @@ export function useLedgerCodeSettings() {
   const userEmail = user?.email;
   const auth = useAuthIdentity();
 
-  const { codes, loading, refresh } = useLedgerCodes(true);
+  const { items: codes, loading, reload: refresh } = useLedgerCodes(true);
   const [editingCode, setEditingCode] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [error, setError] = useState('');

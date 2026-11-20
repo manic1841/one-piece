@@ -7,7 +7,7 @@ import { IntentType } from '@/domains/ledger/constants';
 import { LEDGER_CODES } from '@/domains/ledger/constants';
 import { type TransactionCreate } from '@/domains/ledger/schemas';
 import { LedgerValidator } from '@/domains/ledger/validator';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 

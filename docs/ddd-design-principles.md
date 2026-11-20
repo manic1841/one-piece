@@ -184,7 +184,7 @@ partial update，也不引入 idempotency key——重試同一 desired state �
 - 兩個成員同時 reorder 會產生 transaction 衝突，後提交者重試後收斂為其中一方的完整排序，
   不需要額外的 contention token。
 - 不做動態寫入數計算；單一 household 的數量遠低於 Firestore transaction 的 500 筆上限，
-  若未來接近上限再依 retirement plan 的模式補驗證。
+  若未來接近上限再依 projection 的模式補驗證。
 
 取捨理由見 [ADR-0038](adr/0038-command-atomicity-and-retry-policy.md) 與
 [ADR-0041](adr/0041-reorder-atomic-contract.md)。

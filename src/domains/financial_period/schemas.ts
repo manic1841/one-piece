@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { BaseSchema } from '@/shared/schemas/base';
+import { TimestampSchema } from '@/shared/schemas/date';
 
 // [DOMAIN ENTITY]
 // FinancialPeriod is the minimal persisted workflow-state record for one
@@ -28,7 +29,7 @@ export type FinancialPeriodStatus = z.infer<typeof FinancialPeriodStatus>;
 
 export const CloseStageStateSchema = z.object({
   status: z.enum(['PENDING', 'COMPLETED']),
-  confirmedAt: z.date().optional(),
+  confirmedAt: TimestampSchema.optional(),
   confirmedBy: z.string().optional(),
 });
 export type CloseStageState = z.infer<typeof CloseStageStateSchema>;

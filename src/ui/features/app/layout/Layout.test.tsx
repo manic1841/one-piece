@@ -1,8 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { RouterProvider, createMemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ConfirmDialogProvider } from '@/ui/components/confirm/ConfirmDialog';
+import { stubViewportWidth } from '@/ui/test/viewport';
 
 import Layout from './Layout';
 import { NAVIGATOR_ITEMS, NAV_ITEMS } from './navigation';
@@ -34,12 +37,6 @@ vi.mock('@/ui/contexts/useAuthState', () => ({
   }),
 }));
 
-vi.mock('@/application/household/use_cases/getHouseholdUseCase', () => ({
-  getHouseholdUseCase: {
-    execute: vi.fn().mockResolvedValue({ id: 'household-1', name: 'Test Household' }),
-  },
-}));
-
 vi.mock('@/application/dashboard/use_cases/getDashboardOverviewUseCase', () => ({
   getDashboardOverviewUseCase: { execute: vi.fn().mockResolvedValue(null) },
 }));
@@ -50,12 +47,19 @@ vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', (
   }),
 }));
 
-vi.mock('../hooks/usePetReaction', () => ({
-  usePetReaction: () => 'idle',
-}));
-
 vi.mock('./HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
+}));
+
+/**
+ * The guard fetches the household name through `await import()` so Firestore stays out
+ * of the startup bundle. Mocking the guard instead of the use case keeps these header
+ * tests off that async hop: a dynamic import from inside a dependency is not reliably
+ * intercepted, and the real use case would then hit Firestore and never name the
+ * household.
+ */
+vi.mock('../hooks/useHouseholdGuard', () => ({
+  useHouseholdGuard: () => ({ familyName: 'Test Household', loadingHousehold: false }),
 }));
 
 function PageMarker() {
@@ -64,45 +68,29 @@ function PageMarker() {
 }
 
 function renderLayout({ initialRoute = '/', withPageMarker = false } = {}) {
+  // A data router is required by `useMatches`, which drives the page-entry key.
+  const router = createMemoryRouter(
+    [
+      {
+        element: <Layout />,
+        children: [{ path: '*', element: withPageMarker ? <PageMarker /> : null }],
+      },
+    ],
+    { initialEntries: [initialRoute] },
+  );
   return render(
     <ConfirmDialogProvider>
-      <MemoryRouter initialEntries={[initialRoute]}>
-        {withPageMarker ? (
-          <Routes>
-            <Route element={<Layout />}>
-              <Route path="*" element={<PageMarker />} />
-            </Route>
-          </Routes>
-        ) : (
-          <Layout />
-        )}
-      </MemoryRouter>
+      <RouterProvider router={router} />
     </ConfirmDialogProvider>,
   );
 }
 
 /**
  * happy-dom implements `matchMedia` and reports a 1024px viewport, so the layout is
- * desktop by default. Force a mobile viewport (no `min-width: 768px` match) so the
- * bottom-sheet branch of `useIsDesktop` renders. Restored in `afterEach`.
+ * desktop by default. `stubViewportWidth` forces the mobile branch. Restored in
+ * `afterEach`.
  */
-let mobileViewportSpy: ReturnType<typeof vi.spyOn> | undefined;
-
-function stubMobileViewport() {
-  mobileViewportSpy = vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query) =>
-      ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addEventListener: () => {},
-        removeEventListener: () => {},
-        addListener: () => {},
-        removeListener: () => {},
-        dispatchEvent: () => false,
-      }) as unknown as MediaQueryList,
-  );
-}
+let restoreViewport: (() => void) | undefined;
 
 describe('Layout system status bar', () => {
   afterEach(() => {
@@ -119,6 +107,21 @@ describe('Layout system status bar', () => {
     expect(screen.getByRole('link', { name: /one piece/i })).toBeInTheDocument();
     expect(screen.getByText(/system online/i)).toBeInTheDocument();
     expect(screen.getByTestId('header-today')).toBeInTheDocument();
+  });
+
+  it('offers a skip link that targets the main landmark', () => {
+    renderLayout();
+
+    const skip = screen.getByRole('link', { name: '跳至主要內容' });
+    expect(skip).toHaveAttribute('href', '#main');
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main');
+  });
+
+  it('leaves the page title to the route, so the brand is not a heading', () => {
+    renderLayout();
+
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull();
+    expect(screen.getByRole('banner')).toHaveTextContent('ONE PIECE');
   });
 
   it('renders a site footer with brand, version, and tagline', () => {
@@ -144,10 +147,10 @@ describe('Layout system status bar', () => {
     expect(dateText).toContain('2026');
   });
 
-  it('groups household switcher, search, and avatar on the header', async () => {
+  it('groups household switcher, search, and avatar on the header', () => {
     renderLayout();
 
-    expect(await screen.findByTestId('household-switcher')).toBeInTheDocument();
+    expect(screen.getByTestId('household-switcher')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /avatar/i })).toBeInTheDocument();
   });
@@ -171,12 +174,12 @@ describe('Layout system status bar', () => {
     expect(screen.queryByRole('button', { name: /settings/i })).not.toBeInTheDocument();
   });
 
-  it('keeps avatar and search reachable when the desktop-only controls are hidden', async () => {
+  it('keeps avatar and search reachable when the desktop-only controls are hidden', () => {
     renderLayout();
 
     const avatarButton = screen.getByRole('button', { name: /avatar/i });
     const searchButton = screen.getByRole('button', { name: /search/i });
-    const switcher = await screen.findByTestId('household-switcher');
+    const switcher = screen.getByTestId('household-switcher');
 
     expect(avatarButton.className).not.toContain('hidden');
     expect(searchButton.className).not.toContain('hidden');
@@ -320,8 +323,8 @@ describe('Layout content width', () => {
 
 describe('Layout pixel pet and navigator', () => {
   afterEach(() => {
-    mobileViewportSpy?.mockRestore();
-    mobileViewportSpy = undefined;
+    restoreViewport?.();
+    restoreViewport = undefined;
   });
 
   it('renders a round pet placeholder fixed bottom-right', () => {
@@ -333,12 +336,31 @@ describe('Layout pixel pet and navigator', () => {
     expect(pet.className).toContain('rounded-full');
   });
 
-  it('renders the pet expression from the reaction API prop, idle by default', () => {
+  it('gives the pet the 44px touch target instead of the art size', () => {
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
-    expect(pet.dataset.reaction).toBe('idle');
+    expect(pet.className).toMatch(/(^|\s)h-11(\s|$)/);
+    expect(pet.className).toMatch(/(^|\s)w-11(\s|$)/);
+    // The art hangs above the box, so the box is aligned to its bottom edge.
+    expect(pet.className).toContain('items-end');
+  });
+
+  it('renders the pet at rest by default', () => {
+    renderLayout();
+
+    const pet = screen.getByRole('button', { name: /pixel pet/i });
+    expect(pet.dataset.mood).toBe('rest');
     expect(screen.getByTestId('pet-face')).toBeInTheDocument();
+  });
+
+  it('nods when the pet is pressed', () => {
+    renderLayout();
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: /pixel pet/i }));
+    fireEvent.click(screen.getByRole('button', { name: /pixel pet/i }));
+
+    expect(screen.getByRole('button', { name: /pixel pet/i }).dataset.mood).toBe('nod');
   });
 
   it('opens the navigator as a floating panel listing the eight navigator destinations', () => {
@@ -434,7 +456,7 @@ describe('Layout pixel pet and navigator', () => {
   });
 
   it('exposes the navigator on mobile as a bottom sheet', async () => {
-    stubMobileViewport();
+    restoreViewport = stubViewportWidth(375);
     renderLayout();
 
     const pet = screen.getByRole('button', { name: /pixel pet/i });
@@ -454,5 +476,49 @@ describe('Layout pixel pet and navigator', () => {
     fireEvent.click(firstLink!);
 
     await waitFor(() => expect(screen.queryByTestId('navigator-sheet')).not.toBeInTheDocument());
+  });
+});
+
+describe('Layout page entry', () => {
+  it('replays the entry when the route changes but not when only a param does', async () => {
+    const mounts = vi.fn();
+    function Page() {
+      useEffect(mounts, []);
+      return <div data-testid="page" />;
+    }
+
+    const router = createMemoryRouter(
+      [
+        {
+          element: <Layout />,
+          children: [
+            { path: 'reports/:period', element: <Page /> },
+            { path: 'accounts', element: <Page /> },
+          ],
+        },
+      ],
+      { initialEntries: ['/reports/2026-01'] },
+    );
+    render(
+      <ConfirmDialogProvider>
+        <RouterProvider router={router} />
+      </ConfirmDialogProvider>,
+    );
+
+    await screen.findByTestId('page');
+    const container = screen.getByRole('main').firstElementChild as HTMLElement;
+    expect(container.className).toContain('animate-page-enter');
+    expect(mounts).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await router.navigate('/reports/2026-02');
+    });
+    expect(screen.getByTestId('page')).toBeInTheDocument();
+    expect(mounts).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await router.navigate('/accounts');
+    });
+    expect(mounts).toHaveBeenCalledTimes(2);
   });
 });

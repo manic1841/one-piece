@@ -5,7 +5,6 @@ import { Plus } from 'lucide-react';
 import { FilterStrip } from '@/ui/components/FilterStrip';
 import { PageHeader } from '@/ui/components/PageHeader';
 import { SearchField } from '@/ui/components/SearchField';
-import { showToast } from '@/ui/components/Toast';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
 import { Button } from '@/ui/components/ui/button';
 import {
@@ -13,6 +12,7 @@ import {
   TRANSACTIONS_PAGE_DELETED_TOAST,
   TRANSACTIONS_PAGE_DELETE_CONFIRM_CONTEXT,
   TRANSACTIONS_PAGE_DELETE_CONFIRM_TITLE,
+  TRANSACTIONS_PAGE_DELETE_FAILED,
   TRANSACTIONS_PAGE_DESCRIPTION,
   TRANSACTIONS_PAGE_EDIT_MISSING_TITLE,
   TRANSACTIONS_PAGE_EDIT_UNSUPPORTED_TITLE,
@@ -45,6 +45,8 @@ import {
   mapTransactionToListItemVM,
 } from '@/ui/features/transaction/viewmodels/transaction-list.vm';
 import { mapDomainTransactionToFormOutput } from '@/ui/features/transaction/viewmodels/transaction.vm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { notifyFailed, notifySaved } from '@/ui/hooks/notify';
 
 import { TransactionForm } from '../components/form/TransactionForm';
 
@@ -85,12 +87,15 @@ const Transactions: React.FC = () => {
       title: TRANSACTIONS_PAGE_DELETE_CONFIRM_TITLE,
       context: TRANSACTIONS_PAGE_DELETE_CONFIRM_CONTEXT,
     });
-    if (confirmed) {
-      const result = await deleteTransaction(transaction.id);
-      if (result?.ok) {
-        showToast(TRANSACTIONS_PAGE_DELETED_TOAST);
-      }
+    if (!confirmed) return;
+    const result = await deleteTransaction(transaction.id);
+    if (result?.ok) {
+      notifySaved(TRANSACTIONS_PAGE_DELETED_TOAST);
+      return;
     }
+    // `deleteTransaction` returns undefined when the call is superseded; only a
+    // reported failure is worth a message.
+    if (result) notifyFailed(getTaskErrorMessage(result, TRANSACTIONS_PAGE_DELETE_FAILED));
   };
 
   const handlePeriodChange = (nextPeriod: TransactionPeriod) => {
@@ -148,9 +153,8 @@ const Transactions: React.FC = () => {
   };
 
   const {
-    expenseCategories,
+    expenseCategoryOptions,
     incomeCategories,
-    advancedCategories,
     allActiveLedgerCodes,
     loadIncomeAllocationTemplate,
     loading: formSubmitting,
@@ -162,7 +166,7 @@ const Transactions: React.FC = () => {
     () => {
       setIsFormOpen(false);
       resetEditState();
-      showToast(TRANSACTIONS_PAGE_SAVED_TOAST);
+      notifySaved(TRANSACTIONS_PAGE_SAVED_TOAST);
     },
     () => reload(),
   );
@@ -206,12 +210,18 @@ const Transactions: React.FC = () => {
 
   const isFiltered = searchTerm.trim() !== '' || filterType !== TRANSACTION_FILTER_ALL;
 
-  const projectOptions = projects
-    .filter((project) => project.isActive)
-    .map((project) => ({
-      id: project.id,
-      name: project.name,
-    }));
+  // Stable identity: the form's allocation-template effect depends on this list
+  // and would otherwise re-run on every parent render.
+  const projectOptions = useMemo(
+    () =>
+      projects
+        .filter((project) => project.isActive)
+        .map((project) => ({
+          id: project.id,
+          name: project.name,
+        })),
+    [projects],
+  );
 
   return (
     <div className="space-y-6">
@@ -235,12 +245,14 @@ const Transactions: React.FC = () => {
           ariaLabel={TRANSACTIONS_PAGE_SEARCH_LABEL}
         />
         <div className="flex w-full flex-wrap items-end gap-4 md:w-auto">
-          <FilterStrip
-            items={TRANSACTION_FILTER_ITEMS}
-            value={filterType}
-            onValueChange={setFilterType}
-            ariaLabel={TRANSACTIONS_PAGE_FILTER_LABEL}
-          />
+          <div className="md:pb-3">
+            <FilterStrip
+              items={TRANSACTION_FILTER_ITEMS}
+              value={filterType}
+              onValueChange={setFilterType}
+              ariaLabel={TRANSACTIONS_PAGE_FILTER_LABEL}
+            />
+          </div>
           <div className="md:pb-3">
             <TransactionPeriodPicker
               period={period}
@@ -269,7 +281,9 @@ const Transactions: React.FC = () => {
         onDelete={handleDelete}
       />
 
-      {userProfile?.householdId && isFormOpen && (
+      {/* Always mounted while a household exists: Radix needs the dialog to
+          survive `open=false` to play its exit animation. */}
+      {userProfile?.householdId && (
         <TransactionForm
           isOpen={isFormOpen}
           mode={editingTransactionId ? 'edit' : 'create'}
@@ -282,9 +296,8 @@ const Transactions: React.FC = () => {
           loading={formSubmitting}
           error={formError}
           projects={projectOptions}
-          expenseCategories={expenseCategories}
+          expenseCategoryOptions={expenseCategoryOptions}
           incomeCategories={incomeCategories}
-          advancedCategories={advancedCategories}
           allActiveLedgerCodes={allActiveLedgerCodes}
           loadIncomeAllocationTemplate={loadIncomeAllocationTemplate}
         />

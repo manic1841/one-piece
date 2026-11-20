@@ -48,6 +48,12 @@
     scrollbar-gutter: stable;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border-strong)) transparent;
@@ -79,6 +85,24 @@
   }
 }
 
+@layer components {
+  /* L1 floating chrome (design-system §3): the only material that may sit over
+     scrolling content. The recipe lives here so surfaces only name the level. */
+  .material-chrome {
+    background-color: hsl(var(--background) / 0.75);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+
+  /* L2 dialog / sheet (design-system §3): thicker material than L1, always
+     behind a scrim. Shadow stays on the caller. */
+  .material-surface {
+    background-color: hsl(var(--card) / 0.9);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    backdrop-filter: blur(32px) saturate(180%);
+  }
+}
+
 @layer base {
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -91,10 +115,15 @@
   }
 
   @media (prefers-reduced-transparency: reduce) {
-    .material-chrome {
+    .material-chrome,
+    .material-surface {
       background: hsl(var(--background)) !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
+    }
+
+    .material-surface {
+      background: hsl(var(--card)) !important;
     }
   }
 
@@ -105,17 +134,63 @@
   }
 }
 
-/* Pixel Pet sprite strips: the inner image is one frame wide/tall vs the 48px
-   viewport, so shifting it a full length walks the strip. Frame count is baked
-   into the inline `steps()`; the global reduced-motion rule settles it on frame 0. */
-@keyframes pet-strip-x {
-  to {
-    transform: translateX(-100%);
+/* Donut reveal: the ring is uncovered by a masked conic stop angle, so the arc
+   draws itself clockwise from 12 o'clock. The angle has to be a registered
+   property to interpolate at all; on engines without `@property` it flips at the
+   halfway point and still lands on the full ring. The 360deg resting value also
+   keeps the ring whole when the animation never runs. */
+@property --chart-sweep {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 360deg;
+}
+
+/* Retirement event axis: spans grow out of their start year and single-year
+   nodes pop in on mount. The global reduced-motion rule settles both instantly. */
+@keyframes event-bar-grow {
+  from {
+    transform: scaleX(0);
   }
 }
 
-@keyframes pet-strip-y {
+@keyframes event-node-pop {
+  from {
+    transform: scale(0);
+  }
+}
+
+/* Expansion keyframes interpolate `height: auto <-> 0`, which needs
+   `interpolate-size: allow-keywords`. That is Chromium-only (Chrome 129+), so on
+   Firefox and Safari the height part turns discrete: the row holds at 0 for the
+   first half of an expand and then pops. Those engines get the fade/slide only
+   and snap the height immediately instead of halfway. Scoped to the disclosures
+   that opted in; `ui/accordion` animates a measured pixel height and is fine as
+   is. Unlayered, so it outranks the utilities without `!important`. */
+@supports not (interpolate-size: allow-keywords) {
+  [data-state='open'][class*='interpolate-size'] {
+    animation-name: disclosure-fade-in;
+  }
+
+  [data-state='closed'][class*='interpolate-size'] {
+    animation-name: disclosure-fade-out;
+  }
+}
+
+@keyframes disclosure-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes disclosure-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   to {
-    transform: translateY(-100%);
+    opacity: 0;
+    transform: translateY(-2px);
   }
 }

@@ -1,161 +1,35 @@
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { getSettlementReadinessUseCase } from '@/application/report/use_cases/getSettlementReadinessUseCase';
-import { db, resetMockDb } from '@/test/mocks/firebase';
+import { TEST_USER as auth } from '@/test/factories';
+import { resetMockDb } from '@/test/mocks/firebase';
+import * as seeds from '@/test/seeds';
 
-const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
+// This file always seeds "an entity plus its snapshot for the active period",
+// so the boolean shorthand is clearer here than repeating `{ isActive }`.
+const seedAccount = (householdId: string, accountId: string, isActive: boolean) =>
+  seeds.seedAccount(householdId, accountId, { isActive });
 
-const seedAccount = async (householdId: string, accountId: string, isActive: boolean) => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', accountId), {
-    id: accountId,
-    name: `Account ${accountId}`,
-    category: 'cash',
-    currency: 'TWD',
-    order: 0,
-    isActive,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+const seedAccountSnapshot = (householdId: string, accountId: string, yearMonth: string) =>
+  seeds.seedAccountSnapshot(householdId, accountId, yearMonth);
 
-const seedAccountSnapshot = async (householdId: string, accountId: string, yearMonth: string) => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', accountId, 'snapshots', yearMonth), {
-    id: yearMonth,
-    accountId,
-    year: Number(yearMonth.split('-')[0]),
-    month: Number(yearMonth.split('-')[1]),
-    amount: 1000,
-    holdings: [],
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+const seedPortfolio = (householdId: string, portfolioId: string, isActive: boolean) =>
+  seeds.seedPortfolio(householdId, portfolioId, { isActive });
 
-const seedPortfolio = async (householdId: string, portfolioId: string, isActive: boolean) => {
-  await setDoc(doc(db, 'households', householdId, 'portfolios', portfolioId), {
-    id: portfolioId,
-    name: `Portfolio ${portfolioId}`,
-    securitiesAccountId: 'acc-1',
-    bankAccountId: 'acc-2',
-    isActive,
-    order: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+const seedPortfolioSnapshot = (householdId: string, portfolioId: string, yearMonth: string) =>
+  seeds.seedPortfolioSnapshot(householdId, portfolioId, yearMonth);
 
-const seedPortfolioSnapshot = async (
-  householdId: string,
-  portfolioId: string,
-  yearMonth: string,
-) => {
-  await setDoc(
-    doc(db, 'households', householdId, 'portfolios', portfolioId, 'snapshots', yearMonth),
-    {
-      id: yearMonth,
-      year: Number(yearMonth.split('-')[0]),
-      month: Number(yearMonth.split('-')[1]),
-      totalValue: 1000,
-      accounts: [],
-      performance: {
-        openingValue: 0,
-        closingValue: 1000,
-        netCashFlow: 0,
-        gain: 0,
-        returnRate: 0,
-        cumulativeGain: 0,
-        cumulativeReturnRate: 0,
-      },
-      cashFlow: { deposits: 0, withdrawals: 0 },
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: 'user@example.com',
-      updatedBy: 'user@example.com',
-    },
-  );
-};
+const seedProject = (householdId: string, projectId: string, isActive: boolean) =>
+  seeds.seedProject(householdId, projectId, { isActive });
 
-const seedProject = async (householdId: string, projectId: string, isActive: boolean) => {
-  await setDoc(doc(db, 'households', householdId, 'projects', projectId), {
-    id: projectId,
-    name: `Project ${projectId}`,
-    description: '',
-    color: '#000000',
-    icon: 'default',
-    category: 'OPERATING',
-    isActive,
-    order: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+const seedProjectSnapshot = (householdId: string, projectId: string, yearMonth: string) =>
+  seeds.seedProjectSnapshot(householdId, projectId, yearMonth);
 
-const seedProjectSnapshot = async (householdId: string, projectId: string, yearMonth: string) => {
-  await setDoc(doc(db, 'households', householdId, 'projects', projectId, 'snapshots', yearMonth), {
-    id: yearMonth,
-    year: Number(yearMonth.split('-')[0]),
-    month: Number(yearMonth.split('-')[1]),
-    openingBalance: 0,
-    income: 0,
-    expense: 0,
-    closingBalance: 0,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+const seedDebtAccount = (householdId: string, debtAccountId: string, isActive: boolean) =>
+  seeds.seedDebtAccount(householdId, debtAccountId, { isActive });
 
-const seedDebtAccount = async (householdId: string, debtAccountId: string, isActive: boolean) => {
-  await setDoc(doc(db, 'households', householdId, 'debtAccounts', debtAccountId), {
-    id: debtAccountId,
-    name: `Debt ${debtAccountId}`,
-    type: 'mortgage',
-    repaymentType: 'equal_payment',
-    originalAmount: 1000000,
-    currentBalance: 900000,
-    interestRate: 2.1,
-    startDate: serverTimestamp(),
-    endDate: serverTimestamp(),
-    graceEndDate: null,
-    monthlyPayment: 35000,
-    linkedLedgerCode: 'liability:mortgage',
-    linkedProjectId: null,
-    isActive,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
-
-const seedDebtSnapshot = async (householdId: string, debtAccountId: string, yearMonth: string) => {
-  await setDoc(
-    doc(db, 'households', householdId, 'debtAccounts', debtAccountId, 'snapshots', yearMonth),
-    {
-      id: yearMonth,
-      yearMonth,
-      openingBalance: 1000000,
-      principalPaid: 30000,
-      interestPaid: 5000,
-      totalPaid: 35000,
-      closingBalance: 970000,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      createdBy: 'user@example.com',
-      updatedBy: 'user@example.com',
-    },
-  );
-};
+const seedDebtSnapshot = (householdId: string, debtAccountId: string, yearMonth: string) =>
+  seeds.seedDebtSnapshot(householdId, debtAccountId, yearMonth);
 
 describe('getSettlementReadinessUseCase — emulator integration', () => {
   let householdId: string;

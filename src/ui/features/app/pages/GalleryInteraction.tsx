@@ -127,8 +127,9 @@ const AccordionSection: React.FC = () => (
       <AdvancedDisclosureDemo />
     </GalleryModule>
     <GalleryCaption>
-      表單內的 `AdvancedDisclosure` 不是 `ui/accordion`：它是有邊框的 field
-      形狀切換鈕，收納次要欄位。
+      表單內的 `AdvancedDisclosure` 不是
+      `ui/accordion`：它是單一邊框群組，標題列切換、展開後在同一框內以 `bg-muted/50`
+      內縮底色顯示次要欄位。
     </GalleryCaption>
   </GallerySection>
 );

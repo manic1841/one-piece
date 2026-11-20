@@ -4,7 +4,7 @@ import {
   type AllocationTemplate,
   AllocationTemplateSchema,
 } from '@/domains/allocation/templateSchemas';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 
 class AllocationTemplateRepository extends BaseRepository<AllocationTemplate, [string, string?]> {

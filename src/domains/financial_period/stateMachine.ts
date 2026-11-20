@@ -123,12 +123,19 @@ export const isStageCompleted = (period: FinancialPeriod, stageId: CloseStageId)
 
 /** Re-confirmable stages (ADR-0052/§5): same-key idempotent overwrite is safe.
  * DEBT_REPAYMENT is included: the month's record is keyed by period × account
- * and a re-confirmation replaces it inside one atomic boundary. */
+ * and a re-confirmation replaces it inside one atomic boundary. FINANCIAL_REPORTS
+ * is included because a re-confirmation recomputes the three reports from the
+ * current preview and overwrites them — same keys (period × report kind), so the
+ * overwrite is idempotent. It is the write path the Close Period drift block's
+ * shortcut needs (ADR-0073): after the stage was confirmed, a later transaction
+ * makes the persisted reports stale, and the only way to clear the gate without
+ * reopening the whole walk is to regenerate them in place. */
 export const isReconfirmableStage = (stageId: CloseStageId): boolean =>
   stageId === 'ACCOUNT_BALANCE' ||
   stageId === 'SECURITIES_TRADE' ||
   stageId === 'PORTFOLIO_CASH_FLOW' ||
-  stageId === 'DEBT_REPAYMENT';
+  stageId === 'DEBT_REPAYMENT' ||
+  stageId === 'FINANCIAL_REPORTS';
 
 export const closePeriodInState = (
   period: FinancialPeriod,

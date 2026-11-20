@@ -31,9 +31,10 @@ import { projectRepository } from '@/infra/repositories/projectRepository';
 import { reportRepository } from '@/infra/repositories/reportRepository';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
 import { emulatorProjectId, firestoreEmulator } from '@/test/emulatorEnv';
+import { TEST_USER as auth } from '@/test/factories';
 import { db, resetMockDb } from '@/test/mocks/firebase';
+import { seedAccount as seedAccountDoc } from '@/test/seeds';
 
-const auth = { uid: 'user-1', email: 'user@example.com', isGlobalAdmin: true };
 const yearMonth = '2026-03';
 
 const roundAmount = (value: number): number => Math.round(value * 100) / 100;
@@ -67,20 +68,8 @@ const withFreshReader = async <T>(read: (readerDb: Firestore) => Promise<T>): Pr
   }
 };
 
-const seedAccount = async (id: string, category: string = 'cash') => {
-  await setDoc(doc(db, 'households', householdId, 'accounts', id), {
-    id,
-    name: `Account ${id}`,
-    category,
-    currency: 'TWD',
-    order: 0,
-    isActive: true,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-    createdBy: 'user@example.com',
-    updatedBy: 'user@example.com',
-  });
-};
+const seedAccount = (id: string, category = 'cash') =>
+  seedAccountDoc(householdId, id, { category });
 
 type ConfirmStageInput = Omit<
   MonthlyCloseConfirmRequest,
@@ -329,6 +318,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
     const buyDate = new Date(2026, 2, 10);
     await confirmStage('SECURITIES_TRADE', {
       securities: { buys: [{ amount, date: buyDate, description: 'VTI buy' }], sells: [] },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
     });
     const buyTransaction = await findTransactionByIntentOrIntentType('SECURITY_BUY');
     expect(buyTransaction).not.toBeNull();
@@ -602,7 +592,7 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
 
     // Re-confirm with a missing portfolio input: zero-fill is explicit contract
     // (ADR-0052) but the snapshot is still keyed by period, never duplicated.
-    await confirmStage('PORTFOLIO_CASH_FLOW', {});
+    await confirmStage('PORTFOLIO_CASH_FLOW', { portfolioCashFlows: {} });
     const zeroFilled = await getDoc(
       doc(db, 'households', householdId, 'portfolios', portfolioId, 'snapshots', yearMonth),
     );
@@ -781,8 +771,11 @@ describe('monthlyCloseWorkflowUseCase — emulator integration', () => {
         { accountId: 'acc-securities', amount },
       ],
     });
-    await confirmStage('SECURITIES_TRADE', {});
-    await confirmStage('PORTFOLIO_CASH_FLOW', {});
+    await confirmStage('SECURITIES_TRADE', {
+      securities: { buys: [], sells: [] },
+      financing: { shareholderFinancing: [], dividendPayout: [] },
+    });
+    await confirmStage('PORTFOLIO_CASH_FLOW', { portfolioCashFlows: {} });
     await confirmStage('PROJECT_SETTLEMENT', {});
 
     // The unified split (issue #95 family): a grace-period payment above the

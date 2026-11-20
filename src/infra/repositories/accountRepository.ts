@@ -7,7 +7,7 @@ import {
   type AccountSnapshot,
   type AccountSnapshotCreate,
 } from '@/domains/account/types/account';
-import { db } from '@/firebase';
+import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 
 import { accountSnapshotRepository } from './accountSnapshotRepository';

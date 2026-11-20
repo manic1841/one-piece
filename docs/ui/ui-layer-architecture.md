@@ -22,10 +22,12 @@ ui
 │       ├─ viewmodels/ # UI-specific data representations
 │       ├─ types/      # Feature-local UI types (ViewModel tier)
 │       ├─ mappers/    # Domain/Application -> ViewModel transformation
-│       └─ utils/      # Feature-local presentation helpers
+│       ├─ utils/      # Feature-local presentation helpers
+│       └─ assets/     # Feature-local static assets (e.g. the pet export)
 ├─ components/         # Shared Design System components (Stateless, Pure)
 ├─ hooks/              # Shared UI hooks (application controllers and mechanisms)
 ├─ constants/          # Display labels: the only source of data-value display text
+├─ test/               # Test-only seams (viewport stubbing and similar helpers)
 ├─ utils/              # Presentation helpers (Formatting, etc.)
 └─ assets/             # Static UI assets
 ```
@@ -42,10 +44,10 @@ Decision record: [ADR-0062](../adr/0062-ui-tier-separation-and-surface-import-ba
 | Tier                    | Directories                                                       | May import                                                                                   | Must never import                                             |
 | ----------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
 | **Surface**             | everything under `src/ui` not listed in another tier              | UI components, Controllers, ViewModels, `constants`, `utils`                                 | `@/domains`, `@/application`, `@/infra` — **including types** |
-| **ViewModel**           | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types**                                    | application behavior (use cases, workflows), `@/infra`        |
+| **ViewModel**           | `features/*/viewmodels`, `features/*/mappers`, `features/*/types` | domain types/values/pure functions, application **types**, `utils`                           | application behavior (use cases, workflows), `@/infra`        |
 | **Controller**          | `features/*/hooks`, `hooks`, `contexts`, `features/*/contexts`    | use cases / workflows, domain, ViewModels, `constants`, `utils`, other Controller mechanisms | repositories, Firestore, API clients, storage, `@/infra`      |
 | **Display Labels**      | `constants`                                                       | same import scope as ViewModel                                                               | `@/application`, `@/infra`, domain behavior                   |
-| **Presentation Helper** | `utils`, `features/*/utils`                                       | pure formatting/styling functions                                                            | anything with business or data semantics                      |
+| **Presentation Helper** | `utils`, `features/*/utils`                                       | pure formatting/styling functions, other `utils`                                             | anything with business or data semantics                      |
 
 **Surface is the fail-closed default.** Membership in a tier is decided by directory, not by file role: any file under
 `src/ui` that is not inside one of the directories listed for a non-Surface tier is Surface. A new directory is therefore
@@ -55,7 +57,12 @@ not a tier, so a file directly inside it stays Surface.
 
 **Display Labels is a ViewModel-tier import scope.** Its _responsibility_ is unique (the only source of data-value
 display text, see rule 7 and [`ui-labeling-guideline.md`](ui-labeling-guideline.md)), but what it may import is deliberately identical to ViewModel: label maps
-consume domain values and types as mapping input. It must not acquire domain behavior.
+consume domain values and types as mapping input, and reuse a shared glyph constant instead of respelling it (e.g. the
+missing-value dash from `utils`). It must not acquire domain behavior.
+
+**`utils` is allowed downward, never upward.** ViewModel and Display Labels may call Presentation Helpers — a ViewModel
+pre-formats every value it emits, so it must be able to reach the formatters. The reverse does not hold: a helper may not
+import a ViewModel, a Controller, domain or application code.
 
 Call direction is one-way: `Surface → Controller → (Query | Command) → Use Case`. ViewModel is the **only bridge**
 between domain/application shapes and components.
@@ -81,7 +88,9 @@ between domain/application shapes and components.
     map may be imported from `@/domains` by any UI tier.
 8.  **Feature Isolation (components)**: shared components belong in `src/ui/components`; feature **components** must
     not be imported across features. ViewModels are exempt — a ViewModel may be imported by another feature when a
-    second consumer genuinely needs the same projection.
+    second consumer genuinely needs the same projection. The one component exception is the gallery
+    (`features/app/pages/Gallery*`): its job is to show other features' finished components, so it may import any
+    feature's components; other pages under `app` stay bound by the rule.
 9.  **Shared Component Reuse**: before creating a new shared component, extend an existing one in `src/ui/components`
     when it covers the use case. Create a new shared component only when nothing existing can be extended, and migrate
     existing duplicate implementations in the same task.
@@ -228,7 +237,9 @@ Rules:
   (`features/monthly_close/hooks/useStageLoader.ts`), which owns the in-flight controller, the write-back, the
   supersede-abort, the `enabled` gate and the failure semantics, leaving each stage hook only its payload mapping. A
   feature mechanism lives beside the hooks that compose it; it is not promoted to `src/ui/hooks/` until a second feature
-  needs it.
+  needs it. The one-shot read has since crossed that line and lives in `src/ui/hooks/useLoadOnce.ts`, with its picker
+  shape in `src/ui/hooks/useSourceOptions.ts`; `usePlanResource` composes it per route param, so an A→B navigation is a
+  dependency change like any other rather than a second hand-rolled controller.
 - **Seed-Once Ownership**: a feature mechanism that seeds a draft from loaded data owns the ownership rule instead of
   leaving it to every consumer. `useSeededDraft(source)` returns `[value, setValue]`: `source === null` means
   **unknown** (do not seed, and never fabricate an empty draft), `[]`/`{}` means **known empty** (seed it), and the value
@@ -287,9 +298,9 @@ const onSubmit = form.handleSubmit((vm) => {
 - **Forms are `noValidate`; required-ness is marked, not browser-enforced**: the `<form>` sets `noValidate` so the
   resolver and the explicit parse own validation — a native constraint bubble would preempt them and skip `FormMessage`.
   Required fields carry `FormLabel required` (the `*` marker) instead of a `required` attribute.
-- **Non-editable provenance rides through the form values**: import-derived fields an edit must not destroy (e.g.
-  `calculatedFrom`, `incomeCategory`, a read-only `currentAnnual`) are seeded into the form values and validated by the
-  gate, but are not bound to any input. They are carried data, not derived state, which is why they may sit in RHF.
+- **Non-editable provenance rides through the form values**: import-derived fields an edit must not destroy (e.g. a
+  rule's `source` and its resolved baseline year) are seeded into the form values and validated by the gate, but are
+  not bound to any input. They are carried data, not derived state, which is why they may sit in RHF.
 - **Repeaters bind by indexed path**: a repeated row group keeps its array in RHF (`useFieldArray`); each row binds
   `FormField name={`rows.${index}.field`}` through the same glue as a top-level field, and the React key is the row's
   `id`. No extra array/repeater contract is needed in the suite.
@@ -360,11 +371,24 @@ Use Case
 - **UI provider 聚合**：`ui/contexts/AuthStateProvider.tsx` 把 gateway 的觀測值組成 `AuthState`。
   失敗時 `loading` 保持 true（初始化從未落定），因此該狀態讀作「仍在初始化，而且失敗了」。
 - **Controller 查表**：`features/app/hooks/useAuthGate.ts` 是 gate 唯一讀取 auth 的層（規則 6）。
-- **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback`、等待，或放行 children。
+- **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback` 或放行 children。
 
 `AuthGate` 掛在路由樹之外，`/login`、`/access-denied` 等不在 `ProtectedRoute` 底下的路由同樣受同一個失敗畫面保護。
 `Toaster` 掛在 gate 外側，作為 system-level notification surface，載入期間仍可顯示通知。
 infra 不得 import `src/ui/**`（見 §2 規則 10）。
+
+### 5.2 gate 只擋失敗，等待屬於受保護路由
+
+`AuthGate` **不因 `loading` 而擋住整個 app**。認證初始化期間路由樹照常 render：
+`/login`、`/access-denied` 與認證回呼無關，立刻可見。
+
+等待只發生在真的需要它的地方——`ProtectedRoute` 的 `pending` 分支。該分支 render
+`GateSurface` ＋ Skeleton（`aria-busy`）而不是單行 `Loading...`，因為它撐的是整頁；
+`LoadingLine` 只留給區塊內或非頁面的等待。
+
+代價是未登入者直接開 `/` 會先看到一次骨架、再被導到 `/login`。這是刻意的：骨架比整頁
+空白誠實，也比讓登入頁跟著等一個與它無關的 SDK 回呼好。`pending` 不導向，因此不會
+在快取回呼抵達前後產生跳轉迴圈。
 
 ## 6. RWD 斷點契約
 
@@ -394,12 +418,46 @@ Settings——Dashboard 由 header 品牌承擔、Settings 由 Avatar menu 承�
 Pixel Pet 是唯一主導航,不使用傳統 bottom nav 作為主 Navigator(所有權見 §6.1)。
 
 - **定位**:桌機固定右下角;行動版為 bottom sheet。
+- **命中區**:按鈕固定 44×44(觸控目標下限),底邊對齊 canvas 的 `anchor`(腳底),不是置中——角色 96px 高、由按鈕上緣外溢,置中會讓一半命中區落在腳下的空白。外框無底色,命中區放大不改變外觀。
 - **桌機**:click pet 展開 Navigator overlay(floating panel);hover 只做輕微反應,滑鼠移開 overlay **不**立即關閉(避免誤觸),由點擊外部或再點 pet 關閉。
 - **行動版**:tap pet 開啟 Navigator bottom sheet;再 tap pet 或 Close 關閉;不使用 hover。
 - **目的地**:清單內容、Dashboard 的 home 語意與 Quick Access 的獨立性見 §6.1 與 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md);本節只定互動行為,不重述。
-- **動畫**:panel／Sheet 進出場走 [`design-system.md`](design-system.md) 的動態 token。
-- **Phase 8 圖像**:以正式 pixel-art mascot 替換 placeholder 圖像,僅換圖,不改本互動契約。
-- **寵物反應**:`idle / happy / nod / alert` 為最近財務期間狀態的資料驅動顯示,不做情境式 context 管線。Layout 層 hook 讀最近財務期間狀態後映射:CLOSED → `happy`、NEEDS_REVIEW → `alert`、IN_PROGRESS → `nod`、其他(含無期間) → `idle`。Navigator 內目前的頁面以 accent 態高亮。取捨理由見 [ADR-0055](../adr/0055-pixel-pet-single-navigator-ownership.md)。
+- **動畫**:panel／Sheet 進出場走 [`motion-system.md`](motion-system.md) 的動態 token。
+- **美術素材**:遞交 sprite-forge 的 export,行為不動,契約見 §6.2.1。
+- **寵物心情**:見 §6.2.2。Navigator 內目前的頁面以 accent 態高亮。
+
+### 6.2.1 素材契約
+
+素材只以 sprite-forge 的 export 形式進 repo:`assets/pet/manifest.json` 加 `assets/pet/clips/*.png`。App 只讀 manifest,frame 尺寸、frame 數、每格時長、是否循環、可播清單與繪製方向一律取自 manifest,不從圖片推斷。
+
+選 manifest 而非沿用「一心情一資料夾、48px、由圖片長寬推斷格數、固定延遲、必定循環」:推斷邏輯會在 producer 每次改版時失效,而且 `loop: false`、facing、多變體、逐格時長四項演不出來。代價是 app 多一個要驗的格式與 facing 狀態;取捨選擇嚴格而非寬容——解析失敗整隻退回 placeholder,不做部分推斷,壞素材不會以扭曲比例留在畫面上。
+
+- `PetMood` 就是 consumer 的 Situation,只出現在 manifest 的 `bindings`;`bindings` 出現 app 沒有行為的 key 不算版本不合,忽略即可(minor 可新增 situation),該 key 下的值仍必須合法。
+- 每格時長取自 `timing`(格式 2.x):`timing.overrideMs[i] ?? timing.frameMs`。
+- 動畫是否結束只由 `loop` 決定:`loop: true` 播完就回到 frame 0 繼續播,`loop: false` 播完停在最後一格。
+- 情境分兩層(§6.2.2):常駐情境(`rest`、`sleep`)在 `loop: false` 的動畫播完時**重抽**同一情境的另一個 binding,且不重複當前那一支,因此會持續換動畫;事件情境播完一律回報結束落回底層,即使 manifest 標了 `loop: true` 也照樣回報,事件才不會卡住。
+- 因此多重候選的常駐情境必須全為 `loop: false`(有 `loop: true` 就會被它釘住);`loop: true` 只留給單一候選的 `sleep`,其他底層情境即使只有一個候選也不得標 `loop: true`。binding 陣列重複 id 即權重,用來壓低短動畫的出現頻率。`idle-right` 是常駐錨點、權重最高,`turn` 這類短且會換邊的 clip 權重最低;權重在 repo 內的 `bindings` 調整,改動需回寫 sprite-forge,否則下次 export 會蓋掉。
+- reduced-motion 不輪替:停在 frame 0,換心情才重抽。
+- Facing 由 app 持有:**寵物全站預設朝左**,與 `authoredFacing` 相反時一律鏡像;`flipsFacing` 的動畫播畢時翻轉,該側只維持到下一個動畫,之後回到左(reduced-motion 時進場即翻、下次進場即回)。
+- 未綁定的情境、或 manifest 解析失敗時退回 emoji placeholder;單一動畫缺 sheet 只淘汰該動畫。
+- 以 `canvas` 尺寸 1:1 呈現、依 `canvas.anchor` 對位(`anchor` 必須落在 `canvas` 內,命中區懸在錨點的腳下);frame 0 為靜止姿勢,也是 reduced-motion 的落點。
+- 單張 sheet 不能超過瀏覽器單邊點陣上限 16,384px:超過就整張被降採樣,1:1 的像素格會壞。長條以 `16,384 ÷ canvas.width` 為一頁切片繪製,維持 1:1;上限常數只在 `petManifest.ts`,不重複。
+- 素材入 repo 前必須先由 sprite-forge 匯出,手寫的 png 目錄不再可讀;repo 內的 manifest 允許暫時不封閉(未綁定的情境走 placeholder),正式素材仍以 closed export 為準。`petManifest.contract.test.ts` 對實際出貨的 manifest 驗證上列規則。
+
+### 6.2.2 心情契約
+
+寵物是**吉祥物,不是狀態指示器**:它反映使用者正在做什麼,不代言財務資料,`usePetMood` 因此不讀任何 domain 資料。
+
+- 心情分兩層:`rest`、`sleep` 是常駐底層;`move`、`nod`、`celebrate`、`alert` 是一次性事件,播畢落回底層。
+- 優先序 `alert > celebrate > nod > move`;同級或更低的事件不打斷進行中的事件。事件不排隊,被打斷的動畫直接丟棄。
+- 冷卻因心情而異(`petMood.ts`);`celebrate` 無冷卻,每次成功都領獎。
+- 觸發:路由變更 → `move`;按下 pet → `nod`;一次成功的寫入命令(存檔、關帳工作流完成、還原、改名、啟停、刪除)→ `celebrate`;任何命令失敗或表單送出失敗 → `alert`。
+- 寫入是否成功才算 `celebrate`:`alert` 與 `celebrate` 只在命令回報結果後發出,先跳頁再判斷結果會讓失敗的刪除看起來像成功。
+- 無互動至 `SLEEP_AFTER_MS` 進 `sleep`;任何輸入醒回 `rest`;分頁隱藏時暫停計時,不累積,回到可見分頁直接醒回 `rest`。
+- 底層與事件的動畫由 manifest 的 `loop` 決定;常駐情境播畢時由 `PetAvatar` 換播同情境的另一個 binding(只換素材,不換心情),事件播畢則回報 controller 決定下一個心情。
+- reduced-motion 固定在 frame 0,事件立即結束回到底層;會換邊的動畫仍照樣在進場時換邊,只省略播放。
+- 只買菜不喧嘩:初次載入、篩選、排序、換頁、背景重抓不觸發事件。
+- 跨 feature 的觸發點不經過 React context,而是 `hooks/notify` 的模組級函式:只有心情時用 `celebrate` / `alert`,要連 Toast 一起出時用 `notifySaved` / `notifyFailed`,兩者不會各走各的。同時只掛一隻寵物,後掛的訂閱者覆蓋前者。
 
 ## 6.3 Header 責任
 
@@ -413,6 +471,27 @@ Global Header(sticky 系統狀態列)只負責:
 
 不得放入:主導航(見 §6.1)、大量 shortcuts、Period selector、domain actions。Settings 收在 Avatar menu,header 無獨立 Settings 鈕(亦見 [ADR-0056](../adr/0056-workflow-first-surfaces.md))。Header 為 L1 浮動 chrome,材質契約見 [`design-system.md`](design-system.md)。
 
+## 6.4 路由切分
+
+`src/App.tsx` 靜態 import 的只有 shell 本身——provider、router、`AuthGate`、`Layout`——以及
+`/login` 與 `/access-denied` 兩個入口頁;其餘每一條路由一律 `React.lazy()`,首屏因此不
+下載任何 feature(Gallery 在 DEV 才存在,同樣是 lazy)。
+
+- chunk 下載的等待一律用 `Suspense` 邊界,fallback 固定為 `PageSkeleton`
+  (見 [`component-catalog.md`](component-catalog.md));不使用 `null`,也不使用整頁
+  `LoadingLine`。
+- `Layout` 的邊界掛在 `Outlet` 外側,因此 chunk 下載期間 header、footer 與 Pet 保持掛載,
+  只有內容區換成骨架。
+- 路由樹外的頁面(`/onboarding`、DEV 的 `/gallery`)各自帶自己的 `Suspense`,不得讓等待
+  區塊冒泡到 `ErrorBoundary`。
+- 會被 shell 恆常呼叫、且需要 Firestore 的 controller(`useHouseholdGuard`、
+  `useHouseholdSwitcher`、`useDashboardCloseStatus`、`useRouteAuthorization` 的授權
+  workflow、`AuthStateProvider` 的 profile 讀取)以動態 `import()` 取得 use case,讓啟動
+  路徑只留 auth。新增同類 hook 時比照辦理。
+- 閒置預取由 `features/app/prefetchRoutes.ts` 統一集中,只在 `Layout` 內觸發——那時
+  使用者已登入,預取才不會把 Firestore 帶給登入頁訪客。預取用 `import()` 暖快取,
+  不做 prerender。
+
 以下為四檔視窗的手動 QA 清單,項目均為可觀察行為,作為版面變更的驗收面:
 
 ### 360px(手機直式)
@@ -421,7 +500,7 @@ Global Header(sticky 系統狀態列)只負責:
 - 無 bottom nav 與 More 按鈕;除固定 pet 按鈕外無其他浮動導航元素。
 - 頂部列顯示 App 名稱與 household 切換器,不與 Logout 重疊。
 - 交易列表呈現全寬度卡片式,日期篩選輸入與按鈕直向堆疊、各自佔滿列寬。
-- 退休年度明細為 compact rows(Year 與 Savings 固定顯示,其餘欄位展開顯示),頁面與元件皆不出現水平捲軸。
+- 投影逐年明細為 compact rows(Year 與淨資產固定顯示,其餘欄位展開顯示),頁面與元件皆不出現水平捲軸。
 
 ### 768px(平板直式)
 
@@ -445,6 +524,7 @@ Global Header(sticky 系統狀態列)只負責:
 ### 7.1 責任切分
 
 - **List** = Browse / Filter / Create / Reorder:檢視清單、內容區 filter(僅啟用中／含停用的狀態篩選屬 view filter,非資料變更)、create 入口、拖曳排序(見 [ADR-0059](../adr/0059-dnd-kit-shared-sortable.md))。view filter 與搜尋放在 List 內容區,不放 header。
+- **List 是列的來源**:create 成功後 List 必須自行刷新,新列立刻出現,不得要求使用者手動重整。刷新是背景動作(首載後的 `loading` 不回到 Skeleton),也不進入表單的儲存中狀態。
 - **Detail** = 該實體的管理動作:Edit(inline rename 或 Edit Form)、Activate/Deactivate、Danger Zone(刪除)。
 - **Workflow** = 該工作流的主要動作:Confirm、Close Period。
 
@@ -458,7 +538,7 @@ Global Header(sticky 系統狀態列)只負責:
 
 Detail 的編輯入口依欄位複雜度二選一:
 
-- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Account / Project / Portfolio / Retirement plan 名稱。
+- **單一 metadata 欄位**(名稱)→ `InlineEditableTitle` inline edit,掛在 PageHeader title slot。適用:Account / Project / Portfolio / Projection / Plan 名稱。
 - **多欄位 configuration** → Edit Form(dialog 或 detail 區塊)。適用:Debt。
 
 `PageHeader` 不知道「怎麼編輯名稱」——`title` 接受 `ReactNode`,由頁面自行傳入 `<InlineEditableTitle value={...} onSave={...} />`;儲存走既有 update command,成功後頁面自行 refetch／同步 state。

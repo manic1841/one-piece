@@ -73,6 +73,34 @@ describe('confirmStageInState', () => {
     );
   });
 
+  // ADR-0073 (drift shortcut): regenerating the reports must not demote the
+  // stages after it, or the Close Period summary the gate blocks would be
+  // unreachable without rewalking the whole pipeline.
+  it('re-confirms a completed reports stage without touching later stages', () => {
+    const walkComplete = basePeriod();
+    for (const stageId of Object.keys(walkComplete.stages)) {
+      if (stageId !== 'CLOSE_PERIOD') {
+        walkComplete.stages[stageId] = {
+          status: 'COMPLETED',
+          confirmedBy: 'u',
+          confirmedAt: new Date(),
+        };
+      }
+    }
+
+    const next = reconfirmStageInState(
+      walkComplete,
+      'FINANCIAL_REPORTS',
+      'user-2',
+      new Date('2026-10-04T10:00:00Z'),
+    );
+
+    expect(next.status).toBe('IN_PROGRESS');
+    expect(next.stages.FINANCIAL_REPORTS?.confirmedBy).toBe('user-2');
+    expect(completedStageCount(next)).toBe(completedStageCount(walkComplete));
+    expect(isStageCompleted(next, 'CLOSE_PERIOD')).toBe(false);
+  });
+
   it('rejects confirming a stage on a CLOSED period', () => {
     expect(() =>
       confirmStageInState(
