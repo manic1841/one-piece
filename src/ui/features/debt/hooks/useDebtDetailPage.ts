@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { listDebtPaymentsUseCase } from '@/application/debt/use_cases/listDebtPaymentsUseCase';
 import { type DebtAccount } from '@/domains/debt/schemas';
 import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
@@ -101,9 +102,6 @@ export const useDebtDetailPage = ({ account }: UseDebtDetailPageArgs) => {
     if (!activeAccount) return;
     void (async () => {
       try {
-        const { listDebtPaymentsUseCase } = await import(
-          '@/application/debt/use_cases/listDebtPaymentsUseCase'
-        );
         const transactions = await listDebtPaymentsUseCase.execute({
           householdId,
           debtAccountId: activeAccount.id,

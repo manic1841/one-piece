@@ -11,6 +11,7 @@ import { useAuthState } from '@/ui/contexts/useAuthState';
 
 import { useHouseholdGuard } from '../hooks/useHouseholdGuard';
 import { usePetReaction } from '../hooks/usePetReaction';
+import { prefetchLikelyNextRoutes } from '../prefetchRoutes';
 import CommandPalette from './CommandPalette';
 import HouseholdSwitcher from './HouseholdSwitcher';
 import PixelPet from './PixelPet';
@@ -26,6 +27,12 @@ const Layout: React.FC = () => {
   const petReaction = usePetReaction(userProfile?.householdId);
   const [today, setToday] = useState(() => new Date());
   useBottomOverlayInset();
+
+  // Layout 只在已登入且有家戶時掛載，因此這裡是「使用者真的會繼續用」的第一個
+  // 時機；預取不會發生在登入頁訪客身上。
+  useEffect(() => {
+    prefetchLikelyNextRoutes();
+  }, []);
 
   // Route ids are positional tree paths, so they change between routes but not
   // when only a param does — `/reports/:period` must not replay the entry when

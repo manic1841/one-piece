@@ -44,9 +44,9 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('SECRET')).toBeInTheDocument();
   });
 
-  it('shows a loading state while the decision is pending', () => {
+  it('shows a busy skeleton while the decision is pending', () => {
     renderAt('pending');
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    expect(screen.getByLabelText('載入中')).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText('SECRET')).not.toBeInTheDocument();
   });
 

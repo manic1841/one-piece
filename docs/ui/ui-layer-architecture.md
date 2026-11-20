@@ -370,11 +370,24 @@ Use Case
 - **UI provider 聚合**：`ui/contexts/AuthStateProvider.tsx` 把 gateway 的觀測值組成 `AuthState`。
   失敗時 `loading` 保持 true（初始化從未落定），因此該狀態讀作「仍在初始化，而且失敗了」。
 - **Controller 查表**：`features/app/hooks/useAuthGate.ts` 是 gate 唯一讀取 auth 的層（規則 6）。
-- **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback`、等待，或放行 children。
+- **Surface render**：`AuthGate`（`features/app`）依查表結果 render `AppFallback` 或放行 children。
 
 `AuthGate` 掛在路由樹之外，`/login`、`/access-denied` 等不在 `ProtectedRoute` 底下的路由同樣受同一個失敗畫面保護。
 `Toaster` 掛在 gate 外側，作為 system-level notification surface，載入期間仍可顯示通知。
 infra 不得 import `src/ui/**`（見 §2 規則 10）。
+
+### 5.2 gate 只擋失敗，等待屬於受保護路由
+
+`AuthGate` **不因 `loading` 而擋住整個 app**。認證初始化期間路由樹照常 render：
+`/login`、`/access-denied` 與認證回呼無關，立刻可見。
+
+等待只發生在真的需要它的地方——`ProtectedRoute` 的 `pending` 分支。該分支 render
+`GateSurface` ＋ Skeleton（`aria-busy`）而不是單行 `Loading...`，因為它撐的是整頁；
+`LoadingLine` 只留給區塊內或非頁面的等待。
+
+代價是未登入者直接開 `/` 會先看到一次骨架、再被導到 `/login`。這是刻意的：骨架比整頁
+空白誠實，也比讓登入頁跟著等一個與它無關的 SDK 回呼好。`pending` 不導向，因此不會
+在快取回呼抵達前後產生跳轉迴圈。
 
 ## 6. RWD 斷點契約
 
@@ -440,6 +453,9 @@ Global Header(sticky 系統狀態列)只負責:
   `useHouseholdSwitcher`、`useDashboardCloseStatus`、`useRouteAuthorization` 的授權
   workflow、`AuthStateProvider` 的 profile 讀取)以動態 `import()` 取得 use case,讓啟動
   路徑只留 auth。新增同類 hook 時比照辦理。
+- 閒置預取由 `features/app/prefetchRoutes.ts` 統一集中,只在 `Layout` 內觸發——那時
+  使用者已登入,預取才不會把 Firestore 帶給登入頁訪客。預取用 `import()` 暖快取,
+  不做 prerender。
 
 以下為四檔視窗的手動 QA 清單,項目均為可觀察行為,作為版面變更的驗收面:
 

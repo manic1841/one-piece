@@ -205,14 +205,14 @@
   - **不要用於**：短暫 loading（用 `Skeleton` 或單行文字）；需要水平量表的比例顯示（用堆疊條或 `DonutChart`）。
   - 範例：`src/ui/features/dashboard/components/MonthlyCloseCard.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
 
-- **`LoadingLine`** — 一般載入態的單行文字（`Loading...`）。預設鋪滿視窗高度並置中，供 app 啟動閘門用；嵌在區塊內時以 `className` 覆寫高度。
+- **`LoadingLine`** — 一般載入態的單行文字（`Loading...`）。預設鋪滿視窗高度並置中，供區塊或非頁面的等待使用；嵌在區塊內時以 `className` 覆寫高度。
   - Props：`className?`。
-  - **不要用於**：Table / List / Detail 的載入（用 `Skeleton`）；長時間工作（用 `CliProgress`）；路由 chunk 下載（用 `PageSkeleton`）。
-  - 範例：`src/ui/features/app/AuthGate.tsx`、`src/ui/features/app/router/ProtectedRoute.tsx`、`src/ui/features/app/pages/GalleryFeedback.tsx`
+  - **不要用於**：Table / List / Detail 的載入（用 `Skeleton`）；長時間工作（用 `CliProgress`）；路由 chunk 下載（用 `PageSkeleton`）；授權未落定（用 `GateSurface` ＋ `Skeleton`）。
+  - 範例：`src/ui/features/app/pages/GalleryFeedback.tsx`
 
 - **`PageSkeleton`** — 路由 chunk 下載期間的頁面骨架（一組 `Skeleton` 區塊，`aria-busy` ＋ `aria-label="載入中"`）。路由一律 `lazy()` 切分，`Suspense` 的 fallback 就是它；由 `Layout` 掛在 `Outlet` 外側，header 與 footer 因此保持掛載。
   - Props：無。
-  - **不要用於**：區段內的載入（各區段自己的 `Skeleton`）；app 啟動閘門（用 `LoadingLine`）。
+  - **不要用於**：區段內的載入（各區段自己的 `Skeleton`）；入口畫面的等待（`ProtectedRoute` 自己在 `GateSurface` 內組 Skeleton）。
   - 範例：`src/ui/features/app/layout/Layout.tsx`、`src/App.tsx`
 
 - **`EmptyState`** — 空狀態：狀態 glyph ＋ status 標題 ＋ 一句說明 ＋ 一個主要 action。不做大型 Card。

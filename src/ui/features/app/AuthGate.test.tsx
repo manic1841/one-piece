@@ -41,19 +41,21 @@ describe('AuthGate', () => {
     expect(screen.getByText('app')).toBeInTheDocument();
   });
 
-  it('shows the shared loading line while auth is still initializing', () => {
+  it('renders children while auth is still initializing', () => {
+    // Loading no longer blocks the tree: /login must not wait for a callback that
+    // does not concern it. Protected routes own their own pending surface.
     mockAuthState({ loading: true });
 
     renderGate();
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
-    expect(screen.queryByText('app')).toBeNull();
+    expect(screen.getByText('app')).toBeInTheDocument();
+    expect(screen.queryByText('Loading...')).toBeNull();
   });
 
   it('renders the shared fallback with a reload path when initialization fails', () => {
     // The unreachable-backend state is exactly this: the 10s timeout sets the code
     // while `loading` stays true (the auth callback never fires). The failure must
-    // win over the loading branch.
+    // win over everything else.
     mockAuthState({ loading: true, initError: 'auth-backend-unreachable' });
 
     renderGate();

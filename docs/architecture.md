@@ -46,6 +46,7 @@
 - **規則**: 依賴 Domain（實作介面、使用領域模型）；不得 import UI（見 [ADR-0062](adr/0062-ui-tier-separation-and-surface-import-ban.md)）。Repository 只負責搬運資料，業務校驗放 Domain Service 或 Use Case。
 - **工具**: 繼承 `src/infra/repositories/baseRepository.ts` 進行標準 CRUD。
 - **Firebase 實例**: auth 的初始化與 gateway 在 `src/firebase.ts`，Firestore 實例在 `src/infra/firestore.ts`。兩者分開是為了讓啟動路徑（auth ＋ router ＋ shell）不必付 `firebase/firestore` 的下載成本；`src/ui/**` 仍然只看得到 gateway 與 repository，不直接 import 這兩者。
+- **本機持久化**: Firestore 以 `persistentLocalCache` 開啟 IndexedDB 快取，並用多分頁管理器。回訪時已知資料立刻回放、離線仍可讀且寫入會排隊；代價是磁碟佔用與「畫面可能先是快取值」。快取只是傳輸層加速，不快照也不改寫任何不變量——快照與餘額的真相仍見 [data-structure.md](data-structure.md)。沒有 IndexedDB 的執行環境（測試用 DOM、部分 WebView）退回記憶體快取。
 - **外部 API 介接**: 匯率由 `external/exchangeRateApiClient.ts` 直接從 CORS 開放的每日匯率源取得（免 key、免後端代理，詳見 [ADR-0049](adr/0049-cors-open-exchange-rate-source.md)）；跨匯率換算由 `GetLatestRateUseCase` 以 USD 基準匯率推導，並保留 1 小時記憶體快取。
 
 ### 📂 Presentation (呈現層) - `src/ui/`

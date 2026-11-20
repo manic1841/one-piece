@@ -8,6 +8,9 @@
     <!-- The shell paints this colour before any CSS loads, so the status bar and
          splash match the app instead of flashing white. -->
     <meta name="theme-color" content="#090b0e" />
+    <!-- 認證與資料的 API host 在首屏就會用到；先開連線，省下兩次 TLS handshake。 -->
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="ONE PIECE — 偉大的航道" />
     <meta property="og:description" content="偉大的航道" />

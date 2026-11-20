@@ -31,6 +31,9 @@ No accounts have been added yet.
 ### 載入狀態 (Loading)
 
 - 一般 loading：單行文字（`Loading...`）。
+- **頁面層**的等待（app 啟動授權、路由 chunk 下載）用 Skeleton，不用單行文字：
+  路由 chunk 的 fallback 是 `PageSkeleton`，授權未落定的 fallback 是 `GateSurface`
+  ＋ Skeleton。兩者都帶 `aria-busy="true"` 與 `aria-label="載入中"`。
 - Skeleton 用於 Table / List / Detail。
 - 長時間工作使用 Terminal-style 進度——這是 ONE PIECE 的 engineering identity：
 
