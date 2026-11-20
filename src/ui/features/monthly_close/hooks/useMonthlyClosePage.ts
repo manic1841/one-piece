@@ -27,6 +27,7 @@ import {
   resolvePositionText,
   resolveStepText,
 } from '@/ui/features/monthly_close/viewmodels/monthlyClose.vm';
+import { alert, celebrate } from '@/ui/hooks/notify';
 import { useAuthIdentity } from '@/ui/hooks/useAuthIdentity';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 import { logger } from '@/utils/logger';
@@ -106,10 +107,13 @@ export const useMonthlyClosePage = ({
         });
         if (!isLatestRequest(seq)) return null;
         setPeriod(result.period);
+        // Closing the month is the workflow's own finish line, not a stage step.
+        if (request.stageId === 'CLOSE_PERIOD' && result.period.status === 'CLOSED') celebrate();
         return result;
       } catch (err) {
         if (!isLatestRequest(seq)) return null;
         setError(monthlyCloseErrorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        alert();
         return null;
       } finally {
         setConfirmingStageId(null);
@@ -137,6 +141,7 @@ export const useMonthlyClosePage = ({
       } catch (err) {
         if (!isLatestRequest(seq)) return null;
         setError(monthlyCloseErrorText(err, MONTHLY_CLOSE_LABELS.CONFIRM_ERROR));
+        alert();
         return null;
       } finally {
         setIsStarting(false);

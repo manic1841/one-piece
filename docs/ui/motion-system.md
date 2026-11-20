@@ -78,7 +78,8 @@ Token 全部定義於 `tailwind.config.js`，值不複述。只有一條事實�
 | M11 | Orbit Loading     | 真實非同步任務 pending   | 小型環形指示＋明確狀態文字；結束即停    | P1   |
 | M12 | 品牌粒子場        | 限定場景                 | 稀疏、低對比粒子；只在可見時執行        | P2   |
 
-Pixel Pet 的反應動畫另案討論，不在本清單：它的反應由具名事件觸發，但點陣、frame 幾何與播放都由 pet 自己擁有，UI 不控制單一 frame。Pixel Pet 固定在 `position: fixed`，因此**不參與本文件任何頁面層級的動態編排**。
+Pixel Pet 的心情動畫另案討論，不在本清單：它的心情由具名事件觸發，但點陣、frame
+幾何與播放都由 pet 自己擁有，UI 不控制單一 frame。Pixel Pet 固定在 `position: fixed`，因此**不參與本文件任何頁面層級的動態編排**。
 
 ## 5. 已確認場景
 

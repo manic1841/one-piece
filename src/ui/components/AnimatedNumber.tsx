@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+import { prefersReducedMotion } from '@/ui/hooks/useReducedMotion';
 import { DURATION, EASE_OUT_QUINT } from '@/ui/motion';
 import { cn } from '@/ui/utils/cn';
-
-const prefersReducedMotion = (): boolean =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** A rendered frame, tagged with the target it belongs to. */
 type Frame = { value: number; target: number };

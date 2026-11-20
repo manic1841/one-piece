@@ -8,13 +8,15 @@ import { getAccountsWithSnapshotsUseCase } from '@/application/account/use_cases
 import { type AccountSnapshot, type AccountWithSnapshot } from '@/domains/account/types/account';
 import { toMonthTrendSeries } from '@/ui/components/charts/monthTrendSeries';
 import { useConfirm } from '@/ui/components/confirm/useConfirm';
-import { ACCOUNT_DANGER_LABELS } from '@/ui/constants/account/detailLabels';
+import { ACCOUNT_DANGER_LABELS, ACCOUNT_DETAIL_LABELS } from '@/ui/constants/account/detailLabels';
 import { useAuthState } from '@/ui/contexts/useAuthState';
 import { useAccountCmds } from '@/ui/features/account/hooks/useAccountCmds';
 import {
   formatSignedCurrency,
   toAccountHistoryRows,
 } from '@/ui/features/account/viewmodels/accountDetail.vm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 import { useLoadingTask } from '@/ui/hooks/useLoadingTask';
 
 interface UseAccountDetailPageArgs {
@@ -138,7 +140,10 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
     async (nextName: string) => {
       if (!activeAccount) return;
       const result = await updateAccount(activeAccount.id, { name: nextName });
-      if (!result.ok) return;
+      if (!result.ok) {
+        notifyFailed(getTaskErrorMessage(result, ACCOUNT_DETAIL_LABELS.RENAME_FAILED));
+        return;
+      }
       // No refetch: the row's other fields do not change on a rename, and
       // reloading would blank the page back to its skeleton for a moment.
       setOverrides((previous) => ({ ...previous, name: nextName }));
@@ -176,6 +181,7 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
 
     const result = await updateAccount(activeAccount.id, { isActive: nextActive });
     if (!result.ok) {
+      notifyFailed(getTaskErrorMessage(result, ACCOUNT_DETAIL_LABELS.UPDATE_FAILED));
       return;
     }
     setOverrides((previous) => ({ ...previous, isActive: nextActive }));
@@ -189,7 +195,12 @@ export const useAccountDetailPage = ({ account }: UseAccountDetailPageArgs) => {
       confirmLabel: ACCOUNT_DANGER_LABELS.CONFIRM,
     });
     if (!confirmed) return;
-    await deleteAccount(activeAccount.id);
+    const task = await deleteAccount(activeAccount.id);
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, ACCOUNT_DANGER_LABELS.DELETE_FAILED));
+      return;
+    }
+    celebrate();
     navigate('/accounts');
   }, [activeAccount, confirm, deleteAccount, navigate]);
 

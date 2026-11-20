@@ -9,6 +9,8 @@ import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAcc
 import { PLAN_LIST_HREF, usePlanResource } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanCmds } from '@/ui/features/retirement/hooks/useRetirementPlanCmds';
 import { mapRetirementPlanToVM } from '@/ui/features/retirement/viewmodels/retirementPlan.vm';
+import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 
 /** Owns the read-only plan view: load, map to the view shape, rename and delete. */
 export function useRetirementPlanDetail(householdId: string | undefined) {
@@ -45,7 +47,7 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
   );
 
   const remove = useCallback(async () => {
-    if (!plan || !householdId) return null;
+    if (!plan || !householdId) return;
 
     const confirmed = await confirm({
       title: PLAN_DETAIL_LABELS.DELETE_TITLE,
@@ -53,11 +55,15 @@ export function useRetirementPlanDetail(householdId: string | undefined) {
       consequence: PLAN_DETAIL_LABELS.DELETE_CONSEQUENCE,
       confirmLabel: PLAN_DETAIL_LABELS.DELETE_CONFIRM,
     });
-    if (!confirmed) return null;
+    if (!confirmed) return;
 
     const task = await deletePlan(plan.id);
-    if (task.ok) navigate(PLAN_LIST_HREF);
-    return task;
+    if (!task.ok) {
+      notifyFailed(getTaskErrorMessage(task, PLAN_DETAIL_LABELS.DELETE_FAILED));
+      return;
+    }
+    celebrate();
+    navigate(PLAN_LIST_HREF);
   }, [confirm, deletePlan, householdId, navigate, plan]);
 
   return {

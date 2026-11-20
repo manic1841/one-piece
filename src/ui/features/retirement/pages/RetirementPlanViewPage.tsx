@@ -1,6 +1,5 @@
 import { Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
 import { InlineEditableTitle } from '@/ui/components/InlineEditableTitle';
 import { LoadErrorAlert } from '@/ui/components/LoadErrorAlert';
@@ -15,6 +14,7 @@ import { PLAN_LIST_HREF } from '@/ui/features/retirement/hooks/usePlanResource';
 import { useRetirementPlanAccess } from '@/ui/features/retirement/hooks/useRetirementPlanAccess';
 import { useRetirementPlanDetail } from '@/ui/features/retirement/hooks/useRetirementPlanDetail';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
+import { celebrate, notifyFailed } from '@/ui/hooks/notify';
 
 export default function RetirementPlanViewPage() {
   const { userProfile } = useAuthState();
@@ -30,17 +30,17 @@ export default function RetirementPlanViewPage() {
     const task = await rename(name);
     if (task === null) return;
     if (!task.ok) {
-      toast.error(getTaskErrorMessage(task));
+      notifyFailed(getTaskErrorMessage(task));
       return;
     }
-    if (!task.value.ok) toast.error(PLAN_DETAIL_LABELS.RENAME_FAILED);
+    if (!task.value.ok) {
+      notifyFailed(PLAN_DETAIL_LABELS.RENAME_FAILED);
+      return;
+    }
+    celebrate();
   };
 
-  const handleDelete = async () => {
-    const task = await remove();
-    if (task === null) return;
-    if (!task.ok) toast.error(getTaskErrorMessage(task));
-  };
+  const handleDelete = () => remove();
 
   return (
     <PlanLoadStates

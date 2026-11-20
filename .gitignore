@@ -49,3 +49,6 @@ examples/
 
 # Local codebase knowledge graph (rebuilt with `graphify . --code-only`)
 graphify-out/
+
+# Cloned producer tooling used as a reference (sprite-forge)
+references/
