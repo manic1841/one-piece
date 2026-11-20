@@ -68,11 +68,15 @@ test('a late expense drifts the reports and blocks the close until they are rege
   await expect(dialog).toBeHidden();
 
   // 3. The preview no longer matches the persisted reports, so the summary
-  //    shows the drift (persisted -> live) and refuses to close.
+  //    shows the drift (期初 persisted → 期末 live) and refuses to close.
+  //    Only the desktop panel is on screen at the default viewport; the phone
+  //    panel renders the same wording hidden, so scope to the desktop one or
+  //    `.first()` lands on the invisible copy.
   await page.goto(`/close/${PERIOD}`);
   const driftBlock = page.getByTestId('close-drift-block');
+  const desktopSummary = page.getByTestId('close-summary-desktop');
   await expect(driftBlock).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText(/NT\$[\d,]+ -> NT\$[\d,]+/).first()).toBeVisible();
+  await expect(desktopSummary.getByText(/NT\$[\d,]+ (?:->|→) .*NT\$[\d,]+/).first()).toBeVisible();
   // The left operand is the persisted figure, the right one the live preview:
   // direction pinned by the value captured before the expense existed.
   const drifted = await readSummaryFigure(page, MOVED_FIGURE);
