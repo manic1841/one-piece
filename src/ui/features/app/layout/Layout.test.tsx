@@ -57,6 +57,14 @@ vi.mock('./HouseholdSwitcher', () => ({
   default: () => <div data-testid="household-switcher" />,
 }));
 
+/**
+ * The header only renders the household switcher once `useHouseholdGuard` has the
+ * household name, which it pulls through a dynamic import so Firestore stays out of
+ * the startup bundle. A cold module transform on a loaded CI runner can outlast the
+ * 1s default `findBy` timeout, so these waits get a wider budget.
+ */
+const HOUSEHOLD_NAME_TIMEOUT = 5_000;
+
 function PageMarker() {
   const { pathname } = useLocation();
   return <div data-testid="page-marker" data-page={pathname} />;
@@ -145,7 +153,9 @@ describe('Layout system status bar', () => {
   it('groups household switcher, search, and avatar on the header', async () => {
     renderLayout();
 
-    expect(await screen.findByTestId('household-switcher')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('household-switcher', {}, { timeout: HOUSEHOLD_NAME_TIMEOUT }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /avatar/i })).toBeInTheDocument();
   });
@@ -174,7 +184,11 @@ describe('Layout system status bar', () => {
 
     const avatarButton = screen.getByRole('button', { name: /avatar/i });
     const searchButton = screen.getByRole('button', { name: /search/i });
-    const switcher = await screen.findByTestId('household-switcher');
+    const switcher = await screen.findByTestId(
+      'household-switcher',
+      {},
+      { timeout: HOUSEHOLD_NAME_TIMEOUT },
+    );
 
     expect(avatarButton.className).not.toContain('hidden');
     expect(searchButton.className).not.toContain('hidden');
