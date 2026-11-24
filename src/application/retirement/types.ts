@@ -15,8 +15,10 @@ import {
 
 export interface ProjectionOpening {
   source: ProjectionOpeningSourceKind;
-  /** Required for manual openings. */
+  /** The value on screen; `undefined` when the field is blank. */
   amount?: number;
+  /** Provenance of a derived amount; a note only, never a lookup. */
+  anchorYearMonth?: string;
 }
 
 export interface CalculateProjectionRequest {

@@ -45,7 +45,7 @@ export function useWorkspaceDraft({
     replace: replaceOpening,
     setOpeningAmount,
     commitOpeningAmount,
-    resetToSnapshot,
+    applyReport,
     resetDraft: resetOpeningDraft,
   } = openingDraft;
   const [startYear, setStartYearState] = useState(currentYear);
@@ -99,7 +99,7 @@ export function useWorkspaceDraft({
     replaceOpening,
     setOpeningAmount,
     commitOpeningAmount,
-    resetToSnapshot,
+    applyReport,
     ...planDrafts,
     /** The three groups only: what a plan carries. */
     replaceGroups: (payload: PlanDraftPayload) => planDrafts.replaceAll(payload),

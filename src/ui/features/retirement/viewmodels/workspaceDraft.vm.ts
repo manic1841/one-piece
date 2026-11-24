@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { type ProjectionOpening } from '@/application/retirement/types';
 import { type RetirementAssumptions } from '@/domains/retirement/assumptions';
 import { type LifeEvent } from '@/domains/retirement/lifeEvents';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
@@ -32,6 +33,23 @@ export const EMPTY_OPENING: OpeningNetWorthVM = {
   source: 'derived',
   amountText: '',
   anchorYearMonth: null,
+};
+
+/**
+ * Boundary conversion to the calculate request. A blank field is not the number
+ * 0 but "unset", so the resolver can report the missing baseline; the anchor is
+ * only sent while the value is derived.
+ */
+export const toProjectionOpening = (opening: OpeningNetWorthVM): ProjectionOpening => {
+  const text = opening.amountText.trim();
+  const amount = Number(text);
+  return {
+    source: opening.source,
+    amount: text === '' || !Number.isFinite(amount) ? undefined : amount,
+    ...(opening.source === 'derived' && opening.anchorYearMonth !== null
+      ? { anchorYearMonth: opening.anchorYearMonth }
+      : {}),
+  };
 };
 
 export const openingSchema = z

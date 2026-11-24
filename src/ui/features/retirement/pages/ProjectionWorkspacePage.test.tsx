@@ -5,6 +5,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
@@ -27,8 +28,28 @@ vi.mock('@/application/retirement/use_cases/getProjectionOpeningUseCase', () => 
   getProjectionOpeningUseCase: { execute: vi.fn() },
 }));
 
+const { openingPeriodsMock } = vi.hoisted(() => ({
+  openingPeriodsMock: {
+    periods: [] as Array<{ yearMonth: string; netWorth: number }>,
+    pinned: null as { yearMonth: string; netWorth: number } | null,
+  },
+}));
+
+vi.mock('@/application/retirement/workflows/listProjectionOpeningPeriods', () => ({
+  OPENING_PERIOD_LIMIT: 12,
+  listProjectionOpeningPeriods: {
+    execute: vi.fn(() =>
+      Promise.resolve({ periods: openingPeriodsMock.periods, pinned: openingPeriodsMock.pinned }),
+    ),
+  },
+}));
+
 vi.mock('@/application/retirement/use_cases/getProjectionViewUseCase', () => ({
   getProjectionViewUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/report/use_cases/listReportsUseCase', () => ({
+  listReportsUseCase: { execute: vi.fn(() => Promise.resolve([])) },
 }));
 
 vi.mock('@/application/retirement/workflows/calculateProjection', () => ({
@@ -301,6 +322,23 @@ function renderWorkspace(initialEntry = '/retirement/new') {
   return router;
 }
 
+const balanceSheetReport = (yearMonth: string, assets: number, liabilities: number) => ({
+  id: `${yearMonth}-balance_sheet`,
+  householdId: 'household-1',
+  yearMonth,
+  createdBy: 'u1',
+  updatedBy: 'u1',
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  type: 'BALANCE_SHEET',
+  data: {
+    yearMonth,
+    assets: { total: assets, groups: {} },
+    liabilities: { total: liabilities, groups: {} },
+    equity: { total: assets - liabilities, groups: {} },
+  },
+});
+
 const preloadConfig = (overrides: Record<string, unknown> = {}) => ({
   projection: {
     id: 'projection-1',
@@ -509,6 +547,9 @@ describe('ProjectionWorkspacePage', () => {
       { code: 'expense:living', label: '生活費', type: 'expense', isCustom: false, isActive: true },
     ];
     confirmMock.mockResolvedValue(false);
+    openingPeriodsMock.periods = [];
+    openingPeriodsMock.pinned = null;
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(null);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
@@ -673,7 +714,11 @@ describe('ProjectionWorkspacePage', () => {
       calculateRetirementAge(
         {
           startYear: request.startYear,
-          opening: { source: request.opening.source, amount: request.opening.amount },
+          opening: {
+            source: request.opening.source,
+            amount: request.opening.amount,
+            anchorYearMonth: request.opening.anchorYearMonth,
+          },
           assumptions: request.assumptions,
           rules: request.rules,
           lifeEvents: request.lifeEvents,
@@ -727,30 +772,55 @@ describe('ProjectionWorkspacePage', () => {
     expect(router.state.location.pathname).toBe('/retirement/projections/projection-1');
   });
 
-  it('seeds the opening from the snapshot and offers USE SNAPSHOT only after an edit', async () => {
+  it('seeds the opening from the latest closed period and swaps it from the dialog', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
       assets: 500_000,
       liabilities: 120_000,
     });
+    openingPeriodsMock.periods = [
+      { yearMonth: '2026-08', netWorth: 380_000 },
+      { yearMonth: '2026-03', netWorth: 250_000 },
+    ];
     renderWorkspace();
 
     const input = await openBaseline();
     await waitFor(() => expect(input).toHaveValue(380000));
-    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent(
-      'Derived from the latest closed period. As of 2026-08',
-    );
-    expect(screen.queryByRole('button', { name: 'USE SNAPSHOT' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
 
-    fireEvent.change(input, { target: { value: '250000' } });
-    expect(input).toHaveValue(250000);
+    fireEvent.change(input, { target: { value: '260000' } });
+    expect(input).toHaveValue(260000);
     expect(screen.queryByTestId('opening-net-worth-note')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'USE SNAPSHOT' }));
-    expect(input).toHaveValue(380000);
-    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
-    expect(screen.queryByRole('button', { name: 'USE SNAPSHOT' })).not.toBeInTheDocument();
+    // USE CLOSED stays available: it is a source picker now, not an undo.
+    fireEvent.click(screen.getByRole('button', { name: 'USE CLOSED' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    fireEvent.click(await dialog.findByTestId('opening-period-2026-03'));
+
+    expect(input).toHaveValue(250000);
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-03');
+  });
+
+  it('pins the current anchor above a window it is missing from', async () => {
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
+      openingNetWorth: 380_000,
+      anchorYearMonth: '2025-07',
+      assets: 500_000,
+      liabilities: 120_000,
+    });
+    openingPeriodsMock.periods = [{ yearMonth: '2026-08', netWorth: 250_000 }];
+    openingPeriodsMock.pinned = { yearMonth: '2025-07', netWorth: 380_000 };
+    renderWorkspace();
+
+    const input = await openBaseline();
+    await waitFor(() => expect(input).toHaveValue(380000));
+    fireEvent.click(screen.getByRole('button', { name: 'USE CLOSED' }));
+
+    const dialog = within(await screen.findByRole('dialog'));
+    const pinnedRow = await dialog.findByTestId('opening-period-2025-07');
+    expect(pinnedRow).toHaveAttribute('aria-current', 'true');
+    expect(pinnedRow).toHaveTextContent('380,000');
   });
 
   it('keeps the opening typed before the snapshot resolves', async () => {
@@ -775,7 +845,7 @@ describe('ProjectionWorkspacePage', () => {
     });
 
     expect(input).toHaveValue(777);
-    expect(screen.getByRole('button', { name: 'USE SNAPSHOT' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'USE CLOSED' })).toBeInTheDocument();
   });
 
   it('shows inline schema labels for invalid assumptions', async () => {
@@ -1786,41 +1856,84 @@ describe('ProjectionWorkspacePage', () => {
     await waitFor(() => expect(confirmMock).toHaveBeenCalledTimes(1));
   });
 
-  it('re-resolves a derived opening while keeping the rest of the preload', async () => {
+  it('copies a derived opening from the projection without re-resolving it', async () => {
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
       preloadConfig({
-        openingNetWorth: { amount: 1, source: 'derived', anchorYearMonth: '2026-01' },
+        openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
       }) as never,
     );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([
+      balanceSheetReport('2026-01', 150_000, 20_000),
+    ]);
+    const router = renderWorkspace('/retirement/new?from=projection-1');
+
+    const input = await openBaseline();
+    await waitFor(() => expect(input).toHaveValue(123000));
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-01');
+    expect(screen.getByLabelText('Birth year')).toHaveTextContent('1990');
+    expect(getProjectionOpeningUseCase.execute).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+  });
+
+  it('falls back to the latest closed month when the anchor report is gone', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      preloadConfig({
+        openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
+      }) as never,
+    );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
       assets: 500_000,
       liabilities: 120_000,
     });
-    const router = renderWorkspace('/retirement/new?from=projection-1');
+    renderWorkspace('/retirement/new?from=projection-1');
 
     const input = await openBaseline();
     await waitFor(() => expect(input).toHaveValue(380000));
-    expect(screen.getByLabelText('Birth year')).toHaveTextContent('1990');
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
   });
 
-  it('leaves the opening blank and warns when a derived opening no longer resolves', async () => {
+  it('drops the anchor when the anchor report and every closed month are gone', async () => {
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
       preloadConfig({
-        openingNetWorth: { amount: 1, source: 'derived', anchorYearMonth: '2026-01' },
+        openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
       }) as never,
     );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
-    const router = renderWorkspace('/retirement/new?from=projection-1');
+    renderWorkspace('/retirement/new?from=projection-1');
 
-    expect(await screen.findByTestId('preload-warning')).toBeInTheDocument();
-    expect(await openBaseline()).toHaveValue(null);
-    expect(screen.getByLabelText('Birth year')).toHaveTextContent('1990');
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    const input = await openBaseline();
+    await waitFor(() => expect(input).toHaveValue(123000));
+    expect(screen.queryByTestId('opening-net-worth-note')).not.toBeInTheDocument();
+  });
+
+  it('sends the anchor with the calculation, not just the visible note', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      preloadConfig({
+        openingNetWorth: { amount: 123_000, source: 'derived', anchorYearMonth: '2026-01' },
+      }) as never,
+    );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([
+      balanceSheetReport('2026-01', 150_000, 20_000),
+    ]);
+    renderWorkspace('/retirement/new?from=projection-1');
+
+    await openBaseline();
+    await addRule();
+    await confirmRule('Salary');
+    await calculate();
+
+    const [request] = vi.mocked(calculateProjectionWorkflow.execute).mock.lastCall ?? [];
+    expect(request?.opening).toEqual({
+      source: 'derived',
+      amount: 123_000,
+      anchorYearMonth: '2026-01',
+    });
   });
 
   it('falls back to a blank, dirty setup when the source projection is gone', async () => {

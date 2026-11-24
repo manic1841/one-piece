@@ -9,7 +9,6 @@ import {
   type CalculateProjectionRequest,
   type ProjectionCalculation,
 } from '@/application/retirement/types';
-import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { type AuthContext } from '@/application/types';
 import { baselineYearFor, calculateProjection } from '@/domains/retirement/calculators';
 import { type ProjectionRule } from '@/domains/retirement/projectionRules';
@@ -154,22 +153,10 @@ export class CalculateProjectionWorkflow {
       };
     }
 
-    let openingAmount = opening.amount;
-    let anchorYearMonth: string | undefined;
-
-    if (opening.source === 'derived') {
-      const derived = await getProjectionOpeningUseCase.execute({ householdId, auth });
-      if ('reason' in derived) {
-        return {
-          ok: false,
-          code: ProjectionCommandErrorCode.PROJECTION_RESOLVE_FAILED,
-          errors: [{ code: 'MISSING_BASELINE', params: { kind: 'opening' }, severity: 'error' }],
-          warnings: [],
-        };
-      }
-      openingAmount = derived.openingNetWorth;
-      anchorYearMonth = derived.anchorYearMonth;
-    }
+    // The opening is already on screen: calculating never re-reads the reports,
+    // so the number the user sees is the number that gets computed.
+    const openingAmount = opening.amount;
+    const anchorYearMonth = opening.source === 'derived' ? opening.anchorYearMonth : undefined;
 
     const { ledgerSources, debtAccounts } = await gatherRuleSources({
       householdId,

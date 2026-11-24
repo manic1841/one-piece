@@ -22,6 +22,7 @@ import { type SectionStates } from '@/ui/features/retirement/viewmodels/workspac
 import { type SourceOptions } from '@/ui/hooks/useSourceOptions';
 
 interface WorkspaceSetupSectionsProps {
+  householdId: string | undefined;
   stage: ProjectionWorkspaceStage;
   opening: WorkspaceOpening;
   assumptions: WorkspaceAssumptions;
@@ -48,6 +49,7 @@ interface WorkspaceSetupSectionsProps {
  * (`WorkspacePreview`), so nothing here has to branch on the stage.
  */
 export function WorkspaceSetupSections({
+  householdId,
   stage,
   opening,
   assumptions,
@@ -83,19 +85,18 @@ export function WorkspaceSetupSections({
   return (
     <div className="grid">
       <OpeningNetWorthSection
+        householdId={householdId}
         opening={opening.value}
         stage={stage}
         loading={opening.loading}
         error={opening.error}
         validationError={opening.validationError}
-        hasClosedPeriod={opening.hasClosedPeriod}
-        hasSnapshot={opening.hasSnapshot}
         startYear={startYear}
         startYearError={opening.startYearError}
         setStartYear={setStartYear}
         setAmount={opening.setOpeningAmount}
         commitAmount={opening.commitOpeningAmount}
-        resetToSnapshot={opening.resetToSnapshot}
+        applyReport={opening.applyReport}
         retry={opening.reload}
         status={opening.validationError === undefined ? sectionState.baseline?.status : 'error'}
         hint={sectionState.baseline?.hint}

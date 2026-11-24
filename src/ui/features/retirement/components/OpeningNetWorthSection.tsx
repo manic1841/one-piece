@@ -14,9 +14,13 @@ import { RETIREMENT_YEAR_BOUNDS } from '@/ui/constants/retirement/bounds';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { PROJECTION_WORKSPACE_LABELS } from '@/ui/constants/retirement/workspaceLabels';
 import { WORKSPACE_SECTION_LABELS } from '@/ui/constants/retirement/workspaceRailLabels';
+import { OpeningPeriodDialog } from '@/ui/features/retirement/components/OpeningPeriodDialog';
 import { type ProjectionWorkspaceStage } from '@/ui/features/retirement/types/workspaceTypes';
 import { numberOptions } from '@/ui/features/retirement/viewmodels/numberOptions.vm';
-import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
+import {
+  type OpeningNetWorthVM,
+  type ReportValue,
+} from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 import { formatCurrency } from '@/ui/utils';
 
 const OPENING_INPUT_ID = 'projection-opening-net-worth';
@@ -24,6 +28,7 @@ const START_YEAR_INPUT_ID = 'projection-start-year';
 const OPENING_PREFIX = 'NT$';
 
 interface OpeningNetWorthSectionProps {
+  householdId: string | undefined;
   opening: OpeningNetWorthVM;
   stage: ProjectionWorkspaceStage;
   loading: boolean;
@@ -32,13 +37,11 @@ interface OpeningNetWorthSectionProps {
   startYear: number;
   startYearError?: string;
   setStartYear: (value: string) => void;
-  hasClosedPeriod: boolean;
-  /** Whether a snapshot exists, i.e. whether USE SNAPSHOT has something to restore. */
-  hasSnapshot: boolean;
   setAmount: (value: string) => void;
   /** Rewrites a typed decimal to whole NT dollars when the field loses focus. */
   commitAmount: () => void;
-  resetToSnapshot: () => void;
+  /** Applies a month picked in the closed-period dialog. */
+  applyReport: (value: ReportValue) => void;
   retry: () => void;
   /** Band state and the reason it is blocked; the field's own error stays inline. */
   status?: 'error';
@@ -48,7 +51,8 @@ interface OpeningNetWorthSectionProps {
 /**
  * Opening net worth. The latest closed period seeds the field once as a default
  * value, so there is no mode to switch into: the input is always editable and
- * typing drops the anchor. USE SNAPSHOT puts the seeded value back.
+ * typing drops the anchor. USE CLOSED replaces the value with another closed
+ * month's net worth; the month is kept as a "As of" note only.
  *
  * The amount is the decision this section exists for, so it is typeset as the
  * hero — bare digits at heading size, provenance hung directly beneath it. The
@@ -56,6 +60,7 @@ interface OpeningNetWorthSectionProps {
  * a rule. Both freeze into the config at calculate.
  */
 export function OpeningNetWorthSection({
+  householdId,
   opening,
   stage,
   loading,
@@ -64,18 +69,16 @@ export function OpeningNetWorthSection({
   startYear,
   startYearError,
   setStartYear,
-  hasClosedPeriod,
-  hasSnapshot,
   setAmount,
   commitAmount,
-  resetToSnapshot,
+  applyReport,
   retry,
   status,
   hint,
 }: OpeningNetWorthSectionProps) {
   const [expanded, setExpanded] = useState(false);
+  const [picking, setPicking] = useState(false);
   const isPreview = stage === 'preview';
-  const canReset = hasSnapshot && opening.source === 'manual' && !isPreview;
   const amount = Number(opening.amountText);
   const amountSummary =
     opening.amountText.trim() !== '' && Number.isFinite(amount)
@@ -84,10 +87,10 @@ export function OpeningNetWorthSection({
 
   const note = loading
     ? PROJECTION_WORKSPACE_LABELS.LOADING
-    : !hasClosedPeriod
-      ? PROJECTION_WORKSPACE_LABELS.OPENING_EMPTY
-      : opening.source === 'derived' && opening.anchorYearMonth !== null
-        ? `${PROJECTION_WORKSPACE_LABELS.OPENING_DERIVED_NOTE} ${PROJECTION_WORKSPACE_LABELS.OPENING_ANCHOR_PREFIX} ${opening.anchorYearMonth}`
+    : opening.source === 'derived' && opening.anchorYearMonth !== null
+      ? `${PROJECTION_WORKSPACE_LABELS.OPENING_ANCHOR_PREFIX} ${opening.anchorYearMonth}`
+      : opening.amountText.trim() === ''
+        ? PROJECTION_WORKSPACE_LABELS.OPENING_EMPTY
         : '';
 
   return (
@@ -119,6 +122,16 @@ export function OpeningNetWorthSection({
             {PROJECTION_WORKSPACE_LABELS.BASELINE_SUMMARY_START}
           </span>
           <span className="font-mono text-lg tabular-nums text-foreground">{startYear}</span>
+          {!isPreview && (
+            <Button
+              variant="text"
+              size="sm"
+              className="h-auto min-h-11 px-0 py-0 text-xs"
+              onClick={() => setPicking(true)}
+            >
+              {PROJECTION_WORKSPACE_LABELS.USE_CLOSED}
+            </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -146,21 +159,21 @@ export function OpeningNetWorthSection({
               {PROJECTION_WORKSPACE_LABELS.OPENING_FIELD}
             </Label>
             <span className="flex shrink-0 items-center gap-4">
-              {canReset && (
+              {!isPreview && (
                 <Button
                   variant="text"
                   size="sm"
-                  className="h-auto px-0 py-0 text-xs"
-                  onClick={resetToSnapshot}
+                  className="h-auto min-h-11 px-0 py-0 text-xs"
+                  onClick={() => setPicking(true)}
                 >
-                  {PROJECTION_WORKSPACE_LABELS.USE_SNAPSHOT}
+                  {PROJECTION_WORKSPACE_LABELS.USE_CLOSED}
                 </Button>
               )}
               <Button
                 type="button"
                 variant="text"
                 size="sm"
-                className="h-auto px-0 py-0 text-xs"
+                className="h-auto min-h-11 px-0 py-0 text-xs"
                 aria-expanded
                 onClick={() => setExpanded(false)}
               >
@@ -220,6 +233,18 @@ export function OpeningNetWorthSection({
             )}
           </div>
         </div>
+      )}
+
+      {picking && (
+        <OpeningPeriodDialog
+          householdId={householdId}
+          currentAnchor={opening.source === 'derived' ? opening.anchorYearMonth : null}
+          onSelect={(period) => {
+            applyReport(period);
+            setPicking(false);
+          }}
+          onClose={() => setPicking(false)}
+        />
       )}
     </PageSection>
   );

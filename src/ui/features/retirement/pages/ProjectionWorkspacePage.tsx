@@ -191,6 +191,7 @@ export default function ProjectionWorkspacePage() {
             />
           ) : (
             <WorkspaceSetupSections
+              householdId={householdId}
               stage={workspace.stage}
               opening={workspace.opening}
               assumptions={workspace.assumptions}

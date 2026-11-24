@@ -22,7 +22,7 @@ export type WorkspaceDraft = ReturnType<typeof usePlanDrafts>;
 export interface WorkspaceOpening
   extends Pick<
     ReturnType<typeof useOpeningDraft>,
-    'setOpeningAmount' | 'commitOpeningAmount' | 'resetToSnapshot'
+    'setOpeningAmount' | 'commitOpeningAmount' | 'applyReport'
   > {
   value: OpeningNetWorthVM;
   loading: boolean;
@@ -31,9 +31,6 @@ export interface WorkspaceOpening
   startYearError?: string;
   /** Reloads the opening from the latest closed period, without awaiting. */
   reload: () => void;
-  hasClosedPeriod: boolean;
-  /** Whether a snapshot exists, i.e. whether USE SNAPSHOT has something to restore. */
-  hasSnapshot: boolean;
 }
 
 export interface WorkspaceUndo {
