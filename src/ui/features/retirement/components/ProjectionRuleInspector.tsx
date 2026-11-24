@@ -120,6 +120,23 @@ export function ProjectionRuleInspector({
           </FormItem>
         </FormField>
 
+        {/* Side first: it narrows the method list, so picking it backwards is wasted work. */}
+        {!readOnly && (
+          <FormField name={`${prefix}.ruleType`}>
+            <FormItem>
+              <FormLabel size="compact">{RULE_LABELS.RULE_TYPE}</FormLabel>
+              <FormControl>
+                <SelectField
+                  value={rule.ruleType}
+                  onChange={(value) => setRuleType(value as RuleType)}
+                  options={TYPE_OPTIONS}
+                />
+              </FormControl>
+              {hiddenMessage('ruleType')}
+            </FormItem>
+          </FormField>
+        )}
+
         <FormField name={`${prefix}.method`}>
           <FormItem>
             <FormLabel size="compact">{RULE_LABELS.METHOD}</FormLabel>
@@ -175,22 +192,6 @@ export function ProjectionRuleInspector({
                 />
               </FormControl>
               {hiddenMessage('parameter')}
-            </FormItem>
-          </FormField>
-        )}
-
-        {!readOnly && (
-          <FormField name={`${prefix}.ruleType`}>
-            <FormItem>
-              <FormLabel size="compact">{RULE_LABELS.RULE_TYPE}</FormLabel>
-              <FormControl>
-                <SelectField
-                  value={rule.ruleType}
-                  onChange={(value) => setRuleType(value as RuleType)}
-                  options={TYPE_OPTIONS}
-                />
-              </FormControl>
-              {hiddenMessage('ruleType')}
             </FormItem>
           </FormField>
         )}

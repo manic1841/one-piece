@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { DefinitionRows } from '@/ui/components/DefinitionRows';
 import { eyebrowClass, subSectionTitleClass } from '@/ui/components/eyebrow';
 import { Button } from '@/ui/components/ui/button';
 import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
@@ -54,8 +55,32 @@ function SummaryLine({
           </Button>
         )}
       </div>
-      {open && children}
+      {open && children !== undefined && (
+        <div className="mt-2 ml-9 border-l border-border pl-3">{children}</div>
+      )}
     </div>
+  );
+}
+
+/** Names of one rule side; the detail column only repeats what the row already says. */
+function RuleList({
+  rules,
+  detail,
+}: {
+  rules: RuleDraftVM[];
+  detail?: (rule: RuleDraftVM) => string;
+}) {
+  return (
+    <ul className="space-y-1 text-sm">
+      {rules.map((rule) => (
+        <li key={rule.id} className="flex items-baseline justify-between gap-4">
+          <span className="min-w-0 break-words">{rule.name || PROJECTION_COMMON_LABELS.DASH}</span>
+          {detail !== undefined && (
+            <span className="shrink-0 text-xs text-muted-foreground">{detail(rule)}</span>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -69,6 +94,8 @@ export function WorkspaceSummary({
   events,
   labelForSource,
 }: WorkspaceSummaryProps) {
+  const incomeRules = rules.filter((rule) => rule.ruleType === 'income');
+  const expenseRules = rules.filter((rule) => rule.ruleType === 'expense');
   return (
     <section data-testid="workspace-summary" aria-label={WORKSPACE_ACTION_LABELS.PREVIEW_SUMMARY}>
       <p className={eyebrowClass}>{WORKSPACE_ACTION_LABELS.PREVIEW_SUMMARY}</p>
@@ -78,14 +105,19 @@ export function WorkspaceSummary({
         title={PROJECTION_WORKSPACE_LABELS.OPENING_SECTION}
         text={`${startYear} · ${openingAmount ?? PROJECTION_COMMON_LABELS.DASH}`}
       >
-        <ul className="pt-2 text-xs text-muted-foreground">
-          <li>
-            {WORKSPACE_RAIL_LABELS.OPENING_SOURCE}:{' '}
-            {opening.source === 'manual'
-              ? WORKSPACE_RAIL_LABELS.OPENING_MANUAL
-              : (opening.anchorYearMonth ?? PROJECTION_COMMON_LABELS.DASH)}
-          </li>
-        </ul>
+        <DefinitionRows
+          layout="row"
+          divided
+          items={[
+            {
+              label: WORKSPACE_RAIL_LABELS.OPENING_SOURCE,
+              value:
+                opening.source === 'manual'
+                  ? WORKSPACE_RAIL_LABELS.OPENING_MANUAL
+                  : (opening.anchorYearMonth ?? PROJECTION_COMMON_LABELS.DASH),
+            },
+          ]}
+        />
       </SummaryLine>
 
       <SummaryLine
@@ -93,66 +125,61 @@ export function WorkspaceSummary({
         title={PROJECTION_WORKSPACE_LABELS.ASSUMPTIONS_SECTION}
         text={`${assumptions.birthYear} / ${assumptions.retirementAge} / ${assumptions.lifeExpectancy} · ${assumptions.inflationRate}% · ${assumptions.annualReturnRate}%`}
       >
-        <ul className="pt-2 text-xs text-muted-foreground">
-          <li>
-            {ASSUMPTION_LABELS.BIRTH_YEAR}: {assumptions.birthYear}
-          </li>
-          <li>
-            {ASSUMPTION_LABELS.RETIREMENT_AGE}: {assumptions.retirementAge}
-          </li>
-          <li>
-            {ASSUMPTION_LABELS.LIFE_EXPECTANCY}: {assumptions.lifeExpectancy}
-          </li>
-          <li>
-            {ASSUMPTION_LABELS.INFLATION_RATE}: {assumptions.inflationRate}
-          </li>
-          <li>
-            {ASSUMPTION_LABELS.ANNUAL_RETURN_RATE}: {assumptions.annualReturnRate}
-          </li>
-        </ul>
+        <DefinitionRows
+          layout="row"
+          divided
+          items={[
+            { label: ASSUMPTION_LABELS.BIRTH_YEAR, value: assumptions.birthYear },
+            { label: ASSUMPTION_LABELS.RETIREMENT_AGE, value: assumptions.retirementAge },
+            { label: ASSUMPTION_LABELS.LIFE_EXPECTANCY, value: assumptions.lifeExpectancy },
+            { label: ASSUMPTION_LABELS.INFLATION_RATE, value: assumptions.inflationRate },
+            { label: ASSUMPTION_LABELS.ANNUAL_RETURN_RATE, value: assumptions.annualReturnRate },
+          ]}
+        />
       </SummaryLine>
 
       <SummaryLine
         number={WORKSPACE_SECTION_LABELS.NUMBER_RULES}
         title={WORKSPACE_SECTION_LABELS.INCOME}
-        text={`${rules.filter((rule) => rule.ruleType === 'income').length}`}
+        text={
+          incomeRules.length === 0 ? WORKSPACE_ACTION_LABELS.SUMMARY_NONE : `${incomeRules.length}`
+        }
       >
-        <ul className="pt-2 text-xs text-muted-foreground">
-          {rules
-            .filter((rule) => rule.ruleType === 'income')
-            .map((rule) => (
-              <li key={rule.id}>{rule.name || PROJECTION_COMMON_LABELS.DASH}</li>
-            ))}
-        </ul>
+        {incomeRules.length === 0 ? undefined : <RuleList rules={incomeRules} />}
       </SummaryLine>
 
       <SummaryLine
         title={WORKSPACE_SECTION_LABELS.EXPENSE}
-        text={`${rules.filter((rule) => rule.ruleType === 'expense').length}`}
+        text={
+          expenseRules.length === 0
+            ? WORKSPACE_ACTION_LABELS.SUMMARY_NONE
+            : `${expenseRules.length}`
+        }
       >
-        <ul className="pt-2 text-xs text-muted-foreground">
-          {rules
-            .filter((rule) => rule.ruleType === 'expense')
-            .map((rule) => (
-              <li key={rule.id}>
-                {rule.name || PROJECTION_COMMON_LABELS.DASH} · {labelForSource(rule.sourceId)}
-              </li>
-            ))}
-        </ul>
+        {expenseRules.length === 0 ? undefined : (
+          <RuleList rules={expenseRules} detail={(rule) => labelForSource(rule.sourceId)} />
+        )}
       </SummaryLine>
 
       <SummaryLine
         number={WORKSPACE_SECTION_LABELS.NUMBER_EVENTS}
         title={PROJECTION_WORKSPACE_LABELS.EVENTS_SECTION}
-        text={`${events.length}`}
+        text={events.length === 0 ? WORKSPACE_ACTION_LABELS.SUMMARY_NONE : `${events.length}`}
       >
-        <ul className="pt-2 text-xs text-muted-foreground">
-          {events.map((event) => (
-            <li key={event.id}>
-              {event.name || PROJECTION_COMMON_LABELS.DASH} · {event.phases.length}
-            </li>
-          ))}
-        </ul>
+        {events.length === 0 ? undefined : (
+          <ul className="space-y-1 text-sm">
+            {events.map((event) => (
+              <li key={event.id} className="flex items-baseline justify-between gap-4">
+                <span className="min-w-0 break-words">
+                  {event.name || PROJECTION_COMMON_LABELS.DASH}
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {event.phases.length}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </SummaryLine>
     </section>
   );

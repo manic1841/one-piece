@@ -7,7 +7,6 @@ import { AssumptionsSection } from '@/ui/features/retirement/components/Assumpti
 import { LifeEventsSection } from '@/ui/features/retirement/components/LifeEventsSection';
 import { OpeningNetWorthSection } from '@/ui/features/retirement/components/OpeningNetWorthSection';
 import { ProjectionRulesSection } from '@/ui/features/retirement/components/ProjectionRulesSection';
-import { WorkspaceNotices } from '@/ui/features/retirement/components/WorkspaceNotices';
 import { type DebtAccountOption } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import {
   type ProjectionWorkspaceStage,
@@ -17,7 +16,6 @@ import {
   type WorkspaceEvents,
   type WorkspaceOpening,
   type WorkspaceRules,
-  type WorkspaceSaveStatus,
   type WorkspaceUndo,
 } from '@/ui/features/retirement/types/workspaceTypes';
 import { type SectionStates } from '@/ui/features/retirement/viewmodels/workspaceSectionState.vm';
@@ -36,7 +34,6 @@ interface WorkspaceSetupSectionsProps {
   derived: WorkspaceDerived;
   undo: WorkspaceUndo;
   calc: WorkspaceCalc;
-  save: WorkspaceSaveStatus;
   /** Per-band state, so each blocker is explained where the work happens. */
   sectionState: SectionStates;
   ledgerSource: SourceOptions<LedgerCodeItem>;
@@ -63,7 +60,6 @@ export function WorkspaceSetupSections({
   derived,
   undo,
   calc,
-  save,
   sectionState,
   ledgerSource,
   debtSource,
@@ -123,6 +119,7 @@ export function WorkspaceSetupSections({
         form={rules.form}
         rules={rules.rules}
         errors={rules.errors}
+        editErrors={rules.allErrors}
         readOnly={false}
         ledgerSource={ledgerSource}
         debtSource={debtSource}
@@ -143,6 +140,7 @@ export function WorkspaceSetupSections({
           form={events.form}
           events={events.events}
           errors={events.errors}
+          editErrors={events.allErrors}
           readOnly={false}
           focusRequest={events.focusRequest}
           projectionStartYear={startYear}
@@ -184,8 +182,6 @@ export function WorkspaceSetupSections({
           <AlertDescription>{calc.calculateError}</AlertDescription>
         </Alert>
       )}
-
-      <WorkspaceNotices savedAsPlan={save.savedAsPlan} savedId={save.savedId} />
     </div>
   );
 }

@@ -24,9 +24,6 @@ interface UseWorkspaceSaveArgs {
   saveAsPlanCommand: (draft: PlanDraft) => Promise<LoadingTaskResult<CreateRetirementPlanOutcome>>;
   /** Returns `null` and reveals the field errors when the draft is invalid. */
   takeValidatedPlan: () => PlanDraftPayload | null;
-  setSavedId: (id: string) => void;
-  setLastSavedName: (name: string) => void;
-  setSavedAsPlan: (saved: boolean) => void;
   /** The draft is now written: the gesture history no longer applies. */
   markSaved: () => void;
 }
@@ -40,9 +37,6 @@ export function useWorkspaceSave({
   persist,
   saveAsPlanCommand,
   takeValidatedPlan,
-  setSavedId,
-  setLastSavedName,
-  setSavedAsPlan,
   markSaved,
 }: UseWorkspaceSaveArgs) {
   const save = useCallback(
@@ -70,12 +64,10 @@ export function useWorkspaceSave({
         };
       }
 
-      setSavedId(outcome.id);
-      setLastSavedName(name);
       markSaved();
       return { ok: true, id: outcome.id };
     },
-    [householdId, markSaved, persist, setLastSavedName, setSavedId],
+    [householdId, markSaved, persist],
   );
 
   const saveAsPlan = useCallback(
@@ -103,11 +95,10 @@ export function useWorkspaceSave({
         return { ok: false, messages: [PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_FAILED] };
       }
 
-      setSavedAsPlan(true);
       markSaved();
       return { ok: true, id: outcome.id };
     },
-    [householdId, markSaved, saveAsPlanCommand, setSavedAsPlan, takeValidatedPlan],
+    [householdId, markSaved, saveAsPlanCommand, takeValidatedPlan],
   );
 
   return { save, saveAsPlan };

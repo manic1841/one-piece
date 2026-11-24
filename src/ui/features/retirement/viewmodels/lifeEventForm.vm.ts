@@ -3,8 +3,11 @@ import { z } from 'zod';
 import { RetirementSchemaErrorCode } from '@/domains/retirement/errorCodes';
 import { type LifeEvent, LifeEventSchema } from '@/domains/retirement/lifeEvents';
 import { newId } from '@/shared/id';
+import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
+import { EVENT_LABELS } from '@/ui/constants/retirement/eventLabels';
 import { ASSUMPTION_LABELS } from '@/ui/constants/retirement/setupLabels';
 import { RETIREMENT_VALIDATION_LABELS } from '@/ui/constants/retirement/validationLabels';
+import { formatCurrency } from '@/ui/utils';
 
 import { decimalToPercentText, percentToDecimal } from './assumptionForm.vm';
 
@@ -100,6 +103,37 @@ function labelFor(message: string): string {
     RETIREMENT_VALIDATION_LABELS[message as RetirementSchemaErrorCode] ??
     ASSUMPTION_LABELS.INVALID_NUMBER
   );
+}
+
+/**
+ * Collapsed-row text. The list is a summary, not an editor: every string here
+ * has to stand on its own without the field it replaces, so a blank value
+ * prints the shared dash rather than nothing.
+ */
+export function eventTitle(event: LifeEventDraftVM): string {
+  const name = event.name.trim();
+  return name === '' ? EVENT_LABELS.UNNAMED_EVENT : name;
+}
+
+export function phaseTitle(phase: PhaseDraftVM): string {
+  const name = phase.name.trim();
+  return name === '' ? EVENT_LABELS.UNNAMED_PHASE : name;
+}
+
+/** `2040`, `2040–2041`, or the dash when neither end is typed yet. */
+export function phaseRangeText(phase: PhaseDraftVM): string {
+  const start = phase.startYearText.trim();
+  const end = phase.endYearText.trim();
+  if (start === '') {
+    return end === '' ? PROJECTION_COMMON_LABELS.DASH : `${PROJECTION_COMMON_LABELS.DASH}–${end}`;
+  }
+  if (end === '' || end === start) return start;
+  return `${start}${EVENT_LABELS.PERIOD_SEPARATOR}${end}`;
+}
+
+export function phaseAmountText(phase: PhaseDraftVM): string {
+  const amount = parseNumber(phase.amountText);
+  return Number.isFinite(amount) ? formatCurrency(amount) : PROJECTION_COMMON_LABELS.DASH;
 }
 
 /** Stable ascending order; blank or unparsable starts sink to the end. */

@@ -35,10 +35,55 @@ import { cn } from '@/ui/utils/cn';
 const SLOW_MS = 400;
 const FOCUS_AFTER_CLOSE_MS = SLOW_MS + 50;
 
+/**
+ * Actions under the inspector fields. ADD PHASE lives here because the list's
+ * own ADD sits behind the sheet on a phone and is hidden on desktop entirely.
+ */
+function InspectorFooter({
+  onAddPhase,
+  onDeletePhase,
+  onDeleteEvent,
+}: {
+  onAddPhase: () => void;
+  onDeletePhase: () => void;
+  onDeleteEvent: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <Button variant="outline" size="sm" onClick={onAddPhase}>
+        {EVENT_LABELS.ADD_PHASE}
+      </Button>
+      <div className="ml-auto flex items-center gap-2">
+        <Button variant="outline" size="sm" onClick={onDeletePhase}>
+          {EVENT_LABELS.DELETE_PHASE}
+        </Button>
+        <Button variant="destructive" size="sm" onClick={onDeleteEvent}>
+          {EVENT_LABELS.DELETE}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The open phase's errors, split the way the inspector takes them, plus whether
+ * they hold the sheet open. Everything commits as it is typed, so closing is the
+ * confirm gesture: it is held back while the phase is still invalid.
+ */
+function selectionGate(errors: EventErrorsById, selection: TimelineSelection | null) {
+  const event = selection === null ? {} : (errors[selection.eventId] ?? {});
+  const phase = selection === null ? {} : (event.phaseErrors?.[selection.phaseId] ?? {});
+  const blocked = Object.keys(event).some((field) => field !== 'phaseErrors');
+  return { event, phase, blocked: blocked || Object.keys(phase).length > 0 };
+}
+
 interface LifeEventsSectionProps {
   form: UseFormReturn<EventsForm>;
   events: LifeEventDraftVM[];
+  /** Revealed errors, used for the row counters and the summary list. */
   errors: EventErrorsById;
+  /** Every error, revealed or not: the sheet gate and the inspector's field messages. */
+  editErrors: EventErrorsById;
   readOnly: boolean;
   focusRequest: PhaseFocusRequest | null;
   projectionStartYear: number;
@@ -75,8 +120,14 @@ interface LifeEventsSectionProps {
 /**
  * Life events as a timeline plus an inspector. The list is the default on
  * narrow screens because precise year input beats dragging there; the timeline
- * stays one tap away and is anchored to the retirement year. A phase click
- * selects it; on mobile the inspector opens in a sheet instead of a panel.
+ * stays one tap away and is anchored to the retirement year.
+ *
+ * On narrow screens the list is two-level and collapsed: an event is a summary
+ * line (name, type, phase count, enabled) that opens to phase summary lines,
+ * and a phase click opens the inspector in a sheet. The fields therefore exist
+ * only in the sheet — a long event list stays a list instead of turning into a
+ * stack of forms. The event holding the selection stays open, and so does any
+ * event carrying an error, so no message hides behind a fold.
  *
  * The inspector sits directly beneath the timeline rather than in a side
  * column, so the timeline — the one thing here that scales with width — gets
@@ -94,6 +145,7 @@ export function LifeEventsSection({
   form,
   events,
   errors,
+  editErrors,
   readOnly,
   focusRequest,
   projectionStartYear,
@@ -121,6 +173,9 @@ export function LifeEventsSection({
   // Only the phase id is state: its event is derived, so a drag that reparents
   // the phase keeps the inspector on it without a syncing effect.
   const [selectedPhaseId, setSelectedPhaseId] = useState<string | null>(null);
+  // Collapsed is the default: an event with several phases is one line until
+  // someone opens it. Selecting a phase pins its event open.
+  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string>>(new Set());
   const [mobileView, setMobileView] = useState<'list' | 'timeline'>('list');
   const [sheetOpen, setSheetOpen] = useState(false);
   const isDesktop = useIsDesktop();
@@ -135,6 +190,7 @@ export function LifeEventsSection({
     selectedPhaseId === null || selectedEvent === null
       ? null
       : { eventId: selectedEvent.id, phaseId: selectedPhaseId };
+  const selectionErrors = selectionGate(editErrors, selection);
 
   const allMessages = Object.values(errors)
     .flatMap((eventErrors) => [
@@ -155,7 +211,21 @@ export function LifeEventsSection({
   /** Every path that selects a phase also brings it into view on narrow screens. */
   const openSelection = (phaseId: string) => {
     setSelectedPhaseId(phaseId);
+    const owner = events.find((event) => event.phases.some((phase) => phase.id === phaseId));
+    if (owner !== undefined) {
+      setExpandedIds((previous) =>
+        previous.has(owner.id) ? previous : new Set(previous).add(owner.id),
+      );
+    }
     if (!isDesktop) setSheetOpen(true);
+  };
+
+  const toggleExpanded = (eventId: string) => {
+    setExpandedIds((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(eventId)) next.add(eventId);
+      return next;
+    });
   };
 
   const createDefault = () =>
@@ -193,6 +263,16 @@ export function LifeEventsSection({
     setSelectedPhaseId(null);
     setSheetOpen(false);
     window.setTimeout(() => addRef.current?.focus(), FOCUS_AFTER_CLOSE_MS);
+  };
+
+  /**
+   * Deleting closes regardless; the plain close is the confirm gesture and is
+   * held back while the open phase still has errors, which is the only moment
+   * the user can be told which field is wrong.
+   */
+  const requestClose = () => {
+    if (selectionErrors.blocked) return;
+    closeSheet();
   };
 
   /**
@@ -251,13 +331,19 @@ export function LifeEventsSection({
         title={WORKSPACE_ACTION_LABELS.INSPECTOR}
         footer={
           !readOnly && (
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={deletePhase}>
-                {EVENT_LABELS.DELETE_PHASE}
-              </Button>
-              <Button variant="destructive" size="sm" onClick={() => void deleteEvent()}>
-                {EVENT_LABELS.DELETE}
-              </Button>
+            <div className="grid w-full gap-2">
+              {selectionErrors.blocked && (
+                <p className={formMessageClass} data-testid="phase-blocked-hint">
+                  {EVENT_LABELS.SHEET_BLOCKED}
+                </p>
+              )}
+              <InspectorFooter
+                onAddPhase={() =>
+                  openSelection(addPhase(selectedEvent.id, retirementYear ?? projectionStartYear))
+                }
+                onDeletePhase={deletePhase}
+                onDeleteEvent={() => void deleteEvent()}
+              />
             </div>
           )
         }
@@ -267,8 +353,8 @@ export function LifeEventsSection({
           phase={selectedPhase}
           readOnly={readOnly}
           focusRequest={isDesktop || sheetOpen ? focusRequest : null}
-          eventErrors={errors[selectedEvent.id] ?? {}}
-          errors={errors[selectedEvent.id]?.phaseErrors?.[selectedPhase.id] ?? {}}
+          eventErrors={selectionErrors.event}
+          errors={selectionErrors.phase}
           eventOptions={events.map((event) => ({ value: event.id, label: event.name }))}
           updateEvent={(patch) => update(selectedEvent.id, patch)}
           updatePhase={(patch) => updatePhase(selectedEvent.id, selectedPhase.id, patch)}
@@ -361,23 +447,25 @@ export function LifeEventsSection({
             )}
 
             <div className={cn(mobileView === 'list' ? 'block md:hidden' : 'hidden')}>
-              <ul className="grid grid-cols-1 gap-4">
+              <ul className="grid grid-cols-1 gap-3">
                 {events.map((event) => (
                   <LifeEventRow
                     key={event.id}
                     event={event}
                     errors={errors[event.id] ?? {}}
                     readOnly={readOnly}
-                    focusRequest={isDesktop || sheetOpen ? null : focusRequest}
-                    update={(patch) => update(event.id, patch)}
+                    // An errored event stays open, so no message hides behind a fold.
+                    expanded={
+                      expandedIds.has(event.id) || Object.keys(errors[event.id] ?? {}).length > 0
+                    }
+                    selectedPhaseId={selectedPhaseId}
+                    onToggleExpand={() => toggleExpanded(event.id)}
+                    onSelectPhase={openSelection}
                     remove={() => remove(event.id)}
                     toggle={() => toggle(event.id)}
                     addPhase={() =>
                       openSelection(addPhase(event.id, retirementYear ?? projectionStartYear))
                     }
-                    removePhase={(phaseId) => removeAndForget(event.id, phaseId)}
-                    updatePhase={(phaseId, patch) => updatePhase(event.id, phaseId, patch)}
-                    setType={(type) => setType(event.id, type)}
                   />
                 ))}
               </ul>
@@ -397,7 +485,7 @@ export function LifeEventsSection({
       </PageSection>
 
       {!isDesktop && sheetOpen && (
-        <Sheet open onOpenChange={(next) => !next && closeSheet()}>
+        <Sheet open onOpenChange={(next) => !next && requestClose()}>
           <SheetContent side="bottom" className="max-h-[80vh]">
             {inspector(false)}
           </SheetContent>

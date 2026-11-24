@@ -210,6 +210,10 @@ export function useLifeEventDrafts({ revealed, onEdit }: PlanDraftGroupArgs) {
     return visible;
   }, [events, revealed]);
 
+  // The sheet gate reads these: an open phase has to be complete before the
+  // inspector may close, and the fields it flags are the ones to fix.
+  const allErrors = useMemo(() => collectEventErrors(events), [events]);
+
   const replaceAll = useCallback(
     (next: LifeEvent[]) => {
       const drafts = next.map(mapEventToVM);
@@ -223,7 +227,8 @@ export function useLifeEventDrafts({ revealed, onEdit }: PlanDraftGroupArgs) {
     form,
     events,
     errors: visibleErrors,
-    valid: Object.keys(collectEventErrors(events)).length === 0,
+    allErrors,
+    valid: Object.keys(allErrors).length === 0,
     focusRequest,
     remove,
     toggle,

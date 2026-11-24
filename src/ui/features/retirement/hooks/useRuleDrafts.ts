@@ -238,6 +238,10 @@ export function useRuleDrafts({ revealed, onEdit }: PlanDraftGroupArgs) {
     return visible;
   }, [revealed, rules]);
 
+  // The dialog gate reads these: a rule has to be complete before it can be
+  // confirmed, and the fields it flags are the ones the user has to fix.
+  const allErrors = useMemo(() => collectRuleErrors(rules), [rules]);
+
   const replaceAll = useCallback(
     (next: ProjectionRule[]) => {
       form.reset({ rules: next.map(mapRuleToVM) });
@@ -249,7 +253,8 @@ export function useRuleDrafts({ revealed, onEdit }: PlanDraftGroupArgs) {
     form,
     rules,
     errors: visibleErrors,
-    valid: Object.keys(collectRuleErrors(rules)).length === 0,
+    allErrors,
+    valid: Object.keys(allErrors).length === 0,
     add,
     remove,
     replace,

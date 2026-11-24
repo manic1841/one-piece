@@ -18,6 +18,7 @@ function Harness(overrides: HarnessOverrides) {
       form={rules.form}
       rules={rules.rules}
       errors={{}}
+      editErrors={overrides.editErrors ?? {}}
       readOnly={false}
       ledgerSource={emptySource}
       debtSource={emptySource}

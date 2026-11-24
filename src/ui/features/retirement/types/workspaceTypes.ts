@@ -54,9 +54,3 @@ export interface WorkspaceCalc {
   retirementComparisons: RetirementComparisonVM[];
   applyRetirementAge: (age: number) => void;
 }
-
-/** Saved-state flags the setup body shows as notices. */
-export interface WorkspaceSaveStatus {
-  savedId: string | null;
-  savedAsPlan: boolean;
-}
