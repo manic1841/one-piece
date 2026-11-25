@@ -53,6 +53,7 @@ interface GripHandleProps {
   className?: string;
   testId?: string;
   activatorRef?: React.Ref<HTMLButtonElement>;
+  disabled?: boolean;
 }
 
 export const GripHandle: React.FC<GripHandleProps> = ({
@@ -62,17 +63,21 @@ export const GripHandle: React.FC<GripHandleProps> = ({
   className,
   testId,
   activatorRef,
+  disabled = false,
 }) => (
   <button
     type="button"
     ref={activatorRef}
     data-testid={testId}
     {...attributes}
-    {...listeners}
+    {...(disabled ? undefined : listeners)}
     aria-label={label}
+    aria-disabled={disabled || undefined}
+    disabled={disabled}
+    title={disabled ? label : undefined}
     onClick={(event) => event.stopPropagation()}
     className={cn(
-      'inline-flex h-8 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-fast ease-out-quint outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] active:cursor-grabbing',
+      'inline-flex h-8 w-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground transition-[color,background-color,transform] duration-fast ease-out-quint outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97] active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent',
       className,
     )}
   >

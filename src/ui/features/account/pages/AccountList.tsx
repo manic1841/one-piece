@@ -68,7 +68,8 @@ const CurrencyMarker: React.FC<{ row: AccountRowVM }> = ({ row }) =>
 const SortableAccountRow: React.FC<{
   row: AccountRowVM;
   onSelect: (id: string) => void;
-}> = ({ row, onSelect }) => {
+  reorderDisabled?: boolean;
+}> = ({ row, onSelect, reorderDisabled = false }) => {
   const { setNodeRef, setActivatorNodeRef, attributes, listeners, rowStyle, isDragging } =
     useSortableRow(row.id);
 
@@ -101,6 +102,7 @@ const SortableAccountRow: React.FC<{
           attributes={attributes}
           listeners={listeners}
           activatorRef={setActivatorNodeRef}
+          disabled={reorderDisabled}
           className={row.isActive ? '' : 'opacity-60'}
         />
       </DataTableCell>
@@ -129,7 +131,8 @@ const SortableAccountRow: React.FC<{
 const SortableAccountMobileRow: React.FC<{
   row: AccountRowVM;
   onSelect: (id: string) => void;
-}> = ({ row, onSelect }) => {
+  reorderDisabled?: boolean;
+}> = ({ row, onSelect, reorderDisabled = false }) => {
   const { setNodeRef, setActivatorNodeRef, attributes, listeners, rowStyle, isDragging } =
     useSortableRow(row.id);
 
@@ -162,6 +165,7 @@ const SortableAccountMobileRow: React.FC<{
           attributes={attributes}
           listeners={listeners}
           activatorRef={setActivatorNodeRef}
+          disabled={reorderDisabled}
           className="-ml-1"
         />
         <span
@@ -206,6 +210,7 @@ const AccountList: React.FC = () => {
     closeForm,
     showInactive,
     setShowInactive,
+    canReorder,
     reorderRows,
   } = useAccountListController();
 
@@ -297,6 +302,7 @@ const AccountList: React.FC = () => {
                     key={row.id}
                     row={row}
                     onSelect={(id) => navigate(`/accounts/${id}`)}
+                    reorderDisabled={!canReorder}
                   />
                 ))}
               </TableBody>
@@ -311,6 +317,7 @@ const AccountList: React.FC = () => {
                 key={row.id}
                 row={row}
                 onSelect={(id) => navigate(`/accounts/${id}`)}
+                reorderDisabled={!canReorder}
               />
             ))}
           </MobileDataList>

@@ -20,7 +20,16 @@ export class CreateAccountUseCase {
       auth.isGlobalAdmin,
     );
 
-    const accountId = await accountRepository.createAccount(householdId, data, userEmail);
+    // The full list owns the append rule. A controller's filtered rows cannot
+    // safely derive this value when inactive accounts have not been fetched.
+    const accounts = await accountRepository.getAccounts(householdId, true);
+    const order = data.order ?? accounts.reduce((max, a) => Math.max(max, a.order ?? 0), -1) + 1;
+
+    const accountId = await accountRepository.createAccount(
+      householdId,
+      { ...data, order },
+      userEmail,
+    );
 
     return accountId;
   }

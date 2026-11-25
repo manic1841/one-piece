@@ -85,6 +85,7 @@ describe('useAccountListController', () => {
 
     expect(Object.keys(result.current).sort()).toEqual([
       'activeCount',
+      'canReorder',
       'closeForm',
       'create',
       'error',
@@ -121,6 +122,8 @@ describe('useAccountListController', () => {
     await waitFor(() => {
       expect(result.current.rows).toHaveLength(3);
     });
+    act(() => result.current.setShowInactive(true));
+    await waitFor(() => expect(result.current.canReorder).toBe(true));
 
     const [first, second, third] = result.current.rows;
     await act(async () => {
@@ -147,6 +150,8 @@ describe('useAccountListController', () => {
     await waitFor(() => {
       expect(result.current.rows).toHaveLength(4);
     });
+    act(() => result.current.setShowInactive(true));
+    await waitFor(() => expect(result.current.canReorder).toBe(true));
 
     const bankRows = result.current.rows.filter((row) => row.category === 'bank');
     await act(async () => {
@@ -169,6 +174,8 @@ describe('useAccountListController', () => {
     await waitFor(() => {
       expect(result.current.rows).toHaveLength(3);
     });
+    act(() => result.current.setShowInactive(true));
+    await waitFor(() => expect(result.current.canReorder).toBe(true));
 
     reorderAccounts.mockClear();
     await act(async () => {
@@ -176,5 +183,43 @@ describe('useAccountListController', () => {
     });
 
     expect(reorderAccounts).not.toHaveBeenCalled();
+  });
+
+  it('loads active accounts only until the inactive filter is switched on', async () => {
+    fetchAccountsWithSnapshots.mockClear();
+    setFetchedAccounts(accountsFixture);
+
+    const { result } = renderHook(() => useAccountListController());
+
+    await waitFor(() => {
+      expect(result.current.rows).toHaveLength(3);
+    });
+
+    expect(fetchAccountsWithSnapshots).toHaveBeenCalledTimes(1);
+    expect(fetchAccountsWithSnapshots.mock.calls[0][2]).toMatchObject({
+      includeInactive: false,
+    });
+
+    act(() => {
+      result.current.setShowInactive(true);
+    });
+
+    await waitFor(() => {
+      expect(fetchAccountsWithSnapshots).toHaveBeenCalledTimes(2);
+    });
+    expect(fetchAccountsWithSnapshots.mock.calls[1][2]).toMatchObject({ includeInactive: true });
+
+    // Switching back and on again reuses the rows already fetched.
+    act(() => {
+      result.current.setShowInactive(false);
+    });
+    act(() => {
+      result.current.setShowInactive(true);
+    });
+
+    await waitFor(() => {
+      expect(result.current.showInactive).toBe(true);
+    });
+    expect(fetchAccountsWithSnapshots).toHaveBeenCalledTimes(2);
   });
 });

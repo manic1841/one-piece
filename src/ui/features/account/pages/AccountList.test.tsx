@@ -292,8 +292,21 @@ describe('AccountList drag reorder', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
+  it('disables reordering until the full account list is loaded', async () => {
+    setup([bankA, bankB]);
+
+    await screen.findByTestId('account-row-b1');
+    expect(screen.getAllByTestId('account-grip-b1')[0]).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: '含停用' }));
+    await waitFor(() => expect(screen.getAllByTestId('account-grip-b1')[0]).toBeEnabled());
+  });
+
   it('persists the new order through the reorder use case after a keyboard drag', async () => {
     setup([bankA, bankB]);
+
+    fireEvent.click(screen.getByRole('button', { name: '含停用' }));
+    await waitFor(() => expect(screen.getAllByTestId('account-grip-b1')[0]).toBeEnabled());
 
     stubRowGeometry([
       await screen.findByTestId('account-row-b1'),
@@ -322,6 +335,9 @@ describe('AccountList drag reorder', () => {
     const hiddenInactive = makeBank('b0', 'Old Bank', 0);
     hiddenInactive.isActive = false;
     setup([hiddenInactive, bankA, bankB]);
+
+    fireEvent.click(screen.getByRole('button', { name: '含停用' }));
+    await waitFor(() => expect(screen.getAllByTestId('account-grip-b1')[0]).toBeEnabled());
 
     stubRowGeometry([
       await screen.findByTestId('account-row-b1'),

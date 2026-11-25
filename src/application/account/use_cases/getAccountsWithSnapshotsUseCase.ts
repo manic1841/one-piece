@@ -1,3 +1,4 @@
+import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
 
@@ -23,36 +24,60 @@ export class GetAccountsWithSnapshotsUseCase {
   async execute(request: GetAccountsWithSnapshotsRequest): Promise<AccountWithSnapshot[]> {
     const { householdId, auth, accountId, year, month, includeInactive = false } = request;
 
+    // The per-account snapshot queries below skip their redundant checks.
+    await householdPermissionService.assertReadPermission(
+      householdId,
+      auth.uid,
+      auth.isGlobalAdmin,
+    );
+
     const accounts = accountId
-      ? [await getAccountUseCase.execute({ householdId, accountId, auth })]
-      : await getAccountsUseCase.execute({ householdId, auth, includeInactive });
-
-    const result: AccountWithSnapshot[] = [];
-    for (const account of accounts) {
-      if (!account) continue;
-
-      let snapshot: AccountSnapshot | null = null;
-
-      if (year || month) {
-        const snapshots = await getAccountSnapshotsUseCase.execute({
+      ? [
+          await getAccountUseCase.execute({
+            householdId,
+            accountId,
+            auth,
+            skipPermissionCheck: true,
+          }),
+        ]
+      : await getAccountsUseCase.execute({
           householdId,
-          accountId: account.id,
           auth,
-          year,
-          month,
+          includeInactive,
+          skipPermissionCheck: true,
         });
-        snapshot = snapshots.length > 0 ? snapshots[0] : null;
-      } else {
-        snapshot = await getLatestSnapshotUseCase.execute({
-          householdId,
-          accountId: account.id,
-          auth,
-        });
-      }
 
-      result.push({ ...account, snapshot });
-    }
-    return result;
+    // The snapshot reads are independent of each other, so they run together
+    // instead of queueing one round-trip per account.
+    const rows = await Promise.all(
+      accounts
+        .filter((account): account is Account => Boolean(account))
+        .map(async (account) => {
+          const snapshot =
+            year || month
+              ? ((
+                  await getAccountSnapshotsUseCase.execute({
+                    householdId,
+                    accountId: account.id,
+                    auth,
+                    year,
+                    month,
+                    skipPermissionCheck: true,
+                    latestByCreatedAt: true,
+                  })
+                )[0] ?? null)
+              : await getLatestSnapshotUseCase.execute({
+                  householdId,
+                  accountId: account.id,
+                  auth,
+                  skipPermissionCheck: true,
+                });
+
+          return { ...account, snapshot };
+        }),
+    );
+
+    return rows;
   }
 }
 

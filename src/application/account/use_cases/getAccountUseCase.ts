@@ -7,17 +7,20 @@ export interface GetAccountRequest {
   householdId: string;
   accountId: string;
   auth: AuthContext;
+  skipPermissionCheck?: boolean;
 }
 
 export class GetAccountUseCase {
   async execute(request: GetAccountRequest): Promise<Account | null> {
-    const { householdId, accountId, auth } = request;
+    const { householdId, accountId, auth, skipPermissionCheck = false } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
+    if (!skipPermissionCheck) {
+      await householdPermissionService.assertReadPermission(
+        householdId,
+        auth.uid,
+        auth.isGlobalAdmin,
+      );
+    }
 
     return await accountRepository.get([householdId, accountId]);
   }
