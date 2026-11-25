@@ -96,9 +96,10 @@ const HouseholdSwitcher: React.FC<HouseholdSwitcherProps> = ({
           <Button
             variant="text"
             size="sm"
-            className="h-auto gap-1 px-0 py-0 text-xs font-medium [&_svg]:size-3"
+            aria-label={`Switch Household: ${currentHouseholdName}`}
+            className="h-auto min-h-11 max-w-full min-w-0 gap-1 px-0 py-0 text-sm font-medium sm:text-xs [&_svg]:size-3"
           >
-            {currentHouseholdName}
+            <span className="truncate">{currentHouseholdName}</span>
             <ChevronDown />
           </Button>
         </DropdownMenuTrigger>
