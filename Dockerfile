@@ -11,7 +11,7 @@ RUN npm install --global pnpm@10.24.0 && \
 ENV UV_INSTALL_DIR=/usr/local/bin \
     UV_TOOL_BIN_DIR=/usr/local/bin
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates && \
+    apt-get install -y --no-install-recommends curl ca-certificates git && \
     curl -LsSf https://astral.sh/uv/install.sh | sh && \
     uv tool install --python 3.12 graphifyy==0.9.115 && \
     rm -rf /var/lib/apt/lists/* /root/.cache/uv
