@@ -11,6 +11,7 @@ type ChartXLabelRowProps = {
   /** Same, for a right-hand y axis. */
   rightGutter: boolean;
   testId?: string;
+  className?: string;
 };
 
 /**
@@ -20,9 +21,15 @@ type ChartXLabelRowProps = {
  * boxes: the labels are absolutely positioned, so a `pl-12` on the row would not
  * reach them — only a real box keeps the percentages aligned with the plot.
  */
-export function ChartXLabelRow({ labels, leftGutter, rightGutter, testId }: ChartXLabelRowProps) {
+export function ChartXLabelRow({
+  labels,
+  leftGutter,
+  rightGutter,
+  testId,
+  className,
+}: ChartXLabelRowProps) {
   return (
-    <div className="mt-2 flex h-4">
+    <div className={cn('mt-2 flex h-4', className)}>
       {leftGutter && <div className={cn('shrink-0', AXIS_GUTTER_CLASS)} aria-hidden="true" />}
       <div data-testid={testId} className="relative min-w-0 flex-1">
         {labels.map((label, index) => (

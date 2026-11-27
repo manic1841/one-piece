@@ -175,7 +175,7 @@
   - **y 標籤走側邊欄位**：值標籤放在圖旁邊的固定 48px gutter（`ChartAxisGutter`），不疊在繪圖區上——線與面積區因此永遠不會穿過數字。左軸走左側、右軸走右側；貼邊對齊、`tabular-nums`，行動版不縮寬。tick 的長度上限 6 字由 `formatAxisValue` 承擔，gutter 寬度跟著它走。
   - **gutter 不吃 pointer**：gutter 是 `pointer-events-none`，hover／scrub 的命中區仍是繪圖區本身（overlay 與指標換算都以繪圖區為座標系）。沒有刻度可標時（`yAxis="none"`、資料為空、全部序列隱藏）不留 gutter。x 標籤列是繪圖欄的兄弟列，同樣以等寬空盒讓出 gutter，標籤才會從繪圖區左緣起算——標籤是絕對定位，`pl-12` 推不開。
   - **格線一律由上往下**：`gridLines` 從頂端累加，兩張圖同一慣例；值標籤與格線同序（大到小、上到下）。反轉格線而保留標籤映射即可，不要改標籤。
-  - **刻度與標籤密度**：繪圖高度 < 140px 時 y 刻度降為 3，避免刻度壓線；x 標籤在槽寬不足時抽稀、最少留首末兩個、重複年份折掉。密度規則只在 `src/ui/components/charts/xLabels.ts`，寬度一律量繪圖欄本身（`useMeasuredWidth`），不量視窗——圖表在格線裡比視窗窄。
+  - **刻度與標籤密度**：繪圖高度 < 140px 時 y 刻度降為 3，避免刻度壓線；x 標籤在槽寬不足時抽稀、最少留首末兩個、重複年份折掉。密度規則只在 `src/ui/components/charts/xLabels.ts`，寬度一律量繪圖欄本身（`useMeasuredWidth`），不量視窗——圖表在格線裡比視窗窄。長條圖同一條規則（`BarChart` 以 64px 槽寬預算抽稀），只是上限是「一欄一標籤」而非六個；抽稀後仍以絕對定位落在欄位中心，所以欄位間不留 `gap`，改由每欄自己的 `px-0.5` 分隔——固定 `gap` 會讓百分比定位與欄心漂掉。
 - `form`：全站表單共通原則。表單狀態與驗證時機的規則（RHF、`useForm` 呼叫點、submit gate）見 `ui-layer-architecture.md` §4，此段只規範元件表面。
   - **欄位群組**：`FormItem` 是唯一決定 label / control / error 垂直佈局的地方（`space-y-2`）。欄位不得自行決定 label 或 error 的位置與間距。
   - **表面的分層**：表單內容以間距與細線分層，不套外框；Card 只保留給表單中的 alert 與狀態回報。

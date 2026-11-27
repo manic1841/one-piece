@@ -34,9 +34,15 @@ export function DonutChart({
   const a11yProps =
     ariaLabel === undefined ? {} : { role: 'img' as const, 'aria-label': ariaLabel };
 
+  // Phones stack the legend under the ring: side by side the fixed 170px ring
+  // squeezes the legend to a sliver and the centre caption spills onto the ring.
   return (
-    <div className={cn('flex items-center gap-8', className)}>
-      <div className="relative flex-none" style={{ width: size, height: size }} {...a11yProps}>
+    <div className={cn('flex flex-col items-center gap-4 sm:flex-row sm:gap-8', className)}>
+      <div
+        className="relative aspect-square w-full flex-none"
+        style={{ maxWidth: size }}
+        {...a11yProps}
+      >
         {/* The ring is masked by an animating stop angle, so it sweeps in
             clockwise (motion-system §5.7). The hole and the caption are siblings
             rather than children: a mask would otherwise eat into them too. */}
@@ -48,18 +54,15 @@ export function DonutChart({
             WebkitMaskImage: 'conic-gradient(#000 var(--chart-sweep), transparent 0)',
           }}
         />
-        <div
-          className="absolute rounded-full bg-card"
-          style={{ inset: `${Math.round(size * 0.21)}px` }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center font-mono text-base tabular-nums text-foreground">
+        <div className="absolute rounded-full bg-card" style={{ inset: '21%' }} />
+        <div className="absolute inset-0 flex items-center justify-center px-1 font-mono text-sm tabular-nums text-foreground">
           {centerLabel}
         </div>
       </div>
       {showLegend && (
         <ChartLegend
           orientation="vertical"
-          className="min-w-0 flex-1"
+          className="w-full min-w-0 sm:flex-1"
           items={segments.map((segment, index) => ({
             label: segment.label,
             color: slices[index].color,

@@ -57,6 +57,14 @@ describe('DonutChart', () => {
     expect(screen.queryByText('Equities')).toBeNull();
   });
 
+  it('stacks the legend under the ring on phones and beside it from sm up', () => {
+    const { container } = render(<DonutChart segments={SEGMENTS} centerLabel="100%" />);
+
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.className).toContain('flex-col');
+    expect(root.className).toContain('sm:flex-row');
+  });
+
   it('does not divide by zero when every value is zero', () => {
     const slices = buildDonutSlices([{ label: 'None', value: 0 }]);
 

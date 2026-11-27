@@ -149,7 +149,9 @@ describe('DashboardPage monthly cash flow chart', () => {
     );
 
     const chart = await screen.findByTestId('cashflow-chart');
-    expect(chart.textContent).toContain('AUG 2026');
+    // The axis thins to first/last on an unmeasured plot, dropping the repeated year.
+    expect(chart.textContent).toContain('JUL 2026');
+    expect(chart.textContent).toContain('AUG');
     expect(chart.textContent).toContain('現金流入');
     expect(chart.textContent).toContain('現金流出');
     expect(chart.textContent).toContain('-NT$12,300');
