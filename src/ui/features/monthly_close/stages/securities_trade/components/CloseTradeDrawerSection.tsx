@@ -7,6 +7,7 @@ import type {
   TradeDrawerSide,
   TradeDrawerVM,
 } from '../../../viewmodels/tradeDrawer.vm';
+import { TRADE_KIND_CONFIG } from '../tradeKindConfig';
 import { TradeDrawer, type TradeDrawerProps } from './TradeDrawer';
 
 interface CloseTradeDrawerSectionProps {
@@ -21,14 +22,6 @@ interface CloseTradeDrawerSectionProps {
 }
 
 const TRADE_SIDES: readonly TradeDrawerSide[] = ['BUY', 'SELL'];
-const TRADE_SIDE_LABELS: Record<TradeDrawerSide, string> = {
-  BUY: MONTHLY_CLOSE_LABELS.BUY,
-  SELL: MONTHLY_CLOSE_LABELS.SELL,
-};
-const FINANCING_SIDE_LABELS: Record<TradeDrawerSide, string> = {
-  BUY: MONTHLY_CLOSE_LABELS.SHAREHOLDER_FINANCING,
-  SELL: MONTHLY_CLOSE_LABELS.DIVIDEND_PAYOUT,
-};
 
 /** Maps the drawer's kind/mode state to its title, so the page stays flat. */
 const drawerTitle = (kind: 'SECURITIES' | 'FINANCING' | null, mode: 'ADD' | 'EDIT'): string => {
@@ -56,7 +49,7 @@ export const CloseTradeDrawerSection: React.FC<CloseTradeDrawerSectionProps> = (
     <TradeDrawer
       open={kind !== null}
       sides={TRADE_SIDES}
-      sideLabels={kind === 'FINANCING' ? FINANCING_SIDE_LABELS : TRADE_SIDE_LABELS}
+      sideLabels={TRADE_KIND_CONFIG[kind === 'FINANCING' ? 'FINANCING' : 'SECURITIES'].sideLabels}
       title={drawerTitle(kind, mode)}
       form={form as TradeDrawerProps['form']}
       projects={projects}

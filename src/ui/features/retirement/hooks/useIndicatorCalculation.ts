@@ -4,6 +4,7 @@ import { type ProjectionSummary } from '@/domains/retirement/projectionTypes';
 import { type useProjectionCmds } from '@/ui/features/retirement/hooks/useProjectionCmds';
 import { type WorkspaceDraftController } from '@/ui/features/retirement/hooks/useWorkspaceDraft';
 import { type useWorkspaceValidation } from '@/ui/features/retirement/hooks/useWorkspaceValidation';
+import { toProjectionOpening } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 
 interface UseIndicatorCalculationArgs {
   drafts: WorkspaceDraftController;
@@ -33,7 +34,7 @@ export function useIndicatorCalculation({
 
     const task = await calculateProjection({
       startYear,
-      opening: { source: opening.source, amount: Number(opening.amountText) },
+      opening: toProjectionOpening(opening),
       assumptions: gate.assumptions.data,
       rules: gate.rules.data ?? [],
       lifeEvents: gate.events.data ?? [],

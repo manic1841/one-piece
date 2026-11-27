@@ -145,6 +145,7 @@ function renderView() {
       { path: '/retirement/projections/:id', element: <ProjectionViewPage /> },
       { path: '/retirement', element: <div>projection list</div> },
       { path: '/retirement/new', element: <div>new projection</div> },
+      { path: '/retirement/plans/:id', element: <div>plan view</div> },
     ],
     { initialEntries: ['/retirement/projections/projection-1'] },
   );
@@ -587,8 +588,8 @@ describe('ProjectionViewPage', () => {
     expect(await screen.findByText('Renamed projection')).toBeInTheDocument();
   });
 
-  it('prefills SAVE AS PLAN and blocks a blank name', async () => {
-    renderView();
+  it('prefills SAVE AS PLAN, blocks a blank name, and lands on the new plan', async () => {
+    const router = renderView();
 
     fireEvent.click(await screen.findByRole('button', { name: 'SAVE AS PLAN' }));
     const input = await screen.findByLabelText('Plan name');
@@ -611,7 +612,8 @@ describe('ProjectionViewPage', () => {
         auth: expect.anything(),
       }),
     );
-    await waitFor(() => expect(screen.queryByLabelText('Plan name')).not.toBeInTheDocument());
+    expect(await screen.findByText('plan view')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/retirement/plans/plan-1');
   });
 
   it('confirms deletion with the exact copy and returns to the list', async () => {

@@ -5,6 +5,7 @@ import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { listDebtAccountsUseCase } from '@/application/debt/use_cases/listDebtAccountsUseCase';
+import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { getProjectionOpeningUseCase } from '@/application/retirement/use_cases/getProjectionOpeningUseCase';
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
 import { getRetirementPlanUseCase } from '@/application/retirement/use_cases/getRetirementPlanUseCase';
@@ -14,6 +15,7 @@ import { calculateRetirementAge } from '@/application/retirement/workflows/compa
 import { saveWorkspaceAsPlanWorkflow } from '@/application/retirement/workflows/saveWorkspaceAsPlan';
 import { type ProjectionInput, type ProjectionResult } from '@/domains/retirement/projectionTypes';
 import { type RetirementPlan } from '@/domains/retirement/types';
+import { notifySaved } from '@/ui/hooks/notify';
 
 import ProjectionWorkspacePage from './ProjectionWorkspacePage';
 
@@ -26,8 +28,28 @@ vi.mock('@/application/retirement/use_cases/getProjectionOpeningUseCase', () => 
   getProjectionOpeningUseCase: { execute: vi.fn() },
 }));
 
+const { openingPeriodsMock } = vi.hoisted(() => ({
+  openingPeriodsMock: {
+    periods: [] as Array<{ yearMonth: string; netWorth: number }>,
+    pinned: null as { yearMonth: string; netWorth: number } | null,
+  },
+}));
+
+vi.mock('@/application/retirement/workflows/listProjectionOpeningPeriods', () => ({
+  OPENING_PERIOD_LIMIT: 12,
+  listProjectionOpeningPeriods: {
+    execute: vi.fn(() =>
+      Promise.resolve({ periods: openingPeriodsMock.periods, pinned: openingPeriodsMock.pinned }),
+    ),
+  },
+}));
+
 vi.mock('@/application/retirement/use_cases/getProjectionViewUseCase', () => ({
   getProjectionViewUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/application/report/use_cases/listReportsUseCase', () => ({
+  listReportsUseCase: { execute: vi.fn(() => Promise.resolve([])) },
 }));
 
 vi.mock('@/application/retirement/workflows/calculateProjection', () => ({
@@ -57,6 +79,12 @@ vi.mock('@/application/retirement/use_cases/createRetirementPlanUseCase', () => 
 
 vi.mock('@/application/debt/use_cases/listDebtAccountsUseCase', () => ({
   listDebtAccountsUseCase: { execute: vi.fn() },
+}));
+
+vi.mock('@/ui/hooks/notify', () => ({
+  celebrate: vi.fn(),
+  notifyFailed: vi.fn(),
+  notifySaved: vi.fn(),
 }));
 
 const { ledgerCodesMock } = vi.hoisted(() => ({
@@ -280,6 +308,8 @@ function renderWorkspace(initialEntry = '/retirement/new') {
     [
       { path: '/retirement/new', element: <ProjectionWorkspacePage /> },
       { path: '/retirement', element: <div>retirement</div> },
+      { path: '/retirement/projections/:id', element: <div>projection view</div> },
+      { path: '/retirement/plans/:id', element: <div>plan view</div> },
       { path: '/other', element: <div>other</div> },
     ],
     { initialEntries: [initialEntry] },
@@ -291,6 +321,23 @@ function renderWorkspace(initialEntry = '/retirement/new') {
   );
   return router;
 }
+
+const balanceSheetReport = (yearMonth: string, assets: number, liabilities: number) => ({
+  id: `${yearMonth}-balance_sheet`,
+  householdId: 'household-1',
+  yearMonth,
+  createdBy: 'u1',
+  updatedBy: 'u1',
+  createdAt: new Date('2026-01-01T00:00:00.000Z'),
+  updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+  type: 'BALANCE_SHEET',
+  data: {
+    yearMonth,
+    assets: { total: assets, groups: {} },
+    liabilities: { total: liabilities, groups: {} },
+    equity: { total: assets - liabilities, groups: {} },
+  },
+});
 
 const preloadConfig = (overrides: Record<string, unknown> = {}) => ({
   projection: {
@@ -330,11 +377,22 @@ async function addRule(ruleType: 'income' | 'expense' = 'income') {
   if (ruleType === 'expense') await choose('Side', 'Expense');
 }
 
-/** Names the rule and confirms, which closes the dialog and leaves the row. */
+/** Names the rule and completes it, because CONFIRM is held back while it is invalid. */
 async function confirmRule(name = 'Rule') {
-  fireEvent.change(within(ruleInspector()).getByLabelText(/Rule name/), {
-    target: { value: name },
-  });
+  const scope = ruleInspector();
+  fireEvent.change(within(scope).getByLabelText(/Rule name/), { target: { value: name } });
+
+  const source = within(scope).queryByLabelText('Source');
+  const hasSource = source !== null && (source.textContent ?? '').trim() !== 'No source selected.';
+  if (hasSource) {
+    // A picked source still needs its baseline policy before the rule parses.
+    await choose('Baseline policy', 'Previous complete year', scope);
+  } else if (within(scope).queryByLabelText('Method') !== null) {
+    // No source to fill in: a fixed amount is the shortest source-free rule.
+    await choose('Method', 'Fixed amount', scope);
+    fireEvent.change(within(scope).getByLabelText('Amount'), { target: { value: '1000' } });
+  }
+
   fireEvent.click(screen.getByTestId('rule-confirm'));
   await waitFor(() => expect(screen.queryByTestId('rule-inspector')).not.toBeInTheDocument());
 }
@@ -417,31 +475,47 @@ async function addPhase(row: HTMLElement) {
   return phases[phases.length - 1];
 }
 
-function fillPhase(
-  phase: HTMLElement,
+/** The one place phase fields exist: the sheet below md, the column above it. */
+function inspector() {
+  return screen.getByTestId('life-event-inspector');
+}
+
+/** Selecting a phase row is what loads it into the inspector. */
+async function selectPhase(row: HTMLElement, index = 0) {
+  fireEvent.click(within(phaseRows(row)[index]).getByRole('button', { name: /Edit phase/ }));
+  return screen.findByTestId('life-event-inspector');
+}
+
+async function fillPhase(
   values: Partial<{ start: string; end: string; amount: string; growth: string; name: string }>,
 ) {
+  await screen.findByTestId('life-event-inspector');
   if (values.start !== undefined) {
-    pickOption(/Start year/, values.start, phase);
+    pickOption(/Start year/, values.start, inspector());
   }
   if (values.end !== undefined) {
-    pickOption(/End year/, values.end, phase);
+    pickOption(/End year/, values.end, inspector());
   }
   if (values.amount !== undefined) {
-    fireEvent.change(within(phase).getByLabelText('Amount'), {
+    fireEvent.change(within(inspector()).getByLabelText(/Amount/), {
       target: { value: values.amount },
     });
   }
   if (values.growth !== undefined) {
-    fireEvent.change(within(phase).getByLabelText('Growth rate (%)'), {
+    fireEvent.change(within(inspector()).getByLabelText('Growth rate (%)'), {
       target: { value: values.growth },
     });
   }
   if (values.name !== undefined) {
-    fireEvent.change(within(phase).getByLabelText('Phase name'), {
+    fireEvent.change(within(inspector()).getByLabelText(/Phase name/), {
       target: { value: values.name },
     });
   }
+}
+
+/** The delete pair sits in the hosting drawer's footer, outside the fields. */
+function clickDeletePhase() {
+  fireEvent.click(screen.getByRole('button', { name: 'Delete phase' }));
 }
 
 async function choose(label: string, option: string, scope: HTMLElement = document.body) {
@@ -473,6 +547,9 @@ describe('ProjectionWorkspacePage', () => {
       { code: 'expense:living', label: '生活費', type: 'expense', isCustom: false, isActive: true },
     ];
     confirmMock.mockResolvedValue(false);
+    openingPeriodsMock.periods = [];
+    openingPeriodsMock.pinned = null;
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(null);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
@@ -559,6 +636,43 @@ describe('ProjectionWorkspacePage', () => {
     expect(baseline).toHaveTextContent('Manual value');
   });
 
+  it('states the settings as labelled facts instead of one run-on line', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    await calculate();
+
+    const facts = screen.getByTestId('settings-facts');
+    expect(within(facts).getByText('Start year')).toBeInTheDocument();
+    expect(within(facts).getByText('Retirement')).toBeInTheDocument();
+    expect(within(facts).getByText('60 (2050) to 85')).toBeInTheDocument();
+    expect(within(facts).getByText('Inflation · Return')).toBeInTheDocument();
+    expect(within(facts).getByText('2% · 5%')).toBeInTheDocument();
+    expect(within(facts).getByText('Income rules · Events')).toBeInTheDocument();
+    expect(within(facts).getByText('1 · 0')).toBeInTheDocument();
+    // The run-on sentence is gone; the opening amount now lives in the details.
+    expect(facts).not.toHaveTextContent('NT$100,000');
+  });
+
+  it('marks empty setup groups as none and drops their toggle', async () => {
+    renderWorkspace();
+    await fillValidSetup();
+    await calculate();
+
+    const summary = screen.getByTestId('workspace-summary');
+    const expense = within(summary).getByTestId('summary-EXPENSE');
+    const events = within(summary).getByTestId('summary-04');
+
+    expect(expense).toHaveTextContent('None');
+    expect(events).toHaveTextContent('None');
+    expect(within(expense).queryByRole('button', { name: 'Show summary' })).not.toBeInTheDocument();
+    expect(within(events).queryByRole('button', { name: 'Show summary' })).not.toBeInTheDocument();
+    // Income has a rule, so it keeps both the count and the toggle.
+    const income = within(summary).getByTestId('summary-03');
+    expect(income).not.toHaveTextContent('None');
+    fireEvent.click(within(income).getByRole('button', { name: 'Show summary' }));
+    expect(income).toHaveTextContent('Salary');
+  });
+
   it('does not present an empty projection as a successful retirement outlook', async () => {
     const outcome = successOutcome();
     outcome.calculation.input = { ...projectionInput, years: [] };
@@ -600,7 +714,11 @@ describe('ProjectionWorkspacePage', () => {
       calculateRetirementAge(
         {
           startYear: request.startYear,
-          opening: { source: request.opening.source, amount: request.opening.amount },
+          opening: {
+            source: request.opening.source,
+            amount: request.opening.amount,
+            anchorYearMonth: request.opening.anchorYearMonth,
+          },
           assumptions: request.assumptions,
           rules: request.rules,
           lifeEvents: request.lifeEvents,
@@ -611,7 +729,7 @@ describe('ProjectionWorkspacePage', () => {
         2026,
       ),
     );
-    renderWorkspace();
+    const router = renderWorkspace();
     await fillValidSetup();
     await calculate();
     const calls = vi.mocked(calculateProjectionWorkflow.execute).mock.calls.length;
@@ -650,34 +768,59 @@ describe('ProjectionWorkspacePage', () => {
     expect(saved?.result.years.find((year) => year.year === 2048)?.isRetired).toBe(false);
     expect(saved).not.toHaveProperty('comparisonInput');
 
-    fireEvent.click(screen.getByRole('button', { name: 'BACK TO SETUP' }));
-    expect(screen.getByLabelText('Retirement age')).toHaveTextContent('59');
+    expect(await screen.findByText('projection view')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/retirement/projections/projection-1');
   });
 
-  it('seeds the opening from the snapshot and offers USE SNAPSHOT only after an edit', async () => {
+  it('seeds the opening from the latest closed period and swaps it from the dialog', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
       assets: 500_000,
       liabilities: 120_000,
     });
+    openingPeriodsMock.periods = [
+      { yearMonth: '2026-08', netWorth: 380_000 },
+      { yearMonth: '2026-03', netWorth: 250_000 },
+    ];
     renderWorkspace();
 
     const input = await openBaseline();
     await waitFor(() => expect(input).toHaveValue(380000));
-    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent(
-      'Derived from the latest closed period. As of 2026-08',
-    );
-    expect(screen.queryByRole('button', { name: 'USE SNAPSHOT' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
 
-    fireEvent.change(input, { target: { value: '250000' } });
-    expect(input).toHaveValue(250000);
+    fireEvent.change(input, { target: { value: '260000' } });
+    expect(input).toHaveValue(260000);
     expect(screen.queryByTestId('opening-net-worth-note')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'USE SNAPSHOT' }));
-    expect(input).toHaveValue(380000);
-    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
-    expect(screen.queryByRole('button', { name: 'USE SNAPSHOT' })).not.toBeInTheDocument();
+    // USE CLOSED stays available: it is a source picker now, not an undo.
+    fireEvent.click(screen.getByRole('button', { name: 'USE CLOSED' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    fireEvent.click(await dialog.findByTestId('opening-period-2026-03'));
+
+    expect(input).toHaveValue(250000);
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-03');
+  });
+
+  it('pins the current anchor above a window it is missing from', async () => {
+    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
+      openingNetWorth: 380_000,
+      anchorYearMonth: '2025-07',
+      assets: 500_000,
+      liabilities: 120_000,
+    });
+    openingPeriodsMock.periods = [{ yearMonth: '2026-08', netWorth: 250_000 }];
+    openingPeriodsMock.pinned = { yearMonth: '2025-07', netWorth: 380_000 };
+    renderWorkspace();
+
+    const input = await openBaseline();
+    await waitFor(() => expect(input).toHaveValue(380000));
+    fireEvent.click(screen.getByRole('button', { name: 'USE CLOSED' }));
+
+    const dialog = within(await screen.findByRole('dialog'));
+    const pinnedRow = await dialog.findByTestId('opening-period-2025-07');
+    expect(pinnedRow).toHaveAttribute('aria-current', 'true');
+    expect(pinnedRow).toHaveTextContent('380,000');
   });
 
   it('keeps the opening typed before the snapshot resolves', async () => {
@@ -702,7 +845,7 @@ describe('ProjectionWorkspacePage', () => {
     });
 
     expect(input).toHaveValue(777);
-    expect(screen.getByRole('button', { name: 'USE SNAPSHOT' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'USE CLOSED' })).toBeInTheDocument();
   });
 
   it('shows inline schema labels for invalid assumptions', async () => {
@@ -780,23 +923,24 @@ describe('ProjectionWorkspacePage', () => {
     // The newest phase is the selected one, so its row is the inspector's.
     const owner = await addEvent();
 
-    fillPhase(phaseRows(owner)[0], { name: 'World trip' });
+    await fillPhase({ name: 'World trip' });
 
     const inspector = screen.getByTestId('life-event-inspector');
     const select = within(inspector).getByLabelText('Belongs to event');
-    const ownerName = (within(owner).getByLabelText(/Event name/) as HTMLInputElement).value;
-    const otherName = (within(other).getByLabelText(/Event name/) as HTMLInputElement).value;
     // The owner is listed, so the field is never blank and shows where the
     // phase currently belongs.
-    expect(select).toHaveTextContent(ownerName);
+    const ownerName = (select.textContent ?? '').trim();
+    expect(ownerName).not.toBe('');
 
     fireEvent.click(select);
     const options = await screen.findAllByRole('option');
-    fireEvent.click(options.find((option) => option.textContent === otherName) as HTMLElement);
+    const target = options.find((option) => (option.textContent ?? '').trim() !== ownerName);
+    expect(target).toBeDefined();
+    fireEvent.click(target as HTMLElement);
 
-    expect(await within(other).findByDisplayValue('World trip')).toBeInTheDocument();
+    expect(await within(other).findByText('World trip')).toBeInTheDocument();
     // The row it left keeps a blank phase instead of going empty.
-    expect(within(owner).queryByDisplayValue('World trip')).not.toBeInTheDocument();
+    expect(within(owner).queryByText('World trip')).not.toBeInTheDocument();
     expect(within(owner).getAllByTestId('phase-row')).toHaveLength(1);
   }, 20_000);
 
@@ -966,6 +1110,36 @@ describe('ProjectionWorkspacePage', () => {
     expect(await within(listbox()).findByText('used by 1')).toBeInTheDocument();
   });
 
+  it('asks for the side before the method, because the side narrows the method list', async () => {
+    renderWorkspace();
+    await addRule();
+    const side = within(ruleInspector()).getByLabelText('Side');
+    const method = within(ruleInspector()).getByLabelText('Method');
+
+    expect(side.compareDocumentPosition(method) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('names a detail code after its parent so sibling details stay apart', async () => {
+    ledgerCodesMock.codes = [
+      { code: 'income:salary', label: '薪資', type: 'income', isCustom: false, isActive: true },
+      {
+        code: 'income:salary:bonus',
+        label: '年終',
+        type: 'income',
+        isCustom: true,
+        isActive: true,
+      },
+      { code: 'expense:living', label: '生活費', type: 'expense', isCustom: false, isActive: true },
+    ];
+
+    renderWorkspace();
+    await addRule();
+    fireEvent.click(within(ruleInspector()).getByLabelText('Source'));
+
+    expect(await screen.findByRole('option', { name: '薪資 › 年終' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: '薪資' })).toBeInTheDocument();
+  });
+
   it('toggles a rule enabled state', async () => {
     renderWorkspace();
     await addRule();
@@ -974,6 +1148,33 @@ describe('ProjectionWorkspacePage', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('holds the rule dialog open until the marked fields are filled', async () => {
+    renderWorkspace();
+    await addRule();
+    const confirm = screen.getByTestId('rule-confirm');
+    const name = within(ruleInspector()).getByLabelText(/Rule name/);
+
+    // ADD no longer closes over an unusable rule: the dialog stays and says why.
+    expect(confirm).toBeDisabled();
+    fireEvent.change(name, { target: { value: 'Salary' } });
+    expect(confirm).toBeDisabled();
+    expect(screen.getByText('Fix the marked fields to close this rule.')).toBeInTheDocument();
+    // The empty source is the field it flags, so the reason is on screen too.
+    expect(within(ruleInspector()).getByText('來源 id 必填')).toBeInTheDocument();
+
+    await choose('Method', 'Fixed amount');
+    fireEvent.change(within(ruleInspector()).getByLabelText('Amount'), {
+      target: { value: '1000' },
+    });
+
+    expect(confirm).toBeEnabled();
+    expect(screen.queryByText('Fix the marked fields to close this rule.')).not.toBeInTheDocument();
+
+    fireEvent.click(confirm);
+    await waitFor(() => expect(screen.queryByTestId('rule-inspector')).not.toBeInTheDocument());
+    expect(ruleRows()).toHaveLength(1);
   });
 
   it('deletes a rule from its dialog', async () => {
@@ -1054,7 +1255,8 @@ describe('ProjectionWorkspacePage', () => {
 
     await waitFor(() => expect(eventRows()).toHaveLength(1));
     const [row] = eventRows();
-    expect(within(row).getByLabelText(/Event name/)).toHaveValue('World trip');
+    // Rows are summaries; the name is text, not an input.
+    expect(row).toHaveTextContent('World trip');
     expect(screen.queryAllByTestId('rule-row')).toHaveLength(0);
   });
 
@@ -1075,14 +1277,16 @@ describe('ProjectionWorkspacePage', () => {
     renderWorkspace();
     const row = await addEvent();
 
-    expect(within(row).queryByLabelText('Source')).not.toBeInTheDocument();
-    expect(within(row).queryByLabelText('Source type')).not.toBeInTheDocument();
+    expect(within(inspector()).queryByLabelText('Source')).not.toBeInTheDocument();
+    expect(within(inspector()).queryByLabelText('Source type')).not.toBeInTheDocument();
 
-    expect(within(row).getByRole('switch', { name: /Income/ })).not.toBeChecked();
-    fireEvent.click(within(row).getByRole('switch', { name: /Income/ }));
-    expect(within(row).getByRole('switch', { name: /Expense/ })).toBeChecked();
+    const type = within(inspector()).getByRole('switch', { name: 'Type' });
+    expect(type).not.toBeChecked();
+    fireEvent.click(type);
+    expect(type).toBeChecked();
+    expect(row).toHaveTextContent('Expense');
 
-    const toggle = within(row).getByRole('switch', { name: /Enabled/ });
+    const toggle = within(row).getByRole('switch', { name: 'Enabled' });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-checked', 'false');
@@ -1094,8 +1298,8 @@ describe('ProjectionWorkspacePage', () => {
 
   it('keeps events out of a rule percentage source list', async () => {
     renderWorkspace();
-    const event = await addEvent();
-    fireEvent.change(within(event).getByLabelText(/Event name/), {
+    await addEvent();
+    fireEvent.change(within(inspector()).getByLabelText(/Event name/), {
       target: { value: 'World trip' },
     });
 
@@ -1113,33 +1317,38 @@ describe('ProjectionWorkspacePage', () => {
   it('adds phases and sorts them by start year', async () => {
     renderWorkspace();
     const row = await addEvent();
-    const first = phaseRows(row)[0];
-    const second = await addPhase(row);
-    const third = await addPhase(row);
 
-    // A list-added phase already carries the retirement year.
-    expect(within(third).getByLabelText(/Start year/)).toHaveTextContent('2060');
+    await fillPhase({ start: '2040', end: '2041', amount: '1' });
+    const added = await addPhase(row);
+    // A list-added phase is selected and already carries the retirement year.
+    await waitFor(() =>
+      expect(within(inspector()).getByLabelText(/Start year/)).toHaveTextContent('2060'),
+    );
+    expect(added).toHaveTextContent('2060');
 
-    fillPhase(first, { start: '2040', end: '2041', amount: '1' });
-    fillPhase(second, { start: '2030', end: '2031', amount: '1' });
-    fillPhase(third, { start: '2035', end: '2036', amount: '1' });
+    await fillPhase({ start: '2030', end: '2031', amount: '1' });
+    await addPhase(row);
+    await fillPhase({ start: '2035', end: '2036', amount: '1' });
 
-    expect(
-      phaseRows(row).map((phase) => within(phase).getByLabelText(/Start year/).textContent),
-    ).toEqual(['2030', '2035', '2040']);
+    await waitFor(() =>
+      expect(phaseRows(row).map((phase) => phase.textContent)).toEqual([
+        expect.stringContaining('2030–2031'),
+        expect.stringContaining('2035–2036'),
+        expect.stringContaining('2040–2041'),
+      ]),
+    );
   }, 30_000);
 
   it('blocks overlapping phases and focuses the offending start year', async () => {
     renderWorkspace();
     const row = await addEvent();
-    const first = phaseRows(row)[0];
-    const second = await addPhase(row);
 
-    fillPhase(first, { start: '2020', end: '2030', amount: '1' });
-    fillPhase(second, { start: '2035', end: '2040', amount: '1' });
-    pickOption(/Start year/, '2025', second);
+    await fillPhase({ start: '2020', end: '2030', amount: '1' });
+    await addPhase(row);
+    await fillPhase({ start: '2035', end: '2040', amount: '1' });
+    pickOption(/Start year/, '2025', inspector());
 
-    expect(await within(row).findByText('階段不可重疊')).toBeInTheDocument();
+    expect(await screen.findByText('階段不可重疊')).toBeInTheDocument();
     // The list is hidden at this width; the inspector holds the same fields.
     await waitFor(() =>
       expect(
@@ -1150,12 +1359,11 @@ describe('ProjectionWorkspacePage', () => {
 
   it('blocks an end year before the start and focuses the end year', async () => {
     renderWorkspace();
-    const row = await addEvent();
-    const phase = phaseRows(row)[0];
+    await addEvent();
 
-    fillPhase(phase, { start: '2050', end: '2040', amount: '1' });
+    await fillPhase({ start: '2050', end: '2040', amount: '1' });
 
-    expect(await within(row).findByText('結束年度不得早於開始年度')).toBeInTheDocument();
+    expect(await screen.findByText('結束年度不得早於開始年度')).toBeInTheDocument();
     await waitFor(() =>
       expect(
         within(screen.getByTestId('life-event-inspector')).getByLabelText(/End year/),
@@ -1166,28 +1374,26 @@ describe('ProjectionWorkspacePage', () => {
   it('validates amount, growth rate and requires one phase', async () => {
     renderWorkspace();
     const row = await addEvent();
-    const phase = phaseRows(row)[0];
 
-    fillPhase(phase, { start: '2040', end: '2041', amount: '-1', growth: '25' });
+    await fillPhase({ start: '2040', end: '2041', amount: '-1', growth: '25' });
 
-    expect(await within(row).findByText('金額不得為負')).toBeInTheDocument();
-    expect(within(row).getByText('成長率必須介於 -10% 到 20%')).toBeInTheDocument();
+    expect(await screen.findByText('金額不得為負')).toBeInTheDocument();
+    expect(screen.getByText('成長率必須介於 -10% 到 20%')).toBeInTheDocument();
 
-    fireEvent.click(within(phase).getByRole('button', { name: 'Delete phase' }));
+    clickDeletePhase();
     // The event keeps a blank phase on the same years instead of going empty.
     expect(phaseRows(row)).toHaveLength(1);
-    expect(within(row).getByLabelText(/Start year/)).toHaveTextContent('2040');
-    expect(within(row).queryByText('事件至少需要一個階段')).not.toBeInTheDocument();
+    expect(within(inspector()).getByLabelText(/Start year/)).toHaveTextContent('2040');
+    expect(screen.queryByText('事件至少需要一個階段')).not.toBeInTheDocument();
   });
 
   it('accepts a blank optional phase name', async () => {
     renderWorkspace();
-    const row = await addEvent();
-    const phase = phaseRows(row)[0];
+    await addEvent();
 
-    fillPhase(phase, { start: '2040', end: '2041', amount: '500' });
+    await fillPhase({ start: '2040', end: '2041', amount: '500' });
 
-    expect(within(row).queryByText('階段名稱不可留白')).not.toBeInTheDocument();
+    expect(screen.queryByText('階段名稱不可留白')).not.toBeInTheDocument();
   });
 
   it('marks the workspace dirty on an event edit', async () => {
@@ -1208,8 +1414,11 @@ describe('ProjectionWorkspacePage', () => {
 
     await waitFor(() => expect(eventRows()).toHaveLength(1));
     const [row] = eventRows();
-    expect(within(row).getByRole('switch', { name: /Expense/ })).toBeChecked();
-    expect(within(row).getByLabelText(/Start year/)).toHaveTextContent('2040');
+    expect(row).toHaveTextContent('Expense');
+    await selectPhase(row);
+    await waitFor(() =>
+      expect(within(inspector()).getByLabelText(/Start year/)).toHaveTextContent('2040'),
+    );
   });
 
   it('disables CALCULATE and explains every readiness blocker on its band', async () => {
@@ -1435,7 +1644,14 @@ describe('ProjectionWorkspacePage', () => {
       expect(within(dialog).getByText('Details')).toBeInTheDocument();
       expect(screen.getAllByTestId('life-event-inspector')).toHaveLength(1);
 
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Close' }));
+      // A fresh phase is incomplete, so close is held back until it is filled.
+      const close = within(dialog).getByRole('button', { name: 'Close' });
+      fireEvent.click(close);
+      expect(screen.getByTestId('phase-blocked-hint')).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      await fillPhase({ amount: '1' });
+      fireEvent.click(close);
       await waitFor(() =>
         expect(screen.queryByTestId('life-event-inspector')).not.toBeInTheDocument(),
       );
@@ -1476,16 +1692,15 @@ describe('ProjectionWorkspacePage', () => {
     }
   });
 
-  it('replaces the last phase deleted from the list and focuses the column', async () => {
+  it('replaces the last phase deleted from the inspector and focuses the column', async () => {
     const viewport = stubViewport(true);
     try {
       renderWorkspace();
 
       const row = await addEvent();
       // One phase to begin with: deleting it must not leave the event empty.
-      const [onlyPhase] = within(row).getAllByTestId('phase-row');
       expect(within(row).getAllByTestId('phase-row')).toHaveLength(1);
-      fireEvent.click(within(onlyPhase).getByRole('button', { name: 'Delete phase' }));
+      clickDeletePhase();
 
       await waitFor(() =>
         expect(within(eventRows()[0]).getAllByTestId('phase-row')).toHaveLength(1),
@@ -1508,17 +1723,18 @@ describe('ProjectionWorkspacePage', () => {
     await addPhase(eventRows()[0]);
     expect(screen.getAllByTestId('life-event-inspector')).toHaveLength(1);
 
-    // The added phase is the selected one and sorts last; everything is
-    // re-queried because rows re-render and captured nodes go stale.
     const phasesBefore = within(eventRows()[0]).queryAllByTestId('phase-row').length;
-    const lastPhase = within(eventRows()[0]).getAllByTestId('phase-row')[phasesBefore - 1];
-    fireEvent.click(within(lastPhase).getByRole('button', { name: 'Delete phase' }));
+    clickDeletePhase();
 
     await waitFor(() =>
       expect(within(eventRows()[0]).queryAllByTestId('phase-row')).toHaveLength(phasesBefore - 1),
     );
-    expect(screen.getByText('Select a phase to edit it.')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByText('ADD EVENT')).toHaveFocus());
+    // The selection goes with the phase, so the sheet closes and focus returns
+    // to the section's ADD.
+    await waitFor(() =>
+      expect(screen.queryByTestId('life-event-inspector')).not.toBeInTheDocument(),
+    );
+    await waitFor(() => expect(screen.getByText('ADD EVENT')).toHaveFocus(), { timeout: 1000 });
   });
 
   it('labels the two stages without competing numbers', () => {
@@ -1640,41 +1856,84 @@ describe('ProjectionWorkspacePage', () => {
     await waitFor(() => expect(confirmMock).toHaveBeenCalledTimes(1));
   });
 
-  it('re-resolves a derived opening while keeping the rest of the preload', async () => {
+  it('copies a derived opening from the projection without re-resolving it', async () => {
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
       preloadConfig({
-        openingNetWorth: { amount: 1, source: 'derived', anchorYearMonth: '2026-01' },
+        openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
       }) as never,
     );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([
+      balanceSheetReport('2026-01', 150_000, 20_000),
+    ]);
+    const router = renderWorkspace('/retirement/new?from=projection-1');
+
+    const input = await openBaseline();
+    await waitFor(() => expect(input).toHaveValue(123000));
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-01');
+    expect(screen.getByLabelText('Birth year')).toHaveTextContent('1990');
+    expect(getProjectionOpeningUseCase.execute).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.state.location.search).toBe(''));
+  });
+
+  it('falls back to the latest closed month when the anchor report is gone', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      preloadConfig({
+        openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
+      }) as never,
+    );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
       assets: 500_000,
       liabilities: 120_000,
     });
-    const router = renderWorkspace('/retirement/new?from=projection-1');
+    renderWorkspace('/retirement/new?from=projection-1');
 
     const input = await openBaseline();
     await waitFor(() => expect(input).toHaveValue(380000));
-    expect(screen.getByLabelText('Birth year')).toHaveTextContent('1990');
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
   });
 
-  it('leaves the opening blank and warns when a derived opening no longer resolves', async () => {
+  it('drops the anchor when the anchor report and every closed month are gone', async () => {
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
       preloadConfig({
-        openingNetWorth: { amount: 1, source: 'derived', anchorYearMonth: '2026-01' },
+        openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
       }) as never,
     );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       reason: 'NO_CLOSED_PERIOD',
     });
-    const router = renderWorkspace('/retirement/new?from=projection-1');
+    renderWorkspace('/retirement/new?from=projection-1');
 
-    expect(await screen.findByTestId('preload-warning')).toBeInTheDocument();
-    expect(await openBaseline()).toHaveValue(null);
-    expect(screen.getByLabelText('Birth year')).toHaveTextContent('1990');
-    await waitFor(() => expect(router.state.location.search).toBe(''));
+    const input = await openBaseline();
+    await waitFor(() => expect(input).toHaveValue(123000));
+    expect(screen.queryByTestId('opening-net-worth-note')).not.toBeInTheDocument();
+  });
+
+  it('sends the anchor with the calculation, not just the visible note', async () => {
+    vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
+      preloadConfig({
+        openingNetWorth: { amount: 123_000, source: 'derived', anchorYearMonth: '2026-01' },
+      }) as never,
+    );
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([
+      balanceSheetReport('2026-01', 150_000, 20_000),
+    ]);
+    renderWorkspace('/retirement/new?from=projection-1');
+
+    await openBaseline();
+    await addRule();
+    await confirmRule('Salary');
+    await calculate();
+
+    const [request] = vi.mocked(calculateProjectionWorkflow.execute).mock.lastCall ?? [];
+    expect(request?.opening).toEqual({
+      source: 'derived',
+      amount: 123_000,
+      anchorYearMonth: '2026-01',
+    });
   });
 
   it('falls back to a blank, dirty setup when the source projection is gone', async () => {
@@ -1734,8 +1993,8 @@ describe('ProjectionWorkspacePage', () => {
     await waitFor(() => expect(screen.getByLabelText('Projection name')).toBeInTheDocument());
   });
 
-  it('shows an error and RETRY when saving fails, and Cancel returns to preview', async () => {
-    renderWorkspace();
+  it('shows an error and RETRY when saving fails, then lands on the projection', async () => {
+    const router = renderWorkspace();
     await fillValidSetup();
     await calculate();
     vi.mocked(persistProjectionUseCase.execute)
@@ -1753,22 +2012,16 @@ describe('ProjectionWorkspacePage', () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'RETRY' }));
 
-    expect(await screen.findByRole('link', { name: 'View projection' })).toHaveAttribute(
-      'href',
-      '/retirement/projections/projection-1',
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
-    expect(screen.getByRole('button', { name: 'SAVE' })).toBeInTheDocument();
+    expect(await screen.findByText('projection view')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/retirement/projections/projection-1');
   });
 
-  it('closes on success, stays in preview, links the projection and prefills the last name', async () => {
+  it('closes the dialog and lands on the projection it just saved', async () => {
     vi.mocked(persistProjectionUseCase.execute).mockResolvedValue({
       ok: true,
       id: 'projection-9',
     });
-    renderWorkspace();
+    const router = renderWorkspace();
     await fillValidSetup();
     await calculate();
 
@@ -1777,13 +2030,9 @@ describe('ProjectionWorkspacePage', () => {
     fireEvent.change(input, { target: { value: 'First projection' } });
     fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
 
-    const link = await screen.findByRole('link', { name: 'View projection' });
-    expect(link).toHaveAttribute('href', '/retirement/projections/projection-9');
-    expect(screen.getByText('Projection saved.')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'YOUR OUTLOOK' })).toBeInTheDocument();
+    expect(await screen.findByText('projection view')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/retirement/projections/projection-9');
+    expect(notifySaved).toHaveBeenCalledWith('Projection saved.');
     expect(screen.queryByLabelText('Projection name')).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'SAVE' }));
-    expect(await screen.findByLabelText('Projection name')).toHaveValue('First projection');
   });
 }, 30_000);

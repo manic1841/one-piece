@@ -179,7 +179,11 @@ partial update，也不引入 idempotency key——重試同一 desired state �
 
 - `orders` 為空陣列時直接成功返回。
 - 重複的目標 id 回傳 `INVALID_ORDERS`。
-- 不存在的目標文件在 transaction 內 `tx.get` 後顯式拒絕 `TARGET_NOT_FOUND`，不靜默略過。
+- Account reorder 的 `orders` 必須是該 household 的完整清單（含停用項目）：order 是全域
+  值，只重排篩選後的部分會與未列入的列撞號，因此缺漏或不存在 id 在交易前就以
+  `INVALID_ORDERS` 拒絕。
+- 其餘集合不存在的目標文件在 transaction 內 `tx.get` 後顯式拒絕 `TARGET_NOT_FOUND`，
+  不靜默略過。
 - 其他 transaction 失敗包裝為 `TRANSACTION_FAILED`。
 - 兩個成員同時 reorder 會產生 transaction 衝突，後提交者重試後收斂為其中一方的完整排序，
   不需要額外的 contention token。

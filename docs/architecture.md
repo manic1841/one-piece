@@ -71,6 +71,13 @@
 3. **處理邏輯**: `Use Case` -> `Domain Service` (核心校驗) -> `Repository` (資料存取)
 4. **回傳**: 資料經由 `Mapper` 轉換為 Domain Object 或 DTO 後，由 Hook 更新 UI 狀態。
 
+### 帳戶清單的讀取契約
+
+- 批次讀取只驗一次 household 權限；同一文件的短期快取在寫入或備份還原後立即失效，較舊的異步回應不得覆蓋新狀態。
+- 列表預設只載入啟用帳戶；切換至「含停用」後才載入完整清單。完整清單就緒前停用重排，避免重編全域順序時漏掉停用帳戶。
+- 帳戶清單只讀取各帳戶最新期別快照，並行讀取互不相依的帳戶資料。年度／月度報表另有期間明細查詢，不沿用此列表契約。
+- Controller 只處理查詢與畫面狀態；新增帳戶時的尾端順序由 application 以完整帳戶集合決定。
+
 ## 3. 重要約定 (Conventions)
 
 - **意圖導向 (Intent-based)**: 財務操作的分錄架構與 IntentType 分層見 [transaction-flow.md](transaction-flow.md)；取捨理由見 [ADR-0005](adr/0005-journal-entry-architecture.md) 與 [ADR-0010](adr/0010-intenttype-three-tier.md)。

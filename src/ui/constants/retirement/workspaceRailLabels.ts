@@ -49,6 +49,7 @@ export const WORKSPACE_ACTION_LABELS = {
   PREVIEW_SUMMARY: 'Setup summary (read-only)',
   SHOW_SUMMARY: 'Show summary',
   HIDE_SUMMARY: 'Hide summary',
+  SUMMARY_NONE: 'None',
   VIEW_LIST: 'List',
   VIEW_TIMELINE: 'Timeline',
   NO_EVENTS: 'No life events yet.',

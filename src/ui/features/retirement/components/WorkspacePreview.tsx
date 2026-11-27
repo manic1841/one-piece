@@ -6,7 +6,6 @@ import { PREVIEW_LABELS as LABELS } from '@/ui/constants/retirement/previewLabel
 import { PROJECTION_RESULT_LABELS } from '@/ui/constants/retirement/resultLabels';
 import { PreviewRetirementComparison } from '@/ui/features/retirement/components/PreviewRetirementComparison';
 import { ProjectionTrajectory } from '@/ui/features/retirement/components/ProjectionTrajectory';
-import { WorkspaceNotices } from '@/ui/features/retirement/components/WorkspaceNotices';
 import { WorkspaceSummary } from '@/ui/features/retirement/components/WorkspaceSummary';
 import { YearlyDetails } from '@/ui/features/retirement/components/YearlyDetails';
 import { type AssumptionsVM } from '@/ui/features/retirement/viewmodels/assumptionForm.vm';
@@ -30,8 +29,6 @@ interface WorkspacePreviewProps {
   calculateError: string | null;
   warningLabels: string[];
   calculated: { projection: RetirementProjectionVM; summary: ProjectionSummaryVM } | null;
-  savedAsPlan: boolean;
-  savedId: string | null;
   appliedPlanName: string | null;
   retirementComparisons: RetirementComparisonVM[];
   onApplyRetirementAge: (age: number) => void;
@@ -49,8 +46,6 @@ export function WorkspacePreview({
   calculateError,
   warningLabels,
   calculated,
-  savedAsPlan,
-  savedId,
   appliedPlanName,
   retirementComparisons,
   onApplyRetirementAge,
@@ -159,24 +154,43 @@ export function WorkspacePreview({
 
       <section className="border-t border-border pt-6">
         <h2 className={subSectionTitleClass}>{LABELS.SETTINGS}</h2>
-        {appliedPlanName && (
-          <p className="mt-2 text-xs text-muted-foreground" data-testid="applied-plan-name">
-            {LABELS.BASED_ON} <span className="text-foreground">{appliedPlanName}</span>
-          </p>
-        )}
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          {LABELS.SUMMARY(
-            openingAmount ?? PROJECTION_COMMON_LABELS.DASH,
-            startYear,
-            assumptions.retirementAge,
-            assumptions.lifeExpectancy,
-            rules.length,
-            events.length,
-          )}
-        </p>
+        <dl className="mt-3 grid gap-1.5 text-xs" data-testid="settings-facts">
+          {[
+            { label: LABELS.SETTINGS_START_YEAR, value: String(startYear) },
+            {
+              label: LABELS.SETTINGS_RETIREMENT,
+              value: LABELS.RETIREMENT_RANGE(
+                assumptions.retirementAge,
+                birthYear + Number(assumptions.retirementAge),
+                assumptions.lifeExpectancy,
+              ),
+            },
+            {
+              label: LABELS.SETTINGS_RATES,
+              value: LABELS.RATES(assumptions.inflationRate, assumptions.annualReturnRate),
+            },
+            {
+              label: LABELS.SETTINGS_VOLUME,
+              value: LABELS.VOLUME(
+                rules.filter((rule) => rule.ruleType === 'income').length,
+                events.length,
+              ),
+            },
+          ].map((fact) => (
+            <div key={fact.label} className="flex items-baseline justify-between gap-4">
+              <dt className="text-muted-foreground">{fact.label}</dt>
+              <dd className="text-right tabular-nums text-foreground">{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
         <details className="mt-3 text-xs text-muted-foreground">
           <summary className="cursor-pointer py-1">{LABELS.SETTINGS_DETAILS}</summary>
-          <div className="pt-4">
+          <div className="grid gap-4 pt-4">
+            {appliedPlanName && (
+              <p data-testid="applied-plan-name">
+                {LABELS.BASED_ON} <span className="text-foreground">{appliedPlanName}</span>
+              </p>
+            )}
             <WorkspaceSummary
               startYear={startYear}
               opening={opening}
@@ -189,7 +203,6 @@ export function WorkspacePreview({
           </div>
         </details>
       </section>
-      <WorkspaceNotices savedAsPlan={savedAsPlan} savedId={savedId} />
     </div>
   );
 }

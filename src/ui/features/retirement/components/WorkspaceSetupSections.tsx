@@ -7,7 +7,6 @@ import { AssumptionsSection } from '@/ui/features/retirement/components/Assumpti
 import { LifeEventsSection } from '@/ui/features/retirement/components/LifeEventsSection';
 import { OpeningNetWorthSection } from '@/ui/features/retirement/components/OpeningNetWorthSection';
 import { ProjectionRulesSection } from '@/ui/features/retirement/components/ProjectionRulesSection';
-import { WorkspaceNotices } from '@/ui/features/retirement/components/WorkspaceNotices';
 import { type DebtAccountOption } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import {
   type ProjectionWorkspaceStage,
@@ -17,13 +16,13 @@ import {
   type WorkspaceEvents,
   type WorkspaceOpening,
   type WorkspaceRules,
-  type WorkspaceSaveStatus,
   type WorkspaceUndo,
 } from '@/ui/features/retirement/types/workspaceTypes';
 import { type SectionStates } from '@/ui/features/retirement/viewmodels/workspaceSectionState.vm';
 import { type SourceOptions } from '@/ui/hooks/useSourceOptions';
 
 interface WorkspaceSetupSectionsProps {
+  householdId: string | undefined;
   stage: ProjectionWorkspaceStage;
   opening: WorkspaceOpening;
   assumptions: WorkspaceAssumptions;
@@ -36,7 +35,6 @@ interface WorkspaceSetupSectionsProps {
   derived: WorkspaceDerived;
   undo: WorkspaceUndo;
   calc: WorkspaceCalc;
-  save: WorkspaceSaveStatus;
   /** Per-band state, so each blocker is explained where the work happens. */
   sectionState: SectionStates;
   ledgerSource: SourceOptions<LedgerCodeItem>;
@@ -51,6 +49,7 @@ interface WorkspaceSetupSectionsProps {
  * (`WorkspacePreview`), so nothing here has to branch on the stage.
  */
 export function WorkspaceSetupSections({
+  householdId,
   stage,
   opening,
   assumptions,
@@ -63,7 +62,6 @@ export function WorkspaceSetupSections({
   derived,
   undo,
   calc,
-  save,
   sectionState,
   ledgerSource,
   debtSource,
@@ -87,19 +85,18 @@ export function WorkspaceSetupSections({
   return (
     <div className="grid">
       <OpeningNetWorthSection
+        householdId={householdId}
         opening={opening.value}
         stage={stage}
         loading={opening.loading}
         error={opening.error}
         validationError={opening.validationError}
-        hasClosedPeriod={opening.hasClosedPeriod}
-        hasSnapshot={opening.hasSnapshot}
         startYear={startYear}
         startYearError={opening.startYearError}
         setStartYear={setStartYear}
         setAmount={opening.setOpeningAmount}
         commitAmount={opening.commitOpeningAmount}
-        resetToSnapshot={opening.resetToSnapshot}
+        applyReport={opening.applyReport}
         retry={opening.reload}
         status={opening.validationError === undefined ? sectionState.baseline?.status : 'error'}
         hint={sectionState.baseline?.hint}
@@ -123,6 +120,7 @@ export function WorkspaceSetupSections({
         form={rules.form}
         rules={rules.rules}
         errors={rules.errors}
+        editErrors={rules.allErrors}
         readOnly={false}
         ledgerSource={ledgerSource}
         debtSource={debtSource}
@@ -143,6 +141,7 @@ export function WorkspaceSetupSections({
           form={events.form}
           events={events.events}
           errors={events.errors}
+          editErrors={events.allErrors}
           readOnly={false}
           focusRequest={events.focusRequest}
           projectionStartYear={startYear}
@@ -184,8 +183,6 @@ export function WorkspaceSetupSections({
           <AlertDescription>{calc.calculateError}</AlertDescription>
         </Alert>
       )}
-
-      <WorkspaceNotices savedAsPlan={save.savedAsPlan} savedId={save.savedId} />
     </div>
   );
 }

@@ -22,6 +22,7 @@ import { WorkspaceSetupSections } from '@/ui/features/retirement/components/Work
 import { WorkspaceSteps } from '@/ui/features/retirement/components/WorkspaceSteps';
 import { useDebtAccountOptions } from '@/ui/features/retirement/hooks/useDebtAccountOptions';
 import { useProjectionWorkspace } from '@/ui/features/retirement/hooks/useProjectionWorkspace';
+import { notifySaved } from '@/ui/hooks/notify';
 import { cn } from '@/ui/utils/cn';
 
 /**
@@ -55,13 +56,23 @@ export default function ProjectionWorkspacePage() {
   };
 
   const openSave = () => {
-    workspace.save.saveForm.open(
-      workspace.save.lastSavedName ?? workspace.appliedPlanName ?? workspace.save.defaultName(),
-    );
+    workspace.save.saveForm.open(workspace.appliedPlanName ?? workspace.save.defaultName());
   };
 
   const openSaveAsPlan = () => {
     workspace.save.saveAsPlanForm.open(workspace.appliedPlanName ?? '');
+  };
+
+  /**
+   * A save leaves for what it wrote, and replaces the workspace in history so
+   * BACK does not land on the filled-in form that was just persisted.
+   *
+   * The state that quiets the leave guard (`markSaved`) commits a beat after the
+   * write resolves, so the navigation waits a tick — otherwise the guard reads
+   * the workspace as dirty and asks on the save's own exit.
+   */
+  const leaveFor = (path: string) => {
+    window.setTimeout(() => void navigate(path, { replace: true }), 0);
   };
 
   /**
@@ -177,11 +188,10 @@ export default function ProjectionWorkspacePage() {
               calculateError={workspace.calc.calculateError}
               warningLabels={workspace.calc.warningLabels}
               calculated={workspace.calc.calculated}
-              savedAsPlan={workspace.save.savedAsPlan}
-              savedId={workspace.save.savedId}
             />
           ) : (
             <WorkspaceSetupSections
+              householdId={householdId}
               stage={workspace.stage}
               opening={workspace.opening}
               assumptions={workspace.assumptions}
@@ -194,7 +204,6 @@ export default function ProjectionWorkspacePage() {
               derived={workspace.derived}
               undo={workspace.undo}
               calc={workspace.calc}
-              save={workspace.save}
               sectionState={sectionState}
               ledgerSource={ledgerSource}
               debtSource={debtSource}
@@ -250,7 +259,14 @@ export default function ProjectionWorkspacePage() {
           open
           form={workspace.save.saveForm.field}
           submit={() =>
-            workspace.save.saveForm.submit(workspace.save.save, workspace.save.saveForm.close)
+            workspace.save.saveForm.submit(
+              (name) => workspace.save.save(name),
+              (outcome) => {
+                workspace.save.saveForm.close();
+                notifySaved(PROJECTION_WORKSPACE_LABELS.SAVED_MESSAGE);
+                if (outcome.id !== undefined) leaveFor(`/retirement/projections/${outcome.id}`);
+              },
+            )
           }
           onCancel={workspace.save.saveForm.close}
         />
@@ -265,10 +281,11 @@ export default function ProjectionWorkspacePage() {
           savingLabel={PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_DIALOG_SAVING}
           form={workspace.save.saveAsPlanForm.field}
           submit={() =>
-            workspace.save.saveAsPlanForm.submit(
-              workspace.save.saveAsPlan,
-              workspace.save.saveAsPlanForm.close,
-            )
+            workspace.save.saveAsPlanForm.submit(workspace.save.saveAsPlan, (outcome) => {
+              workspace.save.saveAsPlanForm.close();
+              notifySaved(PROJECTION_WORKSPACE_LABELS.SAVE_AS_PLAN_SAVED_MESSAGE);
+              if (outcome.id !== undefined) leaveFor(`/retirement/plans/${outcome.id}`);
+            })
           }
           onCancel={workspace.save.saveAsPlanForm.close}
         />

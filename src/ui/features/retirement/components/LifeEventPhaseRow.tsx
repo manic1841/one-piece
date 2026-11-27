@@ -1,126 +1,71 @@
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  NumberInput,
-  SelectField,
-  TextInput,
-} from '@/ui/components/form';
-import { Button } from '@/ui/components/ui/button';
-import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
 import { EVENT_LABELS } from '@/ui/constants/retirement/eventLabels';
-import { usePhaseFieldFocus } from '@/ui/features/retirement/components/usePhaseFieldFocus';
 import {
   type PhaseDraftVM,
   type PhaseErrors,
-  type PhaseFocusRequest,
+  phaseAmountText,
+  phaseRangeText,
+  phaseTitle,
 } from '@/ui/features/retirement/viewmodels/lifeEventForm.vm';
-import { RETIREMENT_YEAR_OPTIONS } from '@/ui/features/retirement/viewmodels/numberOptions.vm';
+import { cn } from '@/ui/utils/cn';
 
 interface LifeEventPhaseRowProps {
-  eventId: string;
   phase: PhaseDraftVM;
   errors: PhaseErrors;
-  readOnly: boolean;
-  focusRequest: PhaseFocusRequest | null;
-  update: (patch: Partial<PhaseDraftVM>) => void;
-  remove: () => void;
+  /** The phase currently loaded into the inspector. */
+  selected: boolean;
+  onSelect: () => void;
 }
 
-/** One phase; blank starts sort last and overlap focus lands on the year input. */
-export function LifeEventPhaseRow({
-  eventId,
-  phase,
-  errors,
-  readOnly,
-  focusRequest,
-  update,
-  remove,
-}: LifeEventPhaseRowProps) {
-  const prefix = `eventsById.${eventId}.phasesById.${phase.id}`;
-  const rowRef = usePhaseFieldFocus<HTMLLIElement>(focusRequest, eventId, phase.id);
+/**
+ * One phase as a summary line: name, years, amount. Selecting it opens the
+ * inspector; the row holds no inputs, so a long phase list stays a list.
+ */
+export function LifeEventPhaseRow({ phase, errors, selected, onSelect }: LifeEventPhaseRowProps) {
+  const errorCount = Object.keys(errors).length;
+  const unnamed = phase.name.trim() === '';
 
   return (
-    <li ref={rowRef} data-testid="phase-row" className="grid gap-3 border-t border-border pt-3">
-      <div className="flex items-end gap-2">
-        <div className="flex-1">
-          <FormField name={`${prefix}.name`}>
-            <FormItem>
-              <FormLabel size="compact">{EVENT_LABELS.PHASE_NAME}</FormLabel>
-              <FormControl>
-                <TextInput readOnly={readOnly} onChange={(name) => update({ name })} />
-              </FormControl>
-              <FormMessage>{errors.name}</FormMessage>
-            </FormItem>
-          </FormField>
-        </div>
-
-        {!readOnly && (
-          <Button variant="text" size="sm" onClick={remove}>
-            {EVENT_LABELS.DELETE_PHASE}
-          </Button>
+    <li data-testid="phase-row">
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-current={selected ? 'true' : undefined}
+        // The visible line is replaced by the aria-label, so the years, amount
+        // and error total are repeated here.
+        aria-label={[
+          `${EVENT_LABELS.EDIT_PHASE}: ${phaseTitle(phase)}`,
+          phaseRangeText(phase),
+          phaseAmountText(phase),
+          errorCount > 0 ? EVENT_LABELS.ERROR_COUNT.replace('{count}', String(errorCount)) : null,
+        ]
+          .filter((part) => part !== null)
+          .join(', ')}
+        className={cn(
+          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left',
+          'hover:bg-muted/50 focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
+          selected && 'bg-muted',
         )}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <FormField name={`${prefix}.startYearText`}>
-          <FormItem>
-            <FormLabel size="compact">{EVENT_LABELS.START_YEAR}</FormLabel>
-            <FormControl>
-              <SelectField
-                value={phase.startYearText}
-                onChange={(startYearText) => update({ startYearText })}
-                options={RETIREMENT_YEAR_OPTIONS}
-                placeholder={PROJECTION_COMMON_LABELS.DASH}
-                disabled={readOnly}
-              />
-            </FormControl>
-            <FormMessage>{errors.startYear}</FormMessage>
-          </FormItem>
-        </FormField>
-
-        <FormField name={`${prefix}.endYearText`}>
-          <FormItem>
-            <FormLabel size="compact">{EVENT_LABELS.END_YEAR}</FormLabel>
-            <FormControl>
-              <SelectField
-                value={phase.endYearText}
-                onChange={(endYearText) => update({ endYearText })}
-                options={RETIREMENT_YEAR_OPTIONS}
-                placeholder={PROJECTION_COMMON_LABELS.DASH}
-                disabled={readOnly}
-              />
-            </FormControl>
-            <FormMessage>{errors.endYear}</FormMessage>
-          </FormItem>
-        </FormField>
-
-        <FormField name={`${prefix}.amountText`}>
-          <FormItem>
-            <FormLabel size="compact">{EVENT_LABELS.AMOUNT}</FormLabel>
-            <FormControl>
-              <NumberInput readOnly={readOnly} onChange={(amountText) => update({ amountText })} />
-            </FormControl>
-            <FormMessage>{errors.amount}</FormMessage>
-          </FormItem>
-        </FormField>
-
-        <FormField name={`${prefix}.growthRateText`}>
-          <FormItem>
-            <FormLabel size="compact">{EVENT_LABELS.GROWTH_RATE}</FormLabel>
-            <FormControl>
-              <NumberInput
-                readOnly={readOnly}
-                onChange={(growthRateText) => update({ growthRateText })}
-              />
-            </FormControl>
-            <p className="text-sm text-muted-foreground">{EVENT_LABELS.GROWTH_RATE_HINT}</p>
-            <FormMessage>{errors.growthRate}</FormMessage>
-          </FormItem>
-        </FormField>
-      </div>
+      >
+        <span className="grid min-w-0 flex-1 gap-0.5">
+          <span className={cn('truncate text-sm', unnamed && 'text-muted-foreground')}>
+            {phaseTitle(phase)}
+          </span>
+          <span className="truncate font-mono text-xs tabular-nums text-muted-foreground">
+            {phaseRangeText(phase)}
+            {EVENT_LABELS.META_SEPARATOR}
+            {phaseAmountText(phase)}
+          </span>
+        </span>
+        {errorCount > 0 && (
+          <span
+            className="text-destructive shrink-0 font-mono text-xs tabular-nums"
+            aria-label={EVENT_LABELS.ERROR_COUNT.replace('{count}', String(errorCount))}
+            data-testid="phase-error-count"
+          >
+            {errorCount}
+          </span>
+        )}
+      </button>
     </li>
   );
 }

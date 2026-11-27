@@ -56,9 +56,9 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
             amountText: String(Math.round(result.value.openingNetWorth)),
             anchorYearMonth: result.value.anchorYearMonth,
           };
-          // Remember the snapshot even when the user already typed, so USE
-          // SNAPSHOT still has something to restore — but never overwrite what
-          // is already on screen.
+          // Remember the snapshot even when the user already typed, so DONE
+          // still has something to return to — but never overwrite what is
+          // already on screen.
           setReportValue(seeded);
           if (seededRef.current) return;
           seededRef.current = true;
@@ -78,11 +78,19 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
     [markDirty],
   );
 
-  const resetToSnapshot = useCallback(() => {
-    if (reportValue === null) return;
-    setOpening({ source: 'derived', ...reportValue });
-    markDirty();
-  }, [markDirty, reportValue]);
+  /**
+   * A pick in the closed-period dialog. The month is provenance only: the value
+   * is what gets calculated, and the pick becomes the restore point.
+   */
+  const applyReport = useCallback(
+    (value: ReportValue) => {
+      seededRef.current = true;
+      setReportValue(value);
+      setOpening({ source: 'derived', ...value });
+      markDirty();
+    },
+    [markDirty],
+  );
 
   /** Back to the seeded default: the snapshot when there is one, otherwise empty. */
   const resetDraft = useCallback(() => {
@@ -118,7 +126,7 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
     replace,
     setOpeningAmount,
     commitOpeningAmount,
-    resetToSnapshot,
+    applyReport,
     resetDraft,
   };
 }

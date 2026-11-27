@@ -6,11 +6,11 @@ import { CloseStageChrome } from '@/ui/features/monthly_close/components/CloseSt
 import { CloseStageLoadError } from '@/ui/features/monthly_close/components/CloseStageLoadError';
 import {
   type TradeRowValue,
-  type TradeSide,
   type TradeTableRow,
   projectTradeRows,
 } from '@/ui/features/monthly_close/viewmodels/tradeDraft.vm';
 
+import { TRADE_KIND_CONFIG } from '../tradeKindConfig';
 import { TradeTable } from './TradeTable';
 
 interface CloseSecuritiesTradeStageProps {
@@ -31,16 +31,6 @@ interface CloseSecuritiesTradeStageProps {
   onConfirm: () => void;
   onBackToCurrent: () => void;
 }
-
-const sideLabels: Record<TradeSide, string> = {
-  BUY: MONTHLY_CLOSE_LABELS.BUY,
-  SELL: MONTHLY_CLOSE_LABELS.SELL,
-};
-
-const financingSideLabels: Record<TradeSide, string> = {
-  BUY: MONTHLY_CLOSE_LABELS.SHAREHOLDER_FINANCING,
-  SELL: MONTHLY_CLOSE_LABELS.DIVIDEND_PAYOUT,
-};
 
 /**
  * SECURITIES_TRADE step: the securities and financing TradeTables rendered
@@ -107,11 +97,13 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
       <div className="space-y-6">
         <TradeTable
           title={MONTHLY_CLOSE_LABELS.SECURITIES_TRANSACTIONS}
-          sideLabels={sideLabels}
+          sideLabels={TRADE_KIND_CONFIG.SECURITIES.sideLabels}
           rows={[
             ...projectTradeRows('buys', securities.buys),
             ...projectTradeRows('sells', securities.sells),
           ]}
+          inflowSide={TRADE_KIND_CONFIG.SECURITIES.inflowSide}
+          summaryTestId={TRADE_KIND_CONFIG.SECURITIES.summaryTestId}
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('SECURITIES')}
           onRowClick={(row) => onOpenTradeDrawer('SECURITIES', row)}
@@ -120,12 +112,14 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
         />
         <TradeTable
           title={MONTHLY_CLOSE_LABELS.FINANCING_RECORDS}
-          sideLabels={financingSideLabels}
-          netLabel={MONTHLY_CLOSE_LABELS.NET_FINANCING_CASH_FLOW}
+          sideLabels={TRADE_KIND_CONFIG.FINANCING.sideLabels}
+          netLabel={TRADE_KIND_CONFIG.FINANCING.netLabel}
           rows={[
             ...projectTradeRows('shareholderFinancing', financing.shareholderFinancing),
             ...projectTradeRows('dividendPayout', financing.dividendPayout),
           ]}
+          inflowSide={TRADE_KIND_CONFIG.FINANCING.inflowSide}
+          summaryTestId={TRADE_KIND_CONFIG.FINANCING.summaryTestId}
           projectIdName={projectNameOf}
           onAdd={() => onOpenTradeDrawer('FINANCING')}
           onRowClick={(row) => onOpenTradeDrawer('FINANCING', row)}

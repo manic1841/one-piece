@@ -57,7 +57,10 @@ export class ListAllLedgerCodesUseCase {
       isActive: custom.isActive,
     }));
 
-    return [...systemCodes, ...customItems];
+    // A household code reuses the system code as its document id, so it shadows
+    // that system code rather than adding a second row with the same value.
+    const shadowed = new Set(customItems.map((item) => item.code));
+    return [...systemCodes.filter((code) => !shadowed.has(code.code)), ...customItems];
   }
 }
 

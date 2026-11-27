@@ -17,6 +17,7 @@ import { transactionRepository } from '@/infra/repositories/transactionRepositor
 
 import { HouseholdBackupPayloadSchema } from './backupSchema';
 import { type HouseholdBackupPayload } from './exportHouseholdBackupUseCase';
+import { invalidateHouseholdCache } from './getHouseholdUseCase';
 import {
   type ExistingHouseholdData,
   buildDeleteRefs,
@@ -146,6 +147,7 @@ class ImportHouseholdBackupUseCase {
     // so malformed payloads never cause data loss.
     await commitDeletes(deleteRefs);
     await commitSets(setOps);
+    invalidateHouseholdCache();
 
     return {
       deletedDocuments: deleteRefs.length,

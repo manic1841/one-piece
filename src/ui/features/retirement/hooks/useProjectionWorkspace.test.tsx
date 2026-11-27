@@ -89,7 +89,6 @@ describe('useProjectionWorkspace', () => {
       amountText: '',
       anchorYearMonth: null,
     });
-    expect(latestRef.current.opening.hasClosedPeriod).toBe(false);
     expect(latestRef.current.dirty).toBe(false);
   });
 
@@ -139,19 +138,21 @@ describe('useProjectionWorkspace', () => {
     expect(latestRef.current.dirty).toBe(true);
   });
 
-  it('restoring the report value keeps the derived anchor and the dirty flag', async () => {
+  it('applying a picked month sets the value, its anchor and the dirty flag', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
     await waitFor(() => expect(latestRef.current.opening.value.amountText).toBe('380000'));
 
     act(() => latestRef.current.opening.setOpeningAmount('1'));
-    act(() => latestRef.current.opening.resetToSnapshot());
+    act(() =>
+      latestRef.current.opening.applyReport({ amountText: '250000', anchorYearMonth: '2026-03' }),
+    );
 
     expect(latestRef.current.opening.value).toEqual({
       source: 'derived',
-      amountText: '380000',
-      anchorYearMonth: '2026-08',
+      amountText: '250000',
+      anchorYearMonth: '2026-03',
     });
     expect(latestRef.current.dirty).toBe(true);
   });
@@ -168,7 +169,9 @@ describe('useProjectionWorkspace', () => {
     expect(latestRef.current.opening.value.amountText).toBe('1201');
     expect(latestRef.current.opening.value.source).toBe('manual');
 
-    act(() => latestRef.current.opening.resetToSnapshot());
+    act(() =>
+      latestRef.current.opening.applyReport({ amountText: '380000', anchorYearMonth: '2026-08' }),
+    );
     act(() => latestRef.current.opening.commitOpeningAmount());
 
     expect(latestRef.current.opening.value.source).toBe('derived');

@@ -95,6 +95,8 @@ let restoreViewport: (() => void) | undefined;
 describe('Layout system status bar', () => {
   afterEach(() => {
     vi.useRealTimers();
+    restoreViewport?.();
+    restoreViewport = undefined;
   });
 
   it('renders ONE PIECE brand, system-online glyph, and today date in one sticky header', () => {
@@ -174,7 +176,8 @@ describe('Layout system status bar', () => {
     expect(screen.queryByRole('button', { name: /settings/i })).not.toBeInTheDocument();
   });
 
-  it('keeps avatar and search reachable when the desktop-only controls are hidden', () => {
+  it('keeps household switcher, search, and avatar reachable on mobile', () => {
+    restoreViewport = stubViewportWidth(375);
     renderLayout();
 
     const avatarButton = screen.getByRole('button', { name: /avatar/i });
@@ -183,7 +186,7 @@ describe('Layout system status bar', () => {
 
     expect(avatarButton.className).not.toContain('hidden');
     expect(searchButton.className).not.toContain('hidden');
-    expect(switcher.parentElement?.className).toContain('hidden');
+    expect(switcher.parentElement?.className).not.toContain('hidden');
   });
 
   it('keeps the palette trigger reachable on mobile', async () => {

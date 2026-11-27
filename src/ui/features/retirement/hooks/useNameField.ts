@@ -12,6 +12,8 @@ export interface NameFieldVM {
 
 export interface SaveNameOutcome {
   ok: boolean;
+  /** Id of what was written; the caller navigates to it on success. */
+  id?: string;
   messages?: string[];
 }
 
@@ -64,7 +66,10 @@ export function useNameField() {
   }, [field]);
 
   const submit = useCallback(
-    (save: (name: string) => Promise<SaveNameOutcome>, onSuccess?: () => void) => {
+    (
+      save: (name: string) => Promise<SaveNameOutcome>,
+      onSuccess?: (outcome: SaveNameOutcome) => void,
+    ) => {
       // Blank input fails the resolver, so the callback never runs and the
       // settled value stays the neutral `ok: false`.
       let settled: SaveNameOutcome = { ok: false };
@@ -73,7 +78,7 @@ export function useNameField() {
         .handleSubmit(async (values) => {
           settled = await save(values.name);
           if (settled.ok) {
-            onSuccess?.();
+            onSuccess?.(settled);
             return;
           }
           field.setError('root', { message: (settled.messages ?? []).join('\n') });

@@ -1,4 +1,4 @@
-import { type QueryConstraint, orderBy, where } from 'firebase/firestore';
+import { type QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
 
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
@@ -11,17 +11,31 @@ export interface GetAccountSnapshotsRequest {
   year?: number;
   month?: number;
   auth: AuthContext;
+  /** 呼叫端已經為同一份 household 驗過讀取權限（例如批次取多個帳戶）。 */
+  skipPermissionCheck?: boolean;
+  /** 目前查詢條件下，只取 createdAt 最新一筆；不代表最新期別。 */
+  latestByCreatedAt?: boolean;
 }
 
 export class GetAccountSnapshotsUseCase {
   async execute(request: GetAccountSnapshotsRequest): Promise<AccountSnapshot[]> {
-    const { householdId, accountId, year, month, auth } = request;
-
-    await householdPermissionService.assertReadPermission(
+    const {
       householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
+      accountId,
+      year,
+      month,
+      auth,
+      skipPermissionCheck = false,
+      latestByCreatedAt = false,
+    } = request;
+
+    if (!skipPermissionCheck) {
+      await householdPermissionService.assertReadPermission(
+        householdId,
+        auth.uid,
+        auth.isGlobalAdmin,
+      );
+    }
 
     const q: QueryConstraint[] = [orderBy('createdAt', 'desc')];
     if (year) {
@@ -29,6 +43,9 @@ export class GetAccountSnapshotsUseCase {
     }
     if (month) {
       q.push(where('month', '==', month));
+    }
+    if (latestByCreatedAt) {
+      q.push(limit(1));
     }
 
     return await accountSnapshotRepository.list([householdId, accountId], q);

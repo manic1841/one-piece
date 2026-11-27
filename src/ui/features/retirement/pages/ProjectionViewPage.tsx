@@ -54,9 +54,11 @@ export default function ProjectionViewPage() {
 
   const openSaveAsPlan = () => saveAsPlanForm.open(view?.name ?? '');
 
-  const handleSaveAsPlanSuccess = () => {
+  /** A save lands on what it wrote, the same way the plan form does. */
+  const handleSaveAsPlanSuccess = (planId?: string) => {
     saveAsPlanForm.close();
     notifySaved(PROJECTION_VIEW_LABELS.PLAN_SAVED);
+    if (planId !== undefined) navigate(`/retirement/plans/${planId}`);
   };
 
   const handleRename = async (name: string) => {

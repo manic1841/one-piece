@@ -25,8 +25,8 @@ interface UseProjectionPreloadArgs extends PreloadTargets {
 
 /**
  * Loads a saved projection into the workspace when the route carries `?from=`.
- * A missing source leaves the opening blank and warns; a derived opening is
- * re-resolved against the live ledger instead of copying the stored value.
+ * The frozen config is copied as-is: the opening value and its anchor month come
+ * from the projection, never from a fresh report read.
  */
 export function useProjectionPreload({
   householdId,
@@ -72,49 +72,29 @@ export function useProjectionPreload({
               return;
             }
 
-            const { data, derived } = result.value;
+            const data = result.value;
             const config = data.config;
             if (config === null) return;
 
-            if (config.openingNetWorth.source === 'manual') {
-              replaceAll({
-                assumptions: config.assumptions,
-                rules: config.projectionRules,
-                events: config.lifeEvents,
-                startYear: config.startYear,
-                opening: {
-                  source: 'manual',
-                  amountText: String(Math.round(config.openingNetWorth.amount)),
-                  anchorYearMonth: null,
-                },
-                reportValue: null,
-              });
-            } else if (derived !== null && !('reason' in derived)) {
-              const reportValue = {
-                amountText: String(Math.round(derived.openingNetWorth)),
-                anchorYearMonth: derived.anchorYearMonth,
-              };
-              replaceAll({
-                assumptions: config.assumptions,
-                rules: config.projectionRules,
-                events: config.lifeEvents,
-                startYear: config.startYear,
-                opening: { source: 'derived', ...reportValue },
-                reportValue,
-              });
-            } else {
-              // The derived opening is re-resolved, never copied from the frozen
-              // snapshot. Without a closed period it stays blank and warns.
-              replaceAll({
-                assumptions: config.assumptions,
-                rules: config.projectionRules,
-                events: config.lifeEvents,
-                startYear: config.startYear,
-                opening: { source: 'derived', amountText: '', anchorYearMonth: null },
-                reportValue: null,
-              });
-              setWarning(PROJECTION_WORKSPACE_LABELS.PRELOAD_OPENING_UNRESOLVED);
-            }
+            const amountText = String(Math.round(config.openingNetWorth.amount));
+            const anchorYearMonth = config.openingNetWorth.anchorYearMonth ?? null;
+            const reportValue =
+              config.openingNetWorth.source === 'derived' && anchorYearMonth !== null
+                ? { amountText, anchorYearMonth }
+                : null;
+
+            replaceAll({
+              assumptions: config.assumptions,
+              rules: config.projectionRules,
+              events: config.lifeEvents,
+              startYear: config.startYear,
+              opening: {
+                source: config.openingNetWorth.source,
+                amountText,
+                anchorYearMonth,
+              },
+              reportValue,
+            });
 
             markSeeded();
             markDirty();

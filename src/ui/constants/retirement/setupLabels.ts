@@ -61,6 +61,8 @@ export const RULE_LABELS = {
   NEW_TITLE_EXPENSE: 'New expense rule',
   EDIT_TITLE: 'Edit rule',
   ADD_ACTION_PREFIX: 'Add',
+  /** Shown while a field error holds the dialog open, so a disabled ADD explains itself. */
+  CONFIRM_BLOCKED: 'Fix the marked fields to close this rule.',
 } as const;
 
 export const RULE_TYPE_LABELS = {

@@ -28,7 +28,10 @@ import { cn } from '@/ui/utils/cn';
 interface ProjectionRulesSectionProps {
   form: UseFormReturn<RulesFormValue>;
   rules: RuleDraftVM[];
+  /** Revealed errors, used for the row and side counters. */
   errors: RuleErrorsById;
+  /** Every error, revealed or not: the dialog gate and its field messages. */
+  editErrors: RuleErrorsById;
   readOnly: boolean;
   /** Picker sources, each carrying its own failure and retry. */
   ledgerSource: SourceOptions<LedgerCodeItem>;
@@ -109,6 +112,20 @@ function SourceAlerts({
 }
 
 /**
+ * The dialog's gate: a rule has to be named and free of field errors before it
+ * can be confirmed, and the errors are also its field messages.
+ */
+function dialogGate(rule: RuleDraftVM | null, editErrors: RuleErrorsById) {
+  const errors = rule === null ? {} : (editErrors[rule.id] ?? {});
+  const blocked = Object.keys(errors).length > 0;
+  return {
+    errors,
+    confirmDisabled: rule === null || (rule.name ?? '').trim() === '' || blocked,
+    hint: blocked ? RULE_LABELS.CONFIRM_BLOCKED : null,
+  };
+}
+
+/**
  * Both sides share one band and one ADD: the side is a field on the rule, so two
  * ADD buttons only said the same thing twice. Rows summarise; clicking one opens
  * the dialog that owns every field, and a new rule only reaches the list once it
@@ -118,6 +135,7 @@ export function ProjectionRulesSection({
   form,
   rules,
   errors,
+  editErrors,
   readOnly,
   ledgerSource,
   debtSource,
@@ -187,6 +205,19 @@ export function ProjectionRulesSection({
   const ledgerLabelById = new Map(ledgerCodes.map((code) => [code.code, code.label] as const));
   const debtLabelById = new Map(debtAccounts.map((account) => [account.id, account.name] as const));
 
+  /**
+   * A `type:category:detail` code reads as `category › detail`. The resolver folds
+   * a detail back onto its category label, so without the parent prefix every
+   * 明細科目 of one category would list as the same indistinguishable row.
+   */
+  const ledgerLabel = (code: string) => {
+    const segments = code.split(':');
+    const label = ledgerLabelById.get(code) ?? code;
+    if (segments.length < 3) return label;
+    const parentLabel = ledgerLabelById.get(`${segments[0]}:${segments[1]}`);
+    return parentLabel === undefined ? label : `${parentLabel} › ${label}`;
+  };
+
   const ledgerOptionsFor = (ruleId: string): ComboboxOption[] =>
     ledgerCodes.map((code) => {
       const others = list.filter(
@@ -199,7 +230,7 @@ export function ProjectionRulesSection({
           : RULE_LABELS.SOURCE_USED_BY.replace('{count}', String(others.length));
       return {
         value: code.code,
-        label: code.label,
+        label: ledgerLabel(code.code),
         hint,
         group: others.length === 0 ? RULE_LABELS.SOURCE_UNUSED : RULE_LABELS.SOURCE_IN_USE,
       };
@@ -211,6 +242,7 @@ export function ProjectionRulesSection({
   // The picker behind the open dialog, if the rule even uses a list. Rule
   // sources come from the draft list, so they are never unavailable.
   const editingSource = sourceFor(editingRule?.sourceType, ledgerSource, debtSource);
+  const gate = dialogGate(editingRule, editErrors);
 
   const ruleOptionsFor = (ruleId: string): ComboboxOption[] =>
     list
@@ -222,7 +254,7 @@ export function ProjectionRulesSection({
 
   const sourceLabelFor = (rule: RuleDraftVM) => {
     if (rule.sourceType === 'ledgerCode') {
-      return ledgerLabelById.get(rule.sourceId) ?? rule.sourceId;
+      return ledgerLabel(rule.sourceId);
     }
     if (rule.sourceType === 'debtAccount') {
       return debtLabelById.get(rule.sourceId) ?? rule.sourceId;
@@ -318,7 +350,8 @@ export function ProjectionRulesSection({
                   : RULE_LABELS.EDIT_TITLE
               }
               readOnly={readOnly}
-              confirmDisabled={(editingRule.name ?? '').trim() === ''}
+              confirmDisabled={gate.confirmDisabled}
+              blockedHint={gate.hint}
               onConfirm={() => setEditing(null)}
               onCancel={cancel}
               onDelete={deleteEditing}
@@ -333,7 +366,7 @@ export function ProjectionRulesSection({
                 sourceLoading={editingSource?.loading === true}
                 ruleOptions={ruleOptionsFor(editingRule.id)}
                 unassignedCount={unassignedCount}
-                errors={errors[editingRule.id] ?? {}}
+                errors={gate.errors}
                 update={(patch) => update(editingRule.id, patch)}
                 setRuleType={(ruleType) => setRuleType(editingRule.id, ruleType)}
                 setMethod={(method) => setMethod(editingRule.id, method)}
