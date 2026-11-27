@@ -84,8 +84,10 @@ export const ProjectionYearResultSchema = z.object({
   inflows: z.number(),
   outflows: z.number(),
   closing: z.number(),
-  inflowItems: z.array(ProjectionYearItemSchema),
-  outflowItems: z.array(ProjectionYearItemSchema),
+  // Breakdowns arrived with engine v3; a stored v2 result has only the totals,
+  // and the view still marks it stale, so default rather than reject the read.
+  inflowItems: z.array(ProjectionYearItemSchema).default([]),
+  outflowItems: z.array(ProjectionYearItemSchema).default([]),
 });
 
 export const ProjectionSummarySchema = z.object({
