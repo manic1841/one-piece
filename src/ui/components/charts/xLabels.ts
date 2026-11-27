@@ -22,11 +22,12 @@ export function pickXLabels(count: number, maxLabels: number = MAX_X_LABELS): nu
   if (count === 0) return [];
   if (count === 1) return [0];
   // Spread `budget` labels over the whole span so the last gap matches the rest.
+  // Rounding rather than stepping from a ceil keeps the tail from landing right
+  // beside the last label when the span does not divide evenly (8 points, 4 labels).
   const budget = Math.max(MIN_X_LABELS, Math.min(maxLabels, count));
-  const step = Math.max(1, Math.ceil((count - 1) / (budget - 1)));
+  const step = (count - 1) / (budget - 1);
   const indices: number[] = [];
-  for (let index = 0; index < count; index += step) indices.push(index);
-  if (indices[indices.length - 1] !== count - 1) indices.push(count - 1);
+  for (let slot = 0; slot < budget; slot += 1) indices.push(Math.round(slot * step));
   return indices;
 }
 

@@ -54,7 +54,7 @@ const BarHoverLayer: React.FC<{
       plotHeight={plotHeight}
       points={points}
       ariaLabel={ariaLabel}
-      className="absolute inset-0 flex cursor-crosshair items-stretch gap-3.5 px-2 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      className="absolute inset-0 flex cursor-crosshair items-stretch px-2 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       resolveIndex={resolveIndex}
     >
       {({ active, tooltipRef, allowedTopRatio }) =>

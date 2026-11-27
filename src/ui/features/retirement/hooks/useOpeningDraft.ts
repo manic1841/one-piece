@@ -20,8 +20,8 @@ interface UseOpeningDraftArgs {
 
 /**
  * The opening net worth draft: the raw amount text and the snapshot the user
- * could reset back to. The latest closed period seeds the amount once as a
- * default value — there is no separate mode to switch into, typing is enough.
+ * could reset back to. The latest balance sheet report seeds the amount once as
+ * a default value — there is no separate mode to switch into, typing is enough.
  */
 export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpeningDraftArgs) {
   const [opening, setOpening] = useState<OpeningNetWorthVM>(EMPTY_OPENING);
@@ -37,7 +37,7 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
   const loadOpening = useCallback(async () => {
     await run(
       async () => {
-        if (!householdId) return { reason: 'NO_CLOSED_PERIOD' as const };
+        if (!householdId) return { reason: 'NO_REPORT' as const };
         return getProjectionOpeningUseCase.execute({ householdId, auth });
       },
       {
@@ -79,8 +79,8 @@ export function useOpeningDraft({ householdId, auth, markDirty, run }: UseOpenin
   );
 
   /**
-   * A pick in the closed-period dialog. The month is provenance only: the value
-   * is what gets calculated, and the pick becomes the restore point.
+   * A pick in the report dialog. The month is provenance only: the value is what
+   * gets calculated, and the pick becomes the restore point.
    */
   const applyReport = useCallback(
     (value: ReportValue) => {

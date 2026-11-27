@@ -1,5 +1,4 @@
 import { withReadPermission } from '@/application/common/readGuard';
-import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import {
   balanceSheetsByMonth,
@@ -16,7 +15,7 @@ export interface ProjectionOpeningResult {
 }
 
 export interface ProjectionOpeningUnavailable {
-  reason: 'NO_CLOSED_PERIOD';
+  reason: 'NO_REPORT';
 }
 
 export type ProjectionOpeningLookup = ProjectionOpeningResult | ProjectionOpeningUnavailable;
@@ -27,32 +26,23 @@ interface GetProjectionOpeningRequest {
 }
 
 /**
- * Resolves the projection's derived opening net worth from the latest CLOSED
- * period's stored balance sheet. Net worth has one calculation path:
- * assets.total - liabilities.total from the report.
+ * Resolves the projection's derived opening net worth from the latest stored
+ * balance sheet. A month does not have to be closed: the report is the source,
+ * and closing is just a later workflow gate. Net worth has one calculation
+ * path: assets.total - liabilities.total from the report.
  */
 export class GetProjectionOpeningUseCase {
-  private readonly listPeriods = new ListFinancialPeriodsUseCase();
-
   async execute(request: GetProjectionOpeningRequest): Promise<ProjectionOpeningLookup> {
     const { householdId, auth } = request;
-    const [reports, periods] = await withReadPermission(householdId, auth, () =>
-      Promise.all([
-        listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
-        this.listPeriods.execute({ householdId }),
-      ]),
+    const reports = await withReadPermission(householdId, auth, () =>
+      listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
     );
     const byMonth = balanceSheetsByMonth(reports);
-    const months = [...byMonth.keys()].sort(newestMonthFirst);
+    const newest = [...byMonth.keys()].sort(newestMonthFirst)[0];
+    if (newest === undefined) return { reason: 'NO_REPORT' };
 
-    const closedMonths = new Set(
-      periods.filter((period) => period.status === 'CLOSED').map((period) => period.yearMonth),
-    );
-    const closedIndex = months.findIndex((yearMonth) => closedMonths.has(yearMonth));
-    if (closedIndex === -1) return { reason: 'NO_CLOSED_PERIOD' };
-
-    const report = byMonth.get(months[closedIndex] as string);
-    if (report === undefined) return { reason: 'NO_CLOSED_PERIOD' };
+    const report = byMonth.get(newest);
+    if (report === undefined) return { reason: 'NO_REPORT' };
 
     return {
       openingNetWorth: netWorthOf(report),

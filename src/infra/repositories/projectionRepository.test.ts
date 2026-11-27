@@ -148,6 +148,8 @@ const baseAnnual = {
       inflows: 0,
       outflows: 0,
       closing: 101,
+      inflowItems: [],
+      outflowItems: [],
     },
   ],
 };

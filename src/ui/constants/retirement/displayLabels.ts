@@ -30,6 +30,10 @@ export const PROJECTION_YEARLY_DETAIL_LABELS = {
   expenseBreakdown: '支出明細',
   noIncomeItems: '無收入項目',
   noExpenseItems: '無支出項目',
+  originRule: '規則',
+  originEvent: '生活事件',
+  /** Investment return is a product, not a posted line; say so beside it. */
+  investmentReturnDerivation: '期初淨資產 × 報酬率',
   columns: {
     year: '年度',
     status: '狀態',

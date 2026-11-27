@@ -29,7 +29,7 @@ export interface WorkspaceOpening
   error: unknown;
   validationError?: string;
   startYearError?: string;
-  /** Reloads the opening from the latest closed period, without awaiting. */
+  /** Reloads the opening from the latest balance sheet report, without awaiting. */
   reload: () => void;
 }
 

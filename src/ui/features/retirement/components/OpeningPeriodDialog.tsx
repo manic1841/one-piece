@@ -31,10 +31,12 @@ interface OpeningPeriodDialogProps {
 }
 
 /**
- * Closed-period picker for the opening balance. Only the value matters, so a
- * row is the month plus its net worth and clicking it applies both at once.
- * The current anchor stays reachable even when it is older than the window.
- * Desktop centres a dialog, mobile docks a sheet, matching the plan picker.
+ * Balance sheet report picker for the opening balance. Closed months are not
+ * required — any stored report is offerable — so the description warns that an
+ * open month's report can still change. Only the value matters, so a row is the
+ * month plus its net worth and clicking it applies both at once. The current
+ * anchor stays reachable even when it is older than the window. Desktop centres
+ * a dialog, mobile docks a sheet, matching the plan picker.
  */
 export function OpeningPeriodDialog({
   householdId,
@@ -60,7 +62,7 @@ export function OpeningPeriodDialog({
 
       {!loading && error !== null && (
         <Alert variant="warning">
-          <AlertDescription>{PROJECTION_WORKSPACE_LABELS.USE_CLOSED_LOAD_ERROR}</AlertDescription>
+          <AlertDescription>{PROJECTION_WORKSPACE_LABELS.USE_REPORT_LOAD_ERROR}</AlertDescription>
           <Button variant="text" className="ml-auto shrink-0" onClick={retry}>
             {PROJECTION_WORKSPACE_LABELS.RETRY}
           </Button>
@@ -69,11 +71,11 @@ export function OpeningPeriodDialog({
 
       {!loading && error === null && !hasRows && (
         <EmptyState
-          title={PROJECTION_WORKSPACE_LABELS.USE_CLOSED_EMPTY_TITLE}
-          description={PROJECTION_WORKSPACE_LABELS.USE_CLOSED_EMPTY}
+          title={PROJECTION_WORKSPACE_LABELS.USE_REPORT_EMPTY_TITLE}
+          description={PROJECTION_WORKSPACE_LABELS.USE_REPORT_EMPTY}
           action={
             <Button variant="text" onClick={onClose}>
-              {PROJECTION_WORKSPACE_LABELS.USE_CLOSED_EMPTY_ACTION}
+              {PROJECTION_WORKSPACE_LABELS.USE_REPORT_EMPTY_ACTION}
             </Button>
           }
         />
@@ -101,9 +103,9 @@ export function OpeningPeriodDialog({
       <Dialog open onOpenChange={(next) => !next && onClose()}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{PROJECTION_WORKSPACE_LABELS.USE_CLOSED_TITLE}</DialogTitle>
+            <DialogTitle>{PROJECTION_WORKSPACE_LABELS.USE_REPORT_TITLE}</DialogTitle>
             <DialogDescription>
-              {PROJECTION_WORKSPACE_LABELS.USE_CLOSED_DESCRIPTION}
+              {PROJECTION_WORKSPACE_LABELS.USE_REPORT_DESCRIPTION}
             </DialogDescription>
           </DialogHeader>
           {body}
@@ -116,8 +118,8 @@ export function OpeningPeriodDialog({
     <Sheet open onOpenChange={(next) => !next && onClose()}>
       <SheetContent side="bottom" className="max-h-[92vh]">
         <SheetHeader>
-          <SheetTitle>{PROJECTION_WORKSPACE_LABELS.USE_CLOSED_TITLE}</SheetTitle>
-          <SheetDescription>{PROJECTION_WORKSPACE_LABELS.USE_CLOSED_DESCRIPTION}</SheetDescription>
+          <SheetTitle>{PROJECTION_WORKSPACE_LABELS.USE_REPORT_TITLE}</SheetTitle>
+          <SheetDescription>{PROJECTION_WORKSPACE_LABELS.USE_REPORT_DESCRIPTION}</SheetDescription>
         </SheetHeader>
         {body}
       </SheetContent>

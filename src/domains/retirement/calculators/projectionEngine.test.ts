@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import type { AmountItem, ProjectionInput } from '../projectionTypes';
 import { ENGINE_VERSION, calculateProjection } from './projectionEngine';
 
-function item(amount: number): AmountItem {
-  return { sourceRef: 's', label: 'l', origin: 'rule', amount };
+function item(amount: number, sourceRef = 's'): AmountItem {
+  return { sourceRef, label: sourceRef, origin: 'rule', amount };
 }
 
 function input(overrides: Partial<ProjectionInput> = {}): ProjectionInput {
@@ -26,7 +26,7 @@ function input(overrides: Partial<ProjectionInput> = {}): ProjectionInput {
 
 describe('calculateProjection', () => {
   it('exports a version', () => {
-    expect(ENGINE_VERSION).toBe(2);
+    expect(ENGINE_VERSION).toBe(3);
   });
 
   it('applies the return to the opening balance', () => {
@@ -54,6 +54,53 @@ describe('calculateProjection', () => {
     expect(result.years[0].inflows).toBe(50);
     expect(result.years[0].outflows).toBe(30);
     expect(result.years[0].closing).toBe(1120);
+  });
+
+  it('keeps the inflow and outflow lines behind the totals', () => {
+    const result = calculateProjection(
+      input({
+        years: [
+          {
+            year: 2025,
+            inflows: [item(50, 'salary'), item(25, 'bonus')],
+            outflows: [item(30, 'rent')],
+          },
+        ],
+        firstYear: 2025,
+        lastYear: 2025,
+      }),
+    );
+
+    expect(result.years[0].inflowItems).toEqual([
+      { sourceRef: 'salary', origin: 'rule', amount: 50 },
+      { sourceRef: 'bonus', origin: 'rule', amount: 25 },
+    ]);
+    expect(result.years[0].outflowItems).toEqual([
+      { sourceRef: 'rent', origin: 'rule', amount: 30 },
+    ]);
+  });
+
+  it('drops zero lines so a disabled source never shows and totals equal the lines', () => {
+    const result = calculateProjection(
+      input({
+        years: [
+          {
+            year: 2025,
+            inflows: [item(0, 'salary'), item(0.4, 'tiny')],
+            outflows: [item(10.6, 'rent')],
+          },
+        ],
+        firstYear: 2025,
+        lastYear: 2025,
+      }),
+    );
+
+    expect(result.years[0].inflowItems).toEqual([]);
+    expect(result.years[0].inflows).toBe(0);
+    expect(result.years[0].outflowItems).toEqual([
+      { sourceRef: 'rent', origin: 'rule', amount: 11 },
+    ]);
+    expect(result.years[0].outflows).toBe(11);
   });
 
   it('rounds only at output while compounding unrounded internally', () => {

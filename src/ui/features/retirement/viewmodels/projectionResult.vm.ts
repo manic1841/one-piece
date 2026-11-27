@@ -3,8 +3,10 @@ import { type ProjectionInput, type ProjectionResult } from '@/domains/retiremen
 import { resolveErrorLabel } from '@/ui/constants/retirement/resultLabels';
 import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels/projectionDisplay.vm';
 import {
+  type SourceNames,
   mapProjectionPoint,
   mapYearlyDetail,
+  sourceLabelResolver,
 } from '@/ui/features/retirement/viewmodels/projectionRows.vm';
 
 export function mapProjectionWarningsToVM(calculation: ProjectionCalculation): string[] {
@@ -27,9 +29,11 @@ export function mapProjectionWarningsToVM(calculation: ProjectionCalculation): s
 export function mapProjectionResultToVM(
   input: ProjectionInput,
   result: ProjectionResult,
+  config: SourceNames,
 ): RetirementProjectionVM {
   const inputByYear = new Map(input.years.map((year) => [year.year, year]));
   const bankruptYear = result.summary.bankruptcyYear;
+  const resolveLabel = sourceLabelResolver(config);
 
   return {
     retirementYear: input.retirementYear,
@@ -40,6 +44,6 @@ export function mapProjectionResultToVM(
       const expense = source?.outflows.reduce((total, item) => total + item.amount, 0) ?? 0;
       return mapProjectionPoint(year, income, expense, bankruptYear);
     }),
-    yearlyDetails: result.years.map(mapYearlyDetail),
+    yearlyDetails: result.years.map((year) => mapYearlyDetail(year, resolveLabel)),
   };
 }

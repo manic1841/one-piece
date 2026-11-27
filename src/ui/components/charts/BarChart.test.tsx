@@ -54,11 +54,24 @@ describe('BarChart', () => {
     expect(screen.queryByText('APR')).toBeNull();
   });
 
+  it('thins the labels to the two-label floor before the plot is wide enough', () => {
+    const labels = ['JAN 2026', 'FEB 2026', 'MAR 2026', 'APR 2026', 'DEC 2026'];
+    render(<BarChart labels={labels} series={[{ tone: 'neutral', values: [1, 2, 3, 4, 5] }]} />);
+
+    // Unmeasured is treated as the narrow floor: first and last stay, middles drop,
+    // and the repeated year collapses so the surviving pair fits.
+    expect(screen.getByText('JAN 2026')).toBeDefined();
+    expect(screen.getByText('DEC')).toBeDefined();
+    expect(screen.queryByText('MAR 2026')).toBeNull();
+  });
+
   it('exposes each column layout to the overlay renderer', () => {
     const seen: Array<{ index: number; values: number[]; ratio: number }> = [];
     render(
       <BarChart labels={['APR', 'MAY']} series={SERIES}>
         {(layout) => {
+          // The plot re-renders once it measures its width; keep the latest layout.
+          seen.length = 0;
           seen.push(...layout.columns);
           return null;
         }}

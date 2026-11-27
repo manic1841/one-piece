@@ -203,6 +203,8 @@ const projectionResult: ProjectionResult = {
       inflows: 0,
       outflows: 0,
       closing: 105_000,
+      inflowItems: [],
+      outflowItems: [],
     },
     {
       year: 2027,
@@ -213,6 +215,8 @@ const projectionResult: ProjectionResult = {
       inflows: 0,
       outflows: 0,
       closing: 110_250,
+      inflowItems: [],
+      outflowItems: [],
     },
   ],
   summary: {
@@ -268,7 +272,7 @@ async function openBaseline() {
 }
 
 async function fillAssumptions() {
-  await screen.findByText('No closed period yet.');
+  await screen.findByText('No balance sheet report yet.');
   fireEvent.change(await openBaseline(), { target: { value: '100000' } });
   pickOption('Birth year', '1990');
   pickOption('Retirement age', '60');
@@ -552,7 +556,7 @@ describe('ProjectionWorkspacePage', () => {
     vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getRetirementPlanUseCase.execute).mockResolvedValue(null);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
-      reason: 'NO_CLOSED_PERIOD',
+      reason: 'NO_REPORT',
     });
     vi.mocked(calculateProjectionWorkflow.execute).mockResolvedValue(successOutcome());
     vi.mocked(persistProjectionUseCase.execute).mockResolvedValue({
@@ -575,7 +579,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('renders the fixed numbered section order', async () => {
     renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
 
     expect(screen.getAllByText(/^\d{2} \/ /).map((heading) => heading.textContent)).toEqual([
       '01 / BASELINE',
@@ -587,7 +591,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('keeps both rule sides in one band under a single ADD', async () => {
     renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
 
     // One ADD: the side is a field on the rule, not a second button.
     expect(screen.getByRole('button', { name: 'ADD RULE' })).toBeInTheDocument();
@@ -772,7 +776,7 @@ describe('ProjectionWorkspacePage', () => {
     expect(router.state.location.pathname).toBe('/retirement/projections/projection-1');
   });
 
-  it('seeds the opening from the latest closed period and swaps it from the dialog', async () => {
+  it('seeds the opening from the latest report and swaps it from the dialog', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
       openingNetWorth: 380_000,
       anchorYearMonth: '2026-08',
@@ -793,8 +797,8 @@ describe('ProjectionWorkspacePage', () => {
     expect(input).toHaveValue(260000);
     expect(screen.queryByTestId('opening-net-worth-note')).not.toBeInTheDocument();
 
-    // USE CLOSED stays available: it is a source picker now, not an undo.
-    fireEvent.click(screen.getByRole('button', { name: 'USE CLOSED' }));
+    // USE REPORT stays available: it is a source picker now, not an undo.
+    fireEvent.click(screen.getByRole('button', { name: 'USE REPORT' }));
     const dialog = within(await screen.findByRole('dialog'));
     fireEvent.click(await dialog.findByTestId('opening-period-2026-03'));
 
@@ -815,7 +819,7 @@ describe('ProjectionWorkspacePage', () => {
 
     const input = await openBaseline();
     await waitFor(() => expect(input).toHaveValue(380000));
-    fireEvent.click(screen.getByRole('button', { name: 'USE CLOSED' }));
+    fireEvent.click(screen.getByRole('button', { name: 'USE REPORT' }));
 
     const dialog = within(await screen.findByRole('dialog'));
     const pinnedRow = await dialog.findByTestId('opening-period-2025-07');
@@ -845,7 +849,7 @@ describe('ProjectionWorkspacePage', () => {
     });
 
     expect(input).toHaveValue(777);
-    expect(screen.getByRole('button', { name: 'USE CLOSED' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'USE REPORT' })).toBeInTheDocument();
   });
 
   it('shows inline schema labels for invalid assumptions', async () => {
@@ -1423,7 +1427,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('disables CALCULATE and explains every readiness blocker on its band', async () => {
     renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
 
     expect(screen.getByRole('button', { name: 'CALCULATE' })).toBeDisabled();
     expect(screen.getByTestId('section-rules')).toHaveTextContent('Add at least one income rule.');
@@ -1450,7 +1454,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('leaves the workspace from the page header back button', async () => {
     const router = renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
 
     fireEvent.click(screen.getByRole('button', { name: 'BACK TO PROJECTIONS' }));
 
@@ -1459,7 +1463,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('keeps the action bar free of blocker text and marks only invalid bands', async () => {
     renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
 
     expect(screen.getByTestId('workspace-action-bar')).not.toHaveTextContent(
       'Add at least one income rule.',
@@ -1747,7 +1751,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('keeps the rail out of the layout until the first indicator refresh', async () => {
     renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
     expect(screen.queryByTestId('workspace-rail')).not.toBeInTheDocument();
 
     pickOption('Retirement age', '61');
@@ -1770,7 +1774,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('requires an integer manual opening balance', async () => {
     renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
     pickOption('Birth year', '1990');
     pickOption('Retirement age', '60');
     pickOption('Life expectancy', '85');
@@ -1875,7 +1879,7 @@ describe('ProjectionWorkspacePage', () => {
     await waitFor(() => expect(router.state.location.search).toBe(''));
   });
 
-  it('falls back to the latest closed month when the anchor report is gone', async () => {
+  it('falls back to the latest report month when the anchor report is gone', async () => {
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
       preloadConfig({
         openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
@@ -1895,7 +1899,7 @@ describe('ProjectionWorkspacePage', () => {
     expect(screen.getByTestId('opening-net-worth-note')).toHaveTextContent('As of 2026-08');
   });
 
-  it('drops the anchor when the anchor report and every closed month are gone', async () => {
+  it('drops the anchor when the anchor report and every report is gone', async () => {
     vi.mocked(getProjectionViewUseCase.execute).mockResolvedValue(
       preloadConfig({
         openingNetWorth: { amount: 123000, source: 'derived', anchorYearMonth: '2026-01' },
@@ -1903,7 +1907,7 @@ describe('ProjectionWorkspacePage', () => {
     );
     vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
-      reason: 'NO_CLOSED_PERIOD',
+      reason: 'NO_REPORT',
     });
     renderWorkspace('/retirement/new?from=projection-1');
 
@@ -1954,7 +1958,7 @@ describe('ProjectionWorkspacePage', () => {
 
   it('shows no results area before calculation', async () => {
     renderWorkspace();
-    await screen.findByText('No closed period yet.');
+    await screen.findByText('No balance sheet report yet.');
     expect(screen.queryByTestId('projection-results')).not.toBeInTheDocument();
   });
 
