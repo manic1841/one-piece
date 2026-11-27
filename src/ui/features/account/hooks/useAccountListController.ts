@@ -28,17 +28,26 @@ export function useAccountListController() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [hasLoadedInactive, setHasLoadedInactive] = useState(false);
+  const [flagsHouseholdId, setFlagsHouseholdId] = useState(householdId);
   const requestRef = useRef<AbortController | null>(null);
+
+  // A household switch invalidates both the data and the "inactive loaded"
+  // promise. Adjusting during render (not in an effect) keeps it to one pass.
+  if (flagsHouseholdId !== householdId) {
+    setFlagsHouseholdId(householdId);
+    setShowInactive(false);
+    setHasLoadedInactive(false);
+  }
 
   const loadAccounts = useCallback(
     async (includeInactive: boolean) => {
       // The signal discards older responses; it does not cancel Firestore I/O.
+      if (!householdId) return [];
       requestRef.current?.abort();
       const request = new AbortController();
       requestRef.current = request;
 
-      if (!householdId) return;
-      return fetchAccountsWithSnapshots(
+      const result = await fetchAccountsWithSnapshots(
         householdId,
         auth,
         {
@@ -50,6 +59,8 @@ export function useAccountListController() {
         },
         request.signal,
       );
+
+      return result.ok ? result.value : [];
     },
     [householdId, auth, fetchAccountsWithSnapshots],
   );
@@ -87,16 +98,17 @@ export function useAccountListController() {
   );
 
   const reorderRows = useCallback(
-    (orderedRows: AccountRowVM[]) => {
+    async (orderedRows: AccountRowVM[]) => {
       // Never renumber an active-only subset: inactive rows would keep the same
-      // slots. The UI disables drag until the complete list has loaded.
-      if (!hasLoadedInactive) return;
+      // slots. When the complete list is not loaded yet, pull it before applying
+      // the drag so the first drag is not a no-op.
+      const complete = hasLoadedInactive ? localAccounts : await loadAccounts(true);
 
-      const byId = new Map(localAccounts.map((account) => [account.id, account]));
+      const byId = new Map(complete.map((account) => [account.id, account]));
       if (!orderedRows.every((row) => byId.has(row.id))) return;
 
       const mergedIds = mergeReorderedIds(
-        localAccounts.map((account) => account.id),
+        complete.map((account) => account.id),
         orderedRows.map((row) => row.id),
       );
       const ordered = mergedIds
@@ -108,7 +120,7 @@ export function useAccountListController() {
         ordered.map((account, index) => ({ id: account.id, order: index })),
       ).then(() => reload());
     },
-    [localAccounts, hasLoadedInactive, reorderAccounts, reload],
+    [localAccounts, hasLoadedInactive, loadAccounts, reorderAccounts, reload],
   );
 
   const openForm = useCallback(() => setIsFormOpen(true), []);
@@ -127,7 +139,7 @@ export function useAccountListController() {
     closeForm,
     showInactive,
     setShowInactive: toggleInactive,
-    canReorder: hasLoadedInactive,
+    canReorder: localAccounts.length > 1,
     reorderRows,
   };
 }
