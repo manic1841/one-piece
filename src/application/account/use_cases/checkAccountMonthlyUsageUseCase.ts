@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { AccountCategory } from '@/domains/account/types/categories';
 import { LEDGER_CODES } from '@/domains/ledger/constants/ledgerCodes';
@@ -35,20 +35,12 @@ export class CheckAccountMonthlyUsageUseCase {
   async execute(request: CheckAccountMonthlyUsageRequest): Promise<CheckAccountMonthlyUsageResult> {
     const { householdId, accountId, accountCategory, year, month, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
-
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
     const categoryLedgerCodes = getCategoryLedgerCodes(accountCategory);
 
-    const transactions = await transactionRepository.listByDateRange(
-      householdId,
-      startDate,
-      endDate,
+    const transactions = await withReadPermission(householdId, auth, () =>
+      transactionRepository.listByDateRange(householdId, startDate, endDate),
     );
 
     const matched = transactions.filter((transaction) =>

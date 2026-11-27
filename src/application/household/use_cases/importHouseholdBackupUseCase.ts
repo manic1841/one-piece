@@ -1,3 +1,4 @@
+import { invalidateRouteAccessCache } from '@/application/auth/routeAccessCache';
 import { type AuthContext } from '@/application/types';
 import { RoleEnum } from '@/domains/household/role';
 import { accountRepository } from '@/infra/repositories/accountRepository';
@@ -17,6 +18,7 @@ import { transactionRepository } from '@/infra/repositories/transactionRepositor
 
 import { HouseholdBackupPayloadSchema } from './backupSchema';
 import { type HouseholdBackupPayload } from './exportHouseholdBackupUseCase';
+import { invalidateHouseholdCache } from './getHouseholdUseCase';
 import {
   type ExistingHouseholdData,
   buildDeleteRefs,
@@ -146,6 +148,10 @@ class ImportHouseholdBackupUseCase {
     // so malformed payloads never cause data loss.
     await commitDeletes(deleteRefs);
     await commitSets(setOps);
+    invalidateHouseholdCache();
+    // The restored household document carries `members`, so cached route
+    // decisions keyed on the old membership are stale too.
+    invalidateRouteAccessCache();
 
     return {
       deletedDocuments: deleteRefs.length,

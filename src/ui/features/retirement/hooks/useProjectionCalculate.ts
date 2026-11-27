@@ -20,6 +20,7 @@ import {
 } from '@/ui/features/retirement/viewmodels/projectionView.vm';
 import { mapRetirementComparison } from '@/ui/features/retirement/viewmodels/retirementComparison.vm';
 import { type OpeningNetWorthVM } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
+import { toProjectionOpening } from '@/ui/features/retirement/viewmodels/workspaceDraft.vm';
 import { getTaskErrorMessage } from '@/ui/hooks/getErrorMessage';
 
 export interface CalculatedProjection {
@@ -89,7 +90,7 @@ export function useProjectionCalculate({
 
     const task = await calculateProjection({
       startYear,
-      opening: { source: opening.source, amount: Number(opening.amountText) },
+      opening: toProjectionOpening(opening),
       assumptions: plan.assumptions,
       rules: plan.projectionRules,
       lifeEvents: plan.lifeEvents,
@@ -125,8 +126,7 @@ export function useProjectionCalculate({
   }, [
     calculateProjection,
     onSuccess,
-    opening.amountText,
-    opening.source,
+    opening,
     setOpeningValidationError,
     setStartYearValidationError,
     startYear,

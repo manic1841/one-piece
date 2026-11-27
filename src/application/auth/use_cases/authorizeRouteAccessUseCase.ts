@@ -1,6 +1,8 @@
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
+import { measure } from '@/shared/perf';
 
+import { resolveRouteAccessDecision, routeAccessCacheKey } from '../routeAccessCache';
 import { isUserAuthorizedUseCase } from './isUserAuthorizedUseCase';
 
 /** What the router should do with the current visitor. */
@@ -22,9 +24,27 @@ export interface AuthorizeRouteAccessRequest {
  *
  * Session state is deliberately absent: whether anyone is signed in at all is an infra observation
  * the UI context already carries (see ADR-0062), not an authorization decision.
+ *
+ * A result is reused for the same inputs until it expires or a whitelist/membership write
+ * invalidates it (`../routeAccessCache`); failures are never reused, so a broken check retries on
+ * the next navigation instead of pinning the visitor out.
  */
 export class AuthorizeRouteAccessUseCase {
   async execute(request: AuthorizeRouteAccessRequest): Promise<RouteAccessOutcome> {
+    const key = routeAccessCacheKey({
+      uid: request.auth.uid,
+      email: request.auth.email ?? null,
+      isGlobalAdmin: request.auth.isGlobalAdmin ?? false,
+      householdId: request.householdId,
+      requireHousehold: request.requireHousehold,
+    });
+
+    return resolveRouteAccessDecision(key, () =>
+      measure('route access decision', () => this.decide(request)),
+    );
+  }
+
+  private async decide(request: AuthorizeRouteAccessRequest): Promise<RouteAccessOutcome> {
     const { auth, householdId, requireHousehold } = request;
     const isGlobalAdmin = auth.isGlobalAdmin ?? false;
 

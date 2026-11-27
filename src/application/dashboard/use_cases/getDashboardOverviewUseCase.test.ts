@@ -14,11 +14,11 @@ vi.mock('@/application/household/householdPermissionService', () => ({
   },
 }));
 
-const getFinancialPeriodMock = vi.fn();
+const listFinancialPeriodsMock = vi.fn();
 vi.mock('@/application/monthly_close/use_cases/financialPeriodAccessUseCases', () => ({
-  GetFinancialPeriodUseCase: vi.fn(function () {
+  ListFinancialPeriodsUseCase: vi.fn(function () {
     return {
-      execute: (...args: unknown[]) => getFinancialPeriodMock(...args),
+      execute: (...args: unknown[]) => listFinancialPeriodsMock(...args),
     };
   }),
 }));
@@ -187,9 +187,9 @@ const buildDebtPayment = (amount: number): Transaction => ({
   entries: [],
 });
 
-const buildPeriod = (status: string) => ({
-  id: '2026-08',
-  yearMonth: '2026-08',
+const buildPeriod = (yearMonth: string, status: string) => ({
+  id: yearMonth,
+  yearMonth,
   status,
   stages: {},
   createdBy: 'user-1',
@@ -197,6 +197,12 @@ const buildPeriod = (status: string) => ({
   updatedBy: 'user-1',
   updatedAt: new Date(),
 });
+
+/** The workflow reads every period at once, so CLOSED months are mocked as one list. */
+const mockClosedMonths = (...yearMonths: string[]) =>
+  listFinancialPeriodsMock.mockResolvedValue(
+    yearMonths.map((yearMonth) => buildPeriod(yearMonth, 'CLOSED')),
+  );
 
 describe('GetDashboardOverviewUseCase', () => {
   beforeEach(() => {
@@ -212,7 +218,9 @@ describe('GetDashboardOverviewUseCase', () => {
     ]);
     listPortfoliosMock.mockResolvedValue([]);
     listDebtPaymentsMock.mockResolvedValue([]);
-    getFinancialPeriodMock.mockImplementation(() => Promise.resolve(buildPeriod('CLOSED')));
+    listFinancialPeriodsMock.mockImplementation(() =>
+      Promise.resolve([buildPeriod('2026-08', 'CLOSED')]),
+    );
 
     const result: DashboardOverview = await getDashboardOverviewUseCase.execute({
       householdId: 'household-1',
@@ -233,8 +241,8 @@ describe('GetDashboardOverviewUseCase', () => {
     ]);
     listPortfoliosMock.mockResolvedValue([]);
     listDebtPaymentsMock.mockResolvedValue([]);
-    getFinancialPeriodMock.mockImplementation((req: { yearMonth: string }) =>
-      Promise.resolve(buildPeriod(req.yearMonth === '2026-07' ? 'CLOSED' : 'IN_PROGRESS')),
+    listFinancialPeriodsMock.mockImplementation(() =>
+      Promise.resolve([buildPeriod('2026-07', 'CLOSED'), buildPeriod('2026-08', 'IN_PROGRESS')]),
     );
 
     const result = await getDashboardOverviewUseCase.execute({
@@ -250,7 +258,7 @@ describe('GetDashboardOverviewUseCase', () => {
     listReportsMock.mockResolvedValue([buildBalanceSheet('2025-12', 300, 100)]);
     listPortfoliosMock.mockResolvedValue([]);
     listDebtPaymentsMock.mockResolvedValue([]);
-    getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+    mockClosedMonths('2025-12');
 
     const result = await getDashboardOverviewUseCase.execute({
       householdId: 'household-1',
@@ -272,7 +280,7 @@ describe('GetDashboardOverviewUseCase', () => {
 
   it('returns no anchor when no balance sheet month is closed', async () => {
     listReportsMock.mockResolvedValue([buildBalanceSheet('2026-08', 600, 150)]);
-    getFinancialPeriodMock.mockResolvedValue(buildPeriod('IN_PROGRESS'));
+    listFinancialPeriodsMock.mockResolvedValue([buildPeriod('2026-08', 'IN_PROGRESS')]);
 
     const result = await getDashboardOverviewUseCase.execute({
       householdId: 'household-1',
@@ -284,6 +292,7 @@ describe('GetDashboardOverviewUseCase', () => {
 
   it('returns no anchor when there are no reports', async () => {
     listReportsMock.mockResolvedValue([]);
+    listFinancialPeriodsMock.mockResolvedValue([]);
 
     const result = await getDashboardOverviewUseCase.execute({
       householdId: 'household-1',
@@ -291,7 +300,6 @@ describe('GetDashboardOverviewUseCase', () => {
     });
 
     expect(result.anchor).toBeNull();
-    expect(getFinancialPeriodMock).not.toHaveBeenCalled();
   });
 
   it('assembles the four anchored pulse metrics', async () => {
@@ -299,7 +307,7 @@ describe('GetDashboardOverviewUseCase', () => {
       buildBalanceSheet('2026-08', 600, 150),
       buildCashFlow('2026-08', -12300),
     ]);
-    getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+    mockClosedMonths('2026-08');
     listPortfoliosMock.mockResolvedValue([
       {
         id: 'portfolio-1',
@@ -358,7 +366,7 @@ describe('GetDashboardOverviewUseCase', () => {
 
   it('returns null pulse metrics when the anchor month lacks data', async () => {
     listReportsMock.mockResolvedValue([buildBalanceSheet('2026-08', 600, 150)]);
-    getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+    mockClosedMonths('2026-08');
     listPortfoliosMock.mockResolvedValue([]);
     listDebtPaymentsMock.mockResolvedValue([]);
 
@@ -375,6 +383,7 @@ describe('GetDashboardOverviewUseCase', () => {
 
   it('returns no pulse when there is no anchor', async () => {
     listReportsMock.mockResolvedValue([]);
+    listFinancialPeriodsMock.mockResolvedValue([]);
     listDebtPaymentsMock.mockResolvedValue([]);
 
     const result = await getDashboardOverviewUseCase.execute({
@@ -394,7 +403,7 @@ describe('GetDashboardOverviewUseCase', () => {
       ]);
       listPortfoliosMock.mockResolvedValue([]);
       listDebtPaymentsMock.mockResolvedValue([]);
-      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+      mockClosedMonths('2026-08');
 
       const result = await getDashboardOverviewUseCase.execute({
         householdId: 'household-1',
@@ -415,7 +424,7 @@ describe('GetDashboardOverviewUseCase', () => {
       ]);
       listPortfoliosMock.mockResolvedValue([]);
       listDebtPaymentsMock.mockResolvedValue([]);
-      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+      mockClosedMonths('2026-08');
 
       const result = await getDashboardOverviewUseCase.execute({
         householdId: 'household-1',
@@ -432,7 +441,7 @@ describe('GetDashboardOverviewUseCase', () => {
       listReportsMock.mockResolvedValue([buildBalanceSheet('2026-08', 600, 150)]);
       listPortfoliosMock.mockResolvedValue([]);
       listDebtPaymentsMock.mockResolvedValue([]);
-      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+      mockClosedMonths('2026-08');
 
       const result = await getDashboardOverviewUseCase.execute({
         householdId: 'household-1',
@@ -449,7 +458,7 @@ describe('GetDashboardOverviewUseCase', () => {
       ]);
       listPortfoliosMock.mockResolvedValue([]);
       listDebtPaymentsMock.mockResolvedValue([]);
-      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+      mockClosedMonths('2026-08');
 
       const result = await getDashboardOverviewUseCase.execute({
         householdId: 'household-1',
@@ -470,7 +479,7 @@ describe('GetDashboardOverviewUseCase', () => {
       ]);
       listPortfoliosMock.mockResolvedValue([]);
       listDebtPaymentsMock.mockResolvedValue([]);
-      getFinancialPeriodMock.mockResolvedValue(buildPeriod('CLOSED'));
+      mockClosedMonths('2026-08');
 
       const result = await getDashboardOverviewUseCase.execute({
         householdId: 'household-1',

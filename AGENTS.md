@@ -14,12 +14,11 @@ This is a single-context repo with root `CONTEXT.md` and `docs/adr/`. See `docs/
 
 ## Codebase graph
 
-A local knowledge graph of this repo can be built to `graphify-out/` (gitignored) with `graphify . --code-only`; install steps are in `docs/agents/graphify.md`. Build it before relying on any of the commands below.
+`graphify` ships in the dev container image. `graphify-out/` (gitignored) is built once per clone with `graphify . --code-only`; install and rebuild rules live in `docs/agents/graphify.md`.
 
-- For symbol-level relationships — who calls or imports what, blast radius of changing a component — run `graphify explain "<symbol>"` or `graphify path "<A>" "<B>"` before grepping.
-- For full-text or cross-cutting keyword search, `grep` is still faster and more complete than `graphify query`.
-- After changing code, run `graphify update .` (about a second, AST-only, no API cost).
-- Subagent prompts that explore code should start with `graphify explain`.
+- Symbol-level questions — who calls or imports what, blast radius — start with `graphify explain "<symbol>"` or `graphify path "<A>" "<B>"` instead of grepping. Subagent prompts that explore code start the same way.
+- After changing code, run `graphify update .`.
+- Exact-text search stays `grep`.
 
 ## Simplicity First
 

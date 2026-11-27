@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { getProjectionViewUseCase } from '@/application/retirement/use_cases/getProjectionViewUseCase';
+import { type SaveAsPlanOutcome } from '@/application/retirement/workflows/saveProjectionAsPlan';
 import {
   SAVE_AS_PLAN_ERROR_LABELS,
   SAVE_AS_PLAN_LABELS,
@@ -79,7 +80,7 @@ export function useProjectionView(
   );
 
   const saveAsPlan = useCallback(
-    (name: string): Promise<LoadingTaskResult<{ ok: boolean; code?: string }>> =>
+    (name: string): Promise<LoadingTaskResult<SaveAsPlanOutcome>> =>
       projectionId
         ? saveProjectionAsPlan(projectionId, name)
         : Promise.resolve(failed(new Error('Missing projection.'))),
@@ -97,24 +98,27 @@ export function useProjectionView(
     remove,
     saveAsPlan,
     saveAsPlanForm,
-    submitSaveAsPlan: (onSuccess?: () => void) =>
-      saveAsPlanForm.submit(async (name) => {
-        const task = await saveAsPlan(name);
-        if (!task.ok) {
-          alert();
-          return { ok: false, messages: [getTaskErrorMessage(task)] };
-        }
+    submitSaveAsPlan: (onSuccess?: (planId?: string) => void) =>
+      saveAsPlanForm.submit(
+        async (name) => {
+          const task = await saveAsPlan(name);
+          if (!task.ok) {
+            alert();
+            return { ok: false, messages: [getTaskErrorMessage(task)] };
+          }
 
-        const outcome = task.value;
-        if (!outcome.ok) {
-          alert();
-          const code = outcome.code as keyof typeof SAVE_AS_PLAN_ERROR_LABELS;
-          return {
-            ok: false,
-            messages: [SAVE_AS_PLAN_ERROR_LABELS[code] ?? SAVE_AS_PLAN_LABELS.FAILED],
-          };
-        }
-        return { ok: true };
-      }, onSuccess),
+          const outcome = task.value;
+          if (!outcome.ok) {
+            alert();
+            const code = outcome.code as keyof typeof SAVE_AS_PLAN_ERROR_LABELS;
+            return {
+              ok: false,
+              messages: [SAVE_AS_PLAN_ERROR_LABELS[code] ?? SAVE_AS_PLAN_LABELS.FAILED],
+            };
+          }
+          return { ok: true, id: outcome.id };
+        },
+        (settled) => onSuccess?.(settled.id),
+      ),
   };
 }

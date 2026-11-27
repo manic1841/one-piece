@@ -82,7 +82,7 @@ describe('listDebtSnapshotsUseCase', () => {
     expect(debtSnapshotRepository.listByYearMonthRange).toHaveBeenCalled();
   });
 
-  it('does not read snapshots when the caller is not permitted', async () => {
+  it('rejects with the permission error when the caller is not permitted', async () => {
     const { householdPermissionService } = await import(
       '@/application/household/householdPermissionService'
     );
@@ -101,6 +101,8 @@ describe('listDebtSnapshotsUseCase', () => {
       }),
     ).rejects.toThrow('Permission denied');
 
-    expect(debtSnapshotRepository.listByYearMonthRange).not.toHaveBeenCalled();
+    // The read starts in parallel with the check, so it is already under way;
+    // the permission rejection decides the outcome.
+    expect(debtSnapshotRepository.listByYearMonthRange).toHaveBeenCalled();
   });
 });

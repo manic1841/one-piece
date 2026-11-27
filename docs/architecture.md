@@ -31,6 +31,7 @@
 - **職責**: 協調領域對象與基礎設施，實現具體的使用案例 (Use Cases) 或複雜的業務服務 (Application Services)。
 - **內容**:
   - `use_cases/`: 原子級業務操作，封裝單一職責邏輯（如：`createUserUseCase.ts`）。
+  - `common/`: 跨 domain 重用的應用層邊界，如 `readGuard.ts`（讀取權限前門）與 `reorderCollectionInTransaction.ts`。
   - **Permission Services**: 專門處理複雜權限校驗的應用服務（如：`HouseholdPermissionService`）。
 - **規則**: 負責事務控制與業務流程，不應包含核心業務邏輯（複雜校驗放 Domain Service）。**絕對保持純粹 (Pure TS/JS)，禁止 React Hooks 或任何 UI 框架依賴。**
 - 應用層**可以**直接使用 `runTransaction` 與 Firestore query constraints：transaction 在 use case 內部建立並關閉，不跨越層邊界傳遞（見 [ADR-0043](adr/0043-accept-firestore-dependency-in-application.md)）。這讓 use case 能自行負責原子性，不需額外抽象層。
@@ -59,7 +60,7 @@
 
 ### 📂 Shared - `src/shared/`
 
-- **職責**: 基礎工具包（共用常數、base schema、平台安全的 id 產生器）。
+- **職責**: 基礎工具包（共用常數、base schema、平台安全的 id 產生器、單飛 TTL 快取、分批平行）。
 - **規則**: 只能被其他層依賴，不能依賴任何其他層。
 
 **依賴方向**：所有依賴指向內層——`UI -> Application -> Domain <- Infrastructure`。
@@ -70,6 +71,41 @@
 2. **流程編排**: `Hook` -> `Use Case` (注入 AuthContext)
 3. **處理邏輯**: `Use Case` -> `Domain Service` (核心校驗) -> `Repository` (資料存取)
 4. **回傳**: 資料經由 `Mapper` 轉換為 Domain Object 或 DTO 後，由 Hook 更新 UI 狀態。
+
+### 讀取的權限前門與量測
+
+- 需要 AuthContext 的讀取型 use case 以 `withReadPermission(householdId, auth, run)` 開場（`src/application/common/readGuard.ts`）；免驗權限的內部 seam（如 `GetFinancialPeriodUseCase`）不強制。並行、錯誤優先序與 `skipPermissionCheck` 的理由寫在該檔註解，此處不重述。
+- 並行的代價是未授權時查詢仍會發出（多一次讀取、結果丟棄）；外層已驗過的批次或巢狀呼叫以 `skipPermissionCheck: true` 跳過內層檢查，不要逐列重驗。
+- 寫入型 use case 維持先驗後寫：交易內容在權限確定後才組。
+- 互不相依的讀取一律並行，不得在迴圈裡 `await`；需要同一集合的多個月狀態時，優先一次查該集合（如 `ListFinancialPeriodsUseCase`）而不是逐月 `get`。筆數跟著使用者資料長的並行讀取走 `src/shared/batch.ts` 的 `mapInBatches`，不要整批 `Promise.all`。
+- 量測走 `src/shared/perf.ts` 的 `measure()`，僅在 dev 生效（測試環境靜音）。`BaseRepository` 的 `get`／`list` 已內建，直接呼叫 `getDoc`／`getDocs` 的 repository 要自己包；權限檢查已由 guard 包好。要在瀏覽器看耗時分佈就開 dev server 看 console 的 `[perf]` 行。
+
+### 讀取上限
+
+- 清單型讀取一律帶 `limit`，數字集中在 `src/shared/readLimits.ts`，理由寫在該檔，不在呼叫端各自發明。
+- 只有「畫面要看到全部、截斷只是少了尾巴」的讀取才設上限，且必須有確定性的排序，讓截斷落在最舊或最後的一端（報表用 `yearMonth` 遞減、帳戶用 `order` 遞增、沒有自然順序的集合用 `__name__`）。需要完整性的讀取不設上限：備份匯出／還原、跨整段歷史的報表計算，以及靠完整集合決定順序或去重的寫入路徑（`createPortfolioUseCase`、`saveAllocationTemplateUseCase`、`createCustomLedgerCodeUseCase`）。
+- 上限只是擋住失控成長，不是分頁機制，所以截斷目前是無聲的：沒有提示也沒有頁碼，使用者不會知道自己少看到尾巴。真正需要翻頁時另走 cursor。
+
+### 索引
+
+- 查詢需要的複合索引只宣告在 `firestore.indexes.json`，不在程式碼裡加註解說明。單欄位查詢由 Firestore 的預設單欄位索引服務，不必宣告。
+- 索引是有序的：完全相符的條件（等值、`array-contains`）可互換先後但必須在前，範圍與排序在後且必須有向。換序不算覆蓋。`__name__` 只有遞增方向可用，要由新到舊就得改排一個有值的欄位。
+- emulator 不檢查索引，缺索引的查詢要等部署才失敗。`src/infra/firestoreIndexCoverage.test.ts` 因此把查詢形狀與索引檔對起來，兩個方向都驗：缺索引，以及宣告了卻沒人用的死索引（白吃寫入成本）。
+- 該測試讀得懂同一句裡的條件陣列，也會跟著 `constraints.push(...)` 併回整個陣列；但條件若繞經別的函式或參數傳遞就會漏接，所以新查詢盡量在建立 constraint 的同一個函式裡看到全貌。
+
+### 路由授權的決策重用
+
+- 路由守衛在每次換頁都重跑 `AuthorizeRouteAccessUseCase`，決策結果按「身分 + household + 是否要求 household」為 key 短期重用（`src/application/auth/routeAccessCache.ts`）；key 組成、TTL 與 fail-closed 的取捨寫在該檔，此處不重述。White list 與成員讀取因此每個輸入只付一次。
+- 會改變答案的寫入必須失效：白名單（`UpdateWhitelistUseCase`）、household 更新（`UpdateHouseholdUseCase`，成員增刪改都經過它），以及同樣會寫回 `members` 的備份還原（`ImportHouseholdBackupUseCase`）。
+- 同一個短 TTL 機制也用在 household 文件本身（`GetHouseholdUseCase`）：它是權限檢查的底層讀取，所以權限判斷可能有數秒延遲，不即時。
+- 只快取決策，不快取 session 狀態：有沒有登入仍是 infra 的觀測（ADR-0062）。
+
+### 帳戶清單的讀取契約
+
+- 批次讀取只驗一次 household 權限；同一文件的短期快取在寫入或備份還原後立即失效，較舊的異步回應不得覆蓋新狀態。
+- 列表預設只載入啟用帳戶；切換至「含停用」後才載入完整清單。重排一律以完整清單重編全域順序；尚未載入時先補齊再套用拖曳結果，拖曳不受載入狀態阻擋。
+- 帳戶清單只讀取各帳戶最新期別快照，並行讀取互不相依的帳戶資料。年度／月度報表另有期間明細查詢，不沿用此列表契約。
+- Controller 只處理查詢與畫面狀態；新增帳戶時的尾端順序由 application 以完整帳戶集合決定。
 
 ## 3. 重要約定 (Conventions)
 

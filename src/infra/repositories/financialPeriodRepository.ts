@@ -1,4 +1,4 @@
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { collection, doc, limit, orderBy, writeBatch } from 'firebase/firestore';
 
 import {
   type FinancialPeriod,
@@ -8,6 +8,7 @@ import {
 } from '@/domains/financial_period/schemas';
 import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
+import { PERIOD_LIST_LIMIT } from '@/shared/readLimits';
 
 /**
  * FinancialPeriodRepository
@@ -34,8 +35,9 @@ class FinancialPeriodRepository extends BaseRepository<FinancialPeriod, [string,
     return this.get([householdId, buildFinancialPeriodDocId(yearMonth)]);
   }
 
+  /** 由新到舊，截斷落在最舊的一端。 */
   async listAll(householdId: string): Promise<FinancialPeriod[]> {
-    return this.list([householdId]);
+    return this.list([householdId], [orderBy('yearMonth', 'desc'), limit(PERIOD_LIST_LIMIT)]);
   }
 
   async savePeriod(

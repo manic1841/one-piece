@@ -33,8 +33,10 @@ export function useAccounts() {
     <T>(
       task: (signal: AbortSignal) => Promise<T>,
       writeBack?: (value: T) => void,
+      signal?: AbortSignal,
     ): Promise<LoadingTaskResult<T>> =>
       run(task, {
+        signal,
         writeBack: (result) => {
           setHasLoaded(true);
           if (result.ok) writeBack?.(result.value);
@@ -48,6 +50,7 @@ export function useAccounts() {
       householdId: string,
       auth: AuthContext,
       options?: AccountFetchOptions<Account[]>,
+      signal?: AbortSignal,
     ): Promise<LoadingTaskResult<Account[]>> =>
       track(
         () =>
@@ -57,6 +60,7 @@ export function useAccounts() {
             includeInactive: options?.includeInactive ?? false,
           }),
         options?.writeBack,
+        signal,
       ),
     [track],
   );
@@ -66,6 +70,7 @@ export function useAccounts() {
       householdId: string,
       auth: AuthContext,
       options?: AccountFetchOptions<AccountWithSnapshot[]>,
+      signal?: AbortSignal,
     ): Promise<LoadingTaskResult<AccountWithSnapshot[]>> =>
       track(
         () =>
@@ -75,6 +80,7 @@ export function useAccounts() {
             includeInactive: options?.includeInactive ?? false,
           }),
         options?.writeBack,
+        signal,
       ),
     [track],
   );

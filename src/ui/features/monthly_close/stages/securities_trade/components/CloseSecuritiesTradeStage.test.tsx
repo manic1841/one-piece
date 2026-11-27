@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { MONEY_TONE_CLASS } from '@/ui/components/moneyTone';
+
 import { CloseSecuritiesTradeStage } from './CloseSecuritiesTradeStage';
 
 const tradeInput = {
@@ -116,5 +118,57 @@ describe('CloseSecuritiesTradeStage', () => {
     expect(screen.getAllByText('股利發放備註').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('股東融資').length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText('發放分紅').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('tones the securities summary by cash direction: buys out, sells in', () => {
+    renderStage({
+      securities: {
+        buys: [{ ...tradeInput, amount: 1000 }],
+        sells: [{ ...tradeInput, transactionId: 'tx-2', amount: 300 }],
+      },
+    });
+
+    expect(screen.getByTestId('securities-summary-outflow')).toHaveClass(MONEY_TONE_CLASS.negative);
+    expect(screen.getByTestId('securities-summary-inflow')).toHaveClass(MONEY_TONE_CLASS.positive);
+    const net = screen.getByTestId('securities-summary-net');
+    expect(net).toHaveTextContent('-NT$700');
+    expect(net).toHaveClass(MONEY_TONE_CLASS.negative);
+  });
+
+  it('tones the financing summary by cash direction: financing in, dividends out', () => {
+    renderStage({
+      financing: {
+        shareholderFinancing: [{ ...tradeInput, amount: 300 }],
+        dividendPayout: [{ ...tradeInput, transactionId: 'tx-2', amount: 1000 }],
+      },
+    });
+
+    expect(screen.getByTestId('financing-summary-inflow')).toHaveClass(MONEY_TONE_CLASS.positive);
+    expect(screen.getByTestId('financing-summary-outflow')).toHaveClass(MONEY_TONE_CLASS.negative);
+    const net = screen.getByTestId('financing-summary-net');
+    expect(net).toHaveTextContent('-NT$700');
+    expect(net).toHaveClass(MONEY_TONE_CLASS.negative);
+  });
+
+  it('leaves a balanced net without a direction tone', () => {
+    renderStage({
+      securities: {
+        buys: [{ ...tradeInput, amount: 500 }],
+        sells: [{ ...tradeInput, transactionId: 'tx-2', amount: 500 }],
+      },
+    });
+
+    const net = screen.getByTestId('securities-summary-net');
+    expect(net).toHaveTextContent('NT$0');
+    expect(net).toHaveClass(MONEY_TONE_CLASS.zero);
+  });
+
+  it('leaves an empty side without a direction tone', () => {
+    renderStage({ securities: { buys: [{ ...tradeInput, amount: 500 }], sells: [] } });
+
+    // Zero is the absence of a direction, so an empty side is not painted green.
+    const inflow = screen.getByTestId('securities-summary-inflow');
+    expect(inflow).toHaveTextContent('NT$0');
+    expect(inflow).toHaveClass(MONEY_TONE_CLASS.zero);
   });
 });

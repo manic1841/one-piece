@@ -69,6 +69,33 @@ describe('listAllLedgerCodesUseCase', () => {
     );
   });
 
+  it('lets a household code shadow the system code with the same value', async () => {
+    const { customLedgerCodeRepository } = await import(
+      '@/infra/repositories/customLedgerCodeRepository'
+    );
+
+    vi.mocked(customLedgerCodeRepository.listActive).mockResolvedValue([
+      {
+        code: 'asset:cash',
+        label: '現金（自家）',
+        type: 'asset',
+        isCustom: true,
+        isActive: true,
+      },
+    ] as never);
+
+    const result = await listAllLedgerCodesUseCase.execute({
+      householdId: 'household-1',
+      auth: { uid: 'user-1', isGlobalAdmin: false },
+      labelResolver: (code: string) => `resolved:${code}`,
+    });
+
+    expect(result.filter((entry) => entry.code === 'asset:cash')).toEqual([
+      expect.objectContaining({ label: '現金（自家）', isCustom: true }),
+    ]);
+    expect(result).toHaveLength(SYSTEM_CODE_COUNT);
+  });
+
   it('resolves the label through the resolver when a custom code has none', async () => {
     const { customLedgerCodeRepository } = await import(
       '@/infra/repositories/customLedgerCodeRepository'
@@ -119,7 +146,10 @@ describe('listAllLedgerCodesUseCase', () => {
       labelResolver: (code: string) => `resolved:${code}`,
     });
 
-    expect(customLedgerCodeRepository.list).toHaveBeenCalledWith(['household-1']);
+    expect(customLedgerCodeRepository.list).toHaveBeenCalledWith(
+      ['household-1'],
+      expect.arrayContaining([expect.anything()]),
+    );
     expect(customLedgerCodeRepository.listActive).not.toHaveBeenCalled();
     expect(result).toEqual(
       expect.arrayContaining([

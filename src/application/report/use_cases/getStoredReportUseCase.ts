@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import {
   aggregateBalanceSheetSnapshots,
@@ -21,6 +21,8 @@ export interface GetStoredReportRequest {
   yearMonth: string;
   kind: StoredReportKind;
   auth: AuthContext;
+  /** 呼叫端已經為同一份 household 驗過讀取權限。 */
+  skipPermissionCheck?: boolean;
 }
 
 export type StoredReportData = IncomeStatementData | BalanceSheetData | CashFlowData;
@@ -36,21 +38,22 @@ export class GetStoredReportUseCase {
     request: GetStoredReportRequest & { kind: 'cashFlow' },
   ): Promise<CashFlowData | null>;
   async execute(request: GetStoredReportRequest): Promise<StoredReportData | null> {
-    const { householdId, yearMonth, kind, auth } = request;
-    await householdPermissionService.assertReadPermission(
+    const { householdId, yearMonth, kind, auth, skipPermissionCheck = false } = request;
+    return withReadPermission(
       householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+      auth,
+      async () => {
+        switch (kind) {
+          case 'incomeStatement':
+            return this.getStoredIncomeStatement(householdId, yearMonth);
+          case 'balanceSheet':
+            return this.getStoredBalanceSheet(householdId, yearMonth);
+          case 'cashFlow':
+            return this.getStoredCashFlow(householdId, yearMonth);
+        }
+      },
+      { skipPermissionCheck },
     );
-
-    switch (kind) {
-      case 'incomeStatement':
-        return this.getStoredIncomeStatement(householdId, yearMonth);
-      case 'balanceSheet':
-        return this.getStoredBalanceSheet(householdId, yearMonth);
-      case 'cashFlow':
-        return this.getStoredCashFlow(householdId, yearMonth);
-    }
   }
 
   private async getStoredIncomeStatement(

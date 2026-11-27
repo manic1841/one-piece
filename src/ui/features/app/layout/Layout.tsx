@@ -116,7 +116,7 @@ const Layout: React.FC = () => {
         跳至主要內容
       </a>
       <header className="material-chrome sticky top-0 z-50 border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-2 sm:gap-3">
           <NavLink
             to="/"
             className="flex items-center gap-3 shrink-0 transition-opacity duration-fast ease-out-quint hover:opacity-80"
@@ -132,9 +132,9 @@ const Layout: React.FC = () => {
               {todayText}
             </span>
           </div>
-          <div className="ml-auto flex items-center gap-1 sm:gap-2 shrink-0">
+          <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
             {switcherReady && (
-              <div className="hidden sm:block">
+              <div className="min-w-0">
                 <HouseholdSwitcher
                   currentHouseholdId={userProfile.householdId}
                   currentHouseholdName={familyName}
@@ -147,7 +147,7 @@ const Layout: React.FC = () => {
               size="icon"
               aria-label="Search"
               onClick={() => setPaletteOpen(true)}
-              className="text-muted-foreground"
+              className="shrink-0 text-muted-foreground"
             >
               <Search size={18} />
             </Button>

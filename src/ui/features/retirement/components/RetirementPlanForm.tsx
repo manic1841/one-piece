@@ -120,6 +120,7 @@ export function RetirementPlanForm({
         form={rules.form}
         rules={rules.rules}
         errors={rules.errors}
+        editErrors={rules.allErrors}
         readOnly={readOnly}
         ledgerSource={ledgerSource}
         debtSource={debtSource}
@@ -140,6 +141,7 @@ export function RetirementPlanForm({
           form={events.form}
           events={events.events}
           errors={events.errors}
+          editErrors={events.allErrors}
           readOnly={readOnly}
           focusRequest={events.focusRequest}
           projectionStartYear={preview.projectionStartYear}

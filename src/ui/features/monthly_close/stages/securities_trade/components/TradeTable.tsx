@@ -18,6 +18,7 @@ import {
   dataTableLabelClass,
 } from '@/ui/components/data-table';
 import { eyebrowClass } from '@/ui/components/eyebrow';
+import { MONEY_TONE_CLASS, signTone } from '@/ui/components/moneyTone';
 import { Button } from '@/ui/components/ui/button';
 import { MONTHLY_CLOSE_LABELS } from '@/ui/constants/monthlyClose';
 import { formatCurrency } from '@/ui/utils';
@@ -33,8 +34,16 @@ interface TradeTableProps {
   rows: TradeTableRow[];
   /** Labels for the TYPE column; defaults to 買入/賣出. */
   sideLabels?: Record<TradeSide, string>;
-  /** Label for the summary net flow; defaults to NET INVESTMENT CASH FLOW. */
-  netLabel?: string;
+  /** Label for the summary net flow. Comes from the kind's config, never a default. */
+  netLabel: string;
+  /**
+   * The side that brings cash in. Buys are an outflow for securities but an
+   * inflow for financing, so the summary's sign and tones derive from it
+   * instead of from the side name.
+   */
+  inflowSide: TradeSide;
+  /** Prefix for the summary value test ids (suffixed `-inflow` / `-outflow`). */
+  summaryTestId: string;
   projectIdName: (projectId: string | null | undefined) => string | null;
   onAdd: () => void;
   onRowClick: (row: TradeTableRow) => void;
@@ -59,6 +68,8 @@ export const TradeTable: React.FC<TradeTableProps> = ({
   rows,
   sideLabels,
   netLabel,
+  inflowSide,
+  summaryTestId,
   projectIdName,
   onAdd,
   onRowClick,
@@ -72,7 +83,14 @@ export const TradeTable: React.FC<TradeTableProps> = ({
   const sellTotal = rows
     .filter((row) => row.side === 'SELL')
     .reduce((sum, row) => sum + (row.amount || 0), 0);
-  const netFlow = buyTotal - sellTotal;
+  // One polarity feeds both the net sign and every tone, so direction is
+  // encoded once. Positive always means cash in; zero falls back to no tone.
+  const polarity = (side: TradeSide): 1 | -1 => (side === inflowSide ? 1 : -1);
+  const netFlow = buyTotal * polarity('BUY') + sellTotal * polarity('SELL');
+  const sideTone = (side: TradeSide, total: number): string =>
+    MONEY_TONE_CLASS[signTone(total * polarity(side))];
+  const summaryTestIdOf = (side: TradeSide): string =>
+    `${summaryTestId}-${side === inflowSide ? 'inflow' : 'outflow'}`;
 
   const rowKeyDown =
     (row: TradeTableRow) =>
@@ -190,24 +208,35 @@ export const TradeTable: React.FC<TradeTableProps> = ({
           <div className="space-y-1 text-right">
             <div className="flex items-center justify-end gap-6">
               <p className={dataTableLabelClass}>{typeLabel('BUY')}</p>
-              <p className="font-mono text-sm font-medium tabular-nums text-foreground">
+              <p
+                data-testid={summaryTestIdOf('BUY')}
+                className={cn(
+                  'font-mono text-sm font-medium tabular-nums',
+                  sideTone('BUY', buyTotal),
+                )}
+              >
                 {formatCurrency(buyTotal)}
               </p>
             </div>
             <div className="flex items-center justify-end gap-6">
               <p className={dataTableLabelClass}>{typeLabel('SELL')}</p>
-              <p className="font-mono text-sm font-medium tabular-nums text-foreground">
+              <p
+                data-testid={summaryTestIdOf('SELL')}
+                className={cn(
+                  'font-mono text-sm font-medium tabular-nums',
+                  sideTone('SELL', sellTotal),
+                )}
+              >
                 {formatCurrency(sellTotal)}
               </p>
             </div>
             <div className="flex items-center justify-end gap-6 border-t border-border/60 pt-1">
-              <p className={dataTableLabelClass}>
-                {netLabel ?? MONTHLY_CLOSE_LABELS.NET_INVESTMENT_CASH_FLOW}
-              </p>
+              <p className={dataTableLabelClass}>{netLabel}</p>
               <p
+                data-testid={`${summaryTestId}-net`}
                 className={cn(
                   'font-mono text-sm font-medium tabular-nums',
-                  netFlow >= 0 ? 'text-positive' : 'text-negative',
+                  MONEY_TONE_CLASS[signTone(netFlow)],
                 )}
               >
                 {formatCurrency(netFlow)}

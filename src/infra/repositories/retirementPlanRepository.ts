@@ -1,4 +1,4 @@
-import { type DocumentData, collection, doc, orderBy } from 'firebase/firestore';
+import { type DocumentData, collection, doc, limit, orderBy } from 'firebase/firestore';
 
 import { RetirementPlanSchema } from '@/domains/retirement/schemas';
 import {
@@ -9,6 +9,7 @@ import {
 import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
 import { DOCUMENT_MAX_BYTES, isDocumentTooLarge } from '@/infra/repositories/firestorePayload';
+import { MASTER_LIST_LIMIT } from '@/shared/readLimits';
 
 export const RETIREMENT_PLAN_DOCUMENT_MAX_BYTES = DOCUMENT_MAX_BYTES;
 
@@ -89,7 +90,7 @@ class RetirementPlanRepository extends BaseRepository<RetirementPlan, [string, s
   }
 
   async listPlans(householdId: string): Promise<RetirementPlan[]> {
-    return this.list([householdId], [orderBy('updatedAt', 'desc')]);
+    return this.list([householdId], [orderBy('updatedAt', 'desc'), limit(MASTER_LIST_LIMIT)]);
   }
 }
 

@@ -1,5 +1,5 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { GetFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
+import { withReadPermission } from '@/application/common/readGuard';
+import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
@@ -117,38 +117,36 @@ const sumItems = (items: { amount: number }[]): number =>
   items.reduce((sum, item) => sum + item.amount, 0);
 
 export class GetDashboardOverviewUseCase {
-  private readonly getFinancialPeriod = new GetFinancialPeriodUseCase();
+  private readonly listPeriods = new ListFinancialPeriodsUseCase();
 
   async execute(request: GetDashboardOverviewRequest): Promise<DashboardOverview> {
     const { householdId, auth } = request;
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+
+    // One period query covers every candidate month: the old per-month loop paid a
+    // serial round trip for each report before it could find the first CLOSED one.
+    const [reports, periods] = await withReadPermission(householdId, auth, () =>
+      Promise.all([
+        listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
+        this.listPeriods.execute({ householdId }),
+      ]),
     );
 
-    const reports = await listReportsUseCase.execute({ householdId, auth });
+    const closedMonths = new Set(
+      periods.filter((period) => period.status === 'CLOSED').map((period) => period.yearMonth),
+    );
     const balanceSheets = reports
       .filter(isBalanceSheet)
       .sort((a, b) => byMonth(b.yearMonth, a.yearMonth));
+    const anchorReport = balanceSheets.find((report) => closedMonths.has(report.yearMonth));
 
-    for (const report of balanceSheets) {
-      const period = await this.getFinancialPeriod.execute({
-        householdId,
-        yearMonth: report.yearMonth,
-      });
-      if (period?.status !== 'CLOSED') {
-        continue;
-      }
-      const pulse = await this.buildPulse(householdId, auth, report.yearMonth, reports);
-      return {
-        anchor: this.buildAnchor(report, balanceSheets),
-        pulse,
-        cashFlowSeries: this.buildCashFlowSeries(report.yearMonth, reports),
-      };
-    }
+    if (!anchorReport) return { anchor: null, pulse: null, cashFlowSeries: [] };
 
-    return { anchor: null, pulse: null, cashFlowSeries: [] };
+    const pulse = await this.buildPulse(householdId, auth, anchorReport.yearMonth, reports);
+    return {
+      anchor: this.buildAnchor(anchorReport, balanceSheets),
+      pulse,
+      cashFlowSeries: this.buildCashFlowSeries(anchorReport.yearMonth, reports),
+    };
   }
 
   private async buildPulse(
@@ -161,19 +159,28 @@ export class GetDashboardOverviewUseCase {
     const cashFlow = reports
       .filter(isCashFlow)
       .find((report) => report.yearMonth === anchorYearMonth);
+    const { start, end } = buildMonthWindow(anchorYearMonth);
 
-    const portfolios = await listPortfoliosUseCase.execute({ householdId, auth });
-    const snapshots: PortfolioSnapshot[] = [];
-    for (const portfolio of portfolios) {
-      const monthSnapshots = await listPortfolioSnapshotsUseCase.execute({
-        householdId,
-        portfolioId: portfolio.id,
-        year,
-        month,
-        auth,
-      });
-      snapshots.push(...monthSnapshots);
-    }
+    // Portfolios and debt payments do not depend on each other; neither do the
+    // per-portfolio snapshot queries.
+    const [portfolios, debtPayments] = await Promise.all([
+      listPortfoliosUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
+      transactionRepository.listDebtPaymentsByDateRange(householdId, start, end),
+    ]);
+    const snapshots: PortfolioSnapshot[] = (
+      await Promise.all(
+        portfolios.map((portfolio) =>
+          listPortfolioSnapshotsUseCase.execute({
+            householdId,
+            portfolioId: portfolio.id,
+            year,
+            month,
+            auth,
+            skipPermissionCheck: true,
+          }),
+        ),
+      )
+    ).flat();
 
     const totalGain = snapshots.reduce(
       (sum, snapshot) => sum + (snapshot.performance?.gain ?? 0),
@@ -195,13 +202,6 @@ export class GetDashboardOverviewUseCase {
         }
       }
     }
-
-    const { start, end } = buildMonthWindow(anchorYearMonth);
-    const debtPayments = await transactionRepository.listDebtPaymentsByDateRange(
-      householdId,
-      start,
-      end,
-    );
 
     return {
       netCashFlow: cashFlow ? cashFlow.data.netCashChange : null,

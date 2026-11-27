@@ -20,10 +20,10 @@ async function setupWorkspace(page: Page) {
   await installEmulatorSession(page, session);
 
   await page.goto('/retirement/new');
-  // The opening resolves either from a seeded closed period or from nothing;
-  // waiting for whichever note lands keeps the typed amount from being
-  // overwritten by a late seed.
-  await page.getByText(/No closed period yet\.|Derived from the latest closed period\./).waitFor();
+  // The opening resolves either from an anchor month or from nothing; waiting
+  // for whichever note lands keeps the typed amount from being overwritten by a
+  // late seed.
+  await page.getByText(/No closed period yet\.|^As of /).waitFor();
   await page.getByRole('button', { name: 'Edit baseline' }).click();
   await page.getByLabel('Opening net worth').fill('100000');
   await page.getByLabel('Birth year').click();

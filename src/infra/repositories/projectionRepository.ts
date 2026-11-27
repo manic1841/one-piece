@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   orderBy,
   query,
   updateDoc,
@@ -30,6 +31,7 @@ import {
   sanitize,
   toFirestore,
 } from '@/infra/repositories/firestorePayload';
+import { PROJECTION_LIST_LIMIT } from '@/shared/readLimits';
 
 export type {
   CreateProjectionAtomicallyInput,
@@ -159,7 +161,11 @@ class ProjectionRepository {
 
   async listProjections(householdId: string): Promise<ProjectionDocument[]> {
     const snapshot = await getDocs(
-      query(this.getCollectionRef(householdId), orderBy('createdAt', 'desc')),
+      query(
+        this.getCollectionRef(householdId),
+        orderBy('createdAt', 'desc'),
+        limit(PROJECTION_LIST_LIMIT),
+      ),
     );
 
     return snapshot.docs.map((entry) => ({

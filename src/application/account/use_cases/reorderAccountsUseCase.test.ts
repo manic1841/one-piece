@@ -33,6 +33,10 @@ vi.mock('@/application/household/householdPermissionService', () => ({
 vi.mock('@/infra/repositories/accountRepository', () => ({
   accountRepository: {
     update: vi.fn(),
+    getAccounts: vi.fn().mockResolvedValue([
+      { id: 'account-1', order: 1 },
+      { id: 'account-2', order: 0 },
+    ]),
     getDocRefById: vi.fn((_householdId: string, id: string) => ({ id })),
   },
 }));
@@ -75,6 +79,24 @@ describe('reorderAccountsUseCase', () => {
     expect(accountRepository.update).not.toHaveBeenCalled();
   });
 
+  it('rejects a partial order when an inactive account is omitted', async () => {
+    vi.mocked(accountRepository.getAccounts).mockResolvedValueOnce([
+      { id: 'account-1', isActive: true },
+      { id: 'account-2', isActive: false },
+    ] as never);
+    const { runTransaction } = await import('firebase/firestore');
+
+    await expect(
+      reorderAccountsUseCase.execute({
+        householdId: 'household-1',
+        accountOrders: [{ id: 'account-1', order: 0 }],
+        userEmail: 'user@example.com',
+        auth,
+      }),
+    ).rejects.toMatchObject({ code: ReorderCommandErrorCode.INVALID_ORDERS });
+    expect(runTransaction).not.toHaveBeenCalled();
+  });
+
   it('rejects duplicate target ids with INVALID_ORDERS', async () => {
     await expect(
       reorderAccountsUseCase.execute({
@@ -93,6 +115,10 @@ describe('reorderAccountsUseCase', () => {
   });
 
   it('rejects missing targets with TARGET_NOT_FOUND', async () => {
+    vi.mocked(accountRepository.getAccounts).mockResolvedValueOnce([
+      { id: 'missing-account' },
+    ] as never);
+
     await expect(
       reorderAccountsUseCase.execute({
         householdId: 'household-1',
@@ -110,7 +136,10 @@ describe('reorderAccountsUseCase', () => {
     await expect(
       reorderAccountsUseCase.execute({
         householdId: 'household-1',
-        accountOrders: [{ id: 'account-1', order: 0 }],
+        accountOrders: [
+          { id: 'account-1', order: 0 },
+          { id: 'account-2', order: 1 },
+        ],
         userEmail: 'user@example.com',
         auth,
       }),
@@ -141,7 +170,10 @@ describe('reorderAccountsUseCase', () => {
     await expect(
       reorderAccountsUseCase.execute({
         householdId: 'household-1',
-        accountOrders: [{ id: 'account-1', order: 0 }],
+        accountOrders: [
+          { id: 'account-1', order: 0 },
+          { id: 'account-2', order: 1 },
+        ],
         userEmail: 'user@example.com',
         auth,
       }),

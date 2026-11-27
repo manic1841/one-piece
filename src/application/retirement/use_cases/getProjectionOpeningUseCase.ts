@@ -1,9 +1,12 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
-import { GetFinancialPeriodUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
+import { withReadPermission } from '@/application/common/readGuard';
+import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
+import {
+  balanceSheetsByMonth,
+  netWorthOf,
+  newestMonthFirst,
+} from '@/application/retirement/workflows/openingNetWorth';
 import { type AuthContext } from '@/application/types';
-import { calculateEquityTotal } from '@/domains/report/equityUtils';
-import { ReportType } from '@/domains/report/schemas';
 
 export interface ProjectionOpeningResult {
   openingNetWorth: number;
@@ -29,34 +32,30 @@ interface GetProjectionOpeningRequest {
  * assets.total - liabilities.total from the report.
  */
 export class GetProjectionOpeningUseCase {
+  private readonly listPeriods = new ListFinancialPeriodsUseCase();
+
   async execute(request: GetProjectionOpeningRequest): Promise<ProjectionOpeningLookup> {
     const { householdId, auth } = request;
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    const [reports, periods] = await withReadPermission(householdId, auth, () =>
+      Promise.all([
+        listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
+        this.listPeriods.execute({ householdId }),
+      ]),
     );
+    const byMonth = balanceSheetsByMonth(reports);
+    const months = [...byMonth.keys()].sort(newestMonthFirst);
 
-    const reports = await listReportsUseCase.execute({ householdId, auth });
-    const balanceSheets = reports
-      .filter((report) => report.type === ReportType.BALANCE_SHEET)
-      .sort((a, b) => (a.yearMonth < b.yearMonth ? 1 : a.yearMonth > b.yearMonth ? -1 : 0));
-
-    const getFinancialPeriod = new GetFinancialPeriodUseCase();
-    // One read per candidate period; parallel so a household with a long report
-    // history does not pay a serial round trip per month.
-    const statuses = await Promise.all(
-      balanceSheets.map((report) =>
-        getFinancialPeriod.execute({ householdId, yearMonth: report.yearMonth }),
-      ),
+    const closedMonths = new Set(
+      periods.filter((period) => period.status === 'CLOSED').map((period) => period.yearMonth),
     );
-
-    const closedIndex = statuses.findIndex((period) => period?.status === 'CLOSED');
+    const closedIndex = months.findIndex((yearMonth) => closedMonths.has(yearMonth));
     if (closedIndex === -1) return { reason: 'NO_CLOSED_PERIOD' };
 
-    const report = balanceSheets[closedIndex];
+    const report = byMonth.get(months[closedIndex] as string);
+    if (report === undefined) return { reason: 'NO_CLOSED_PERIOD' };
+
     return {
-      openingNetWorth: calculateEquityTotal(report.data),
+      openingNetWorth: netWorthOf(report),
       anchorYearMonth: report.yearMonth,
       assets: report.data.assets.total,
       liabilities: report.data.liabilities.total,

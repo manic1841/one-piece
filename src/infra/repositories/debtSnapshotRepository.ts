@@ -14,6 +14,7 @@ import {
 } from '@/domains/debt/schemas';
 import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
+import { SNAPSHOT_HISTORY_LIMIT } from '@/shared/readLimits';
 
 export { type DebtSnapshot, type DebtSnapshotCreate };
 
@@ -72,6 +73,7 @@ class DebtSnapshotRepository extends BaseRepository<DebtSnapshot, [string, strin
         where('yearMonth', '>=', startYearMonth),
         where('yearMonth', '<=', endYearMonth),
         orderBy('yearMonth', 'desc'),
+        limit(SNAPSHOT_HISTORY_LIMIT),
       ],
     );
   }

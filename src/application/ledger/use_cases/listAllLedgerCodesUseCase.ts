@@ -1,8 +1,11 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { limit, orderBy } from 'firebase/firestore';
+
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { LEDGER_CODES } from '@/domains/ledger/constants/ledgerCodes';
 import { type CustomLedgerCode } from '@/domains/ledger/schemas';
 import { customLedgerCodeRepository } from '@/infra/repositories/customLedgerCodeRepository';
+import { LEDGER_CODE_LIST_LIMIT } from '@/shared/readLimits';
 
 export interface LedgerCodeEntry {
   code: string;
@@ -31,12 +34,6 @@ export class ListAllLedgerCodesUseCase {
   async execute(request: ListAllLedgerCodesRequest): Promise<LedgerCodeEntry[]> {
     const { householdId, includeInactive = false, auth, labelResolver } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
-
     const systemCodes: LedgerCodeEntry[] = Object.values(LEDGER_CODES).map((code) => ({
       code,
       label: labelResolver(code),
@@ -45,9 +42,14 @@ export class ListAllLedgerCodesUseCase {
       isActive: true,
     }));
 
-    const customCodes: CustomLedgerCode[] = includeInactive
-      ? await customLedgerCodeRepository.list([householdId])
-      : await customLedgerCodeRepository.listActive(householdId);
+    const customCodes: CustomLedgerCode[] = await withReadPermission(householdId, auth, () =>
+      includeInactive
+        ? customLedgerCodeRepository.list(
+            [householdId],
+            [orderBy('__name__'), limit(LEDGER_CODE_LIST_LIMIT)],
+          )
+        : customLedgerCodeRepository.listActive(householdId),
+    );
 
     const customItems: LedgerCodeEntry[] = customCodes.map((custom) => ({
       code: custom.code,
@@ -57,7 +59,10 @@ export class ListAllLedgerCodesUseCase {
       isActive: custom.isActive,
     }));
 
-    return [...systemCodes, ...customItems];
+    // A household code reuses the system code as its document id, so it shadows
+    // that system code rather than adding a second row with the same value.
+    const shadowed = new Set(customItems.map((item) => item.code));
+    return [...systemCodes.filter((code) => !shadowed.has(code.code)), ...customItems];
   }
 }
 

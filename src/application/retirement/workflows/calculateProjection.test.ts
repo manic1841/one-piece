@@ -119,24 +119,34 @@ describe('calculateProjectionWorkflow', () => {
     expect(householdPermissionService.assertWritePermission).toHaveBeenCalledTimes(1);
   });
 
-  it('derives the opening balance and keeps its anchor in config', async () => {
-    vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
-      openingNetWorth: 380_000,
-      anchorYearMonth: '2026-08',
-      assets: 500_000,
-      liabilities: 120_000,
-    });
+  it('uses the opening on screen and keeps its anchor, without reading the reports', async () => {
     const calculated = await calculateProjectionWorkflow.execute(
-      request({ opening: { source: 'derived' } }),
+      request({ opening: { source: 'derived', amount: 380_000, anchorYearMonth: '2026-08' } }),
     );
 
     expect(calculated.ok).toBe(true);
     if (!calculated.ok) return;
+    expect(getProjectionOpeningUseCase.execute).not.toHaveBeenCalled();
     expect(calculated.calculation.config.openingNetWorth).toEqual({
       amount: 380_000,
       source: 'derived',
       anchorYearMonth: '2026-08',
     });
+  });
+
+  it('reports a missing baseline when the derived amount is blank', async () => {
+    const outcome = await calculateProjectionWorkflow.execute(
+      request({ opening: { source: 'derived' } }),
+    );
+
+    expect(outcome).toMatchObject({
+      ok: false,
+      code: ProjectionCommandErrorCode.PROJECTION_RESOLVE_FAILED,
+    });
+    if (outcome.ok) return;
+    expect(outcome.errors).toEqual([
+      expect.objectContaining({ code: 'MISSING_BASELINE', severity: 'error' }),
+    ]);
   });
 
   it('fails validation before resolving or writing', async () => {

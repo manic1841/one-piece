@@ -63,9 +63,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   const [appliedPlanName, setAppliedPlanName] = useState<string | null>(null);
   const [openingValidationError, setOpeningValidationError] = useState<string | undefined>();
   const [startYearValidationError, setStartYearValidationError] = useState<string | undefined>();
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [lastSavedName, setLastSavedName] = useState<string | null>(null);
-  const [savedAsPlan, setSavedAsPlan] = useState(false);
   const [preloadWarning, setPreloadWarning] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
 
@@ -86,7 +83,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   });
   const {
     opening,
-    reportValue,
     seededRef,
     markSeeded,
     loadOpening,
@@ -97,7 +93,7 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     resetAll,
     setOpeningAmount,
     commitOpeningAmount,
-    resetToSnapshot,
+    applyReport,
     assumptions,
     rules,
     events,
@@ -211,14 +207,11 @@ export function useProjectionWorkspace(householdId: string | undefined) {
   }, [runIndicators]);
 
   /**
-   * What any replacement of the draft invalidates: the saved identity and the
-   * gesture undo stack. Both a scenario swap and an applied retirement age go
-   * through here, so the list cannot drift between them.
+   * What any replacement of the draft invalidates: the gesture undo stack. Both
+   * a scenario swap and an applied retirement age go through here, so the list
+   * cannot drift between them.
    */
   const dropSavedState = useCallback(() => {
-    setSavedId(null);
-    setLastSavedName(null);
-    setSavedAsPlan(false);
     undo.clear();
   }, [undo]);
 
@@ -252,9 +245,6 @@ export function useProjectionWorkspace(householdId: string | undefined) {
     persist,
     saveAsPlanCommand: saveWorkspaceAsPlan,
     takeValidatedPlan,
-    setSavedId,
-    setLastSavedName,
-    setSavedAsPlan,
     markSaved,
   });
 
@@ -294,11 +284,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       error: openingError,
       validationError: openingValidationError,
       startYearError: startYearValidationError,
-      hasClosedPeriod: reportValue !== null,
-      hasSnapshot: reportValue !== null,
       setOpeningAmount,
       commitOpeningAmount,
-      resetToSnapshot,
+      applyReport,
       reload: retryOpening,
     } satisfies WorkspaceOpening,
     assumptions,
@@ -321,12 +309,9 @@ export function useProjectionWorkspace(householdId: string | undefined) {
       applyRetirementAge,
     } satisfies WorkspaceCalc,
     save: {
-      savedId,
-      savedAsPlan,
       save,
       saveAsPlan,
       saveForm,
-      lastSavedName,
       saveAsPlanForm,
       defaultName: defaultProjectionName,
     },

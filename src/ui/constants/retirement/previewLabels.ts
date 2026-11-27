@@ -26,13 +26,12 @@ export const PREVIEW_LABELS = {
   SETTINGS: 'CALCULATION SETTINGS',
   SETTINGS_DETAILS: 'View setup details',
   BASED_ON: 'Based on',
-  SUMMARY: (
-    opening: string,
-    year: number,
-    age: string,
-    endAge: string,
-    rules: number,
-    events: number,
-  ) =>
-    `${opening} · Start ${year} · Retire ${age} → Age ${endAge} · ${rules} rules · ${events} events`,
+  SETTINGS_START_YEAR: 'Start year',
+  SETTINGS_RETIREMENT: 'Retirement',
+  SETTINGS_RATES: 'Inflation · Return',
+  SETTINGS_VOLUME: 'Income rules · Events',
+  /** `65 (2050) to 85` — the retirement year and the end age are derived, shown for cross-check. */
+  RETIREMENT_RANGE: (age: string, year: number, endAge: string) => `${age} (${year}) to ${endAge}`,
+  RATES: (inflation: string, annualReturn: string) => `${inflation}% · ${annualReturn}%`,
+  VOLUME: (rules: number, events: number) => `${rules} · ${events}`,
 } as const;

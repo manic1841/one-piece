@@ -34,6 +34,8 @@ const ROUNDED_FULL_ALLOWED = new Set([
   'features/retirement/components/LifeEventTimeline.tsx',
   // Status dot in the event-details summary (income / expense tone).
   'features/retirement/components/LifeEventInspector.tsx',
+  // Same status dot, carried on the collapsed event summary row.
+  'features/retirement/components/LifeEventRow.tsx',
   // Slider thumb, an essential circle like the switch knob.
   'features/retirement/components/PercentSlider.tsx',
 ]);
@@ -92,6 +94,8 @@ const read = (file: string): string => readFileSync(path.resolve(UI_DIR, file), 
 /** Feature files whose `text-destructive` is not error copy (counts, required marker). */
 const DESTRUCTIVE_TONE_ONLY = new Set([
   'features/retirement/components/LifeEventInspector.tsx',
+  'features/retirement/components/LifeEventPhaseRow.tsx',
+  'features/retirement/components/LifeEventRow.tsx',
   'features/retirement/components/ProjectionRuleRow.tsx',
   'features/retirement/components/ProjectionRulesSection.tsx',
 ]);

@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 
 import { sectionTitleClass } from '@/ui/components/eyebrow';
+import { formMessageClass } from '@/ui/components/form';
 import { Button } from '@/ui/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/ui/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/ui/components/ui/sheet';
@@ -14,8 +15,10 @@ interface ProjectionRuleDialogProps {
   mode: 'create' | 'edit';
   title: string;
   readOnly: boolean;
-  /** Disabled while the name is blank, so confirming never adds an unusable row. */
+  /** Disabled while the name is blank or the rule still has field errors. */
   confirmDisabled: boolean;
+  /** Why CONFIRM is held back, when the reason is a field error rather than a blank name. */
+  blockedHint?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
   onDelete: () => void;
@@ -33,6 +36,7 @@ export function ProjectionRuleDialog({
   title,
   readOnly,
   confirmDisabled,
+  blockedHint,
   onConfirm,
   onCancel,
   onDelete,
@@ -43,6 +47,7 @@ export function ProjectionRuleDialog({
   const body = (
     <div className="grid gap-5">
       <div className="grid gap-5">{children}</div>
+      {!readOnly && blockedHint != null && <p className={formMessageClass}>{blockedHint}</p>}
       {!readOnly && (
         <div className="flex items-center gap-2 border-t border-border pt-4">
           <Button variant="text" size="sm" className="px-0" onClick={onDelete}>

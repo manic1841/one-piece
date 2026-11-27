@@ -14,15 +14,6 @@
       "collectionGroup": "snapshots",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "year", "order": "ASCENDING" },
-        { "fieldPath": "month", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "snapshots",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "year", "order": "DESCENDING" },
         { "fieldPath": "month", "order": "DESCENDING" },
         { "fieldPath": "__name__", "order": "DESCENDING" }
@@ -122,15 +113,6 @@
       "fields": [
         { "fieldPath": "intentType", "order": "ASCENDING" },
         { "fieldPath": "ledgerCodes", "arrayConfig": "CONTAINS" }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "intentType", "order": "ASCENDING" },
-        { "fieldPath": "date", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "DESCENDING" }
       ]
     }
   ],

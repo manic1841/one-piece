@@ -1,5 +1,7 @@
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type Account, type AccountSnapshot } from '@/domains/account/types/account';
+import { mapInBatches } from '@/shared/batch';
 
 import { getAccountSnapshotsUseCase } from './getAccountSnapshotsUseCase';
 import { getAccountUseCase } from './getAccountUseCase';
@@ -23,36 +25,59 @@ export class GetAccountsWithSnapshotsUseCase {
   async execute(request: GetAccountsWithSnapshotsRequest): Promise<AccountWithSnapshot[]> {
     const { householdId, auth, accountId, year, month, includeInactive = false } = request;
 
-    const accounts = accountId
-      ? [await getAccountUseCase.execute({ householdId, accountId, auth })]
-      : await getAccountsUseCase.execute({ householdId, auth, includeInactive });
+    // The per-account snapshot queries below skip their redundant checks.
+    const accounts = await withReadPermission(
+      householdId,
+      auth,
+      async (): Promise<(Account | null)[]> =>
+        accountId
+          ? [
+              await getAccountUseCase.execute({
+                householdId,
+                accountId,
+                auth,
+                skipPermissionCheck: true,
+              }),
+            ]
+          : await getAccountsUseCase.execute({
+              householdId,
+              auth,
+              includeInactive,
+              skipPermissionCheck: true,
+            }),
+    );
 
-    const result: AccountWithSnapshot[] = [];
-    for (const account of accounts) {
-      if (!account) continue;
+    // The snapshot reads are independent of each other, so they run together
+    // instead of queueing one round-trip per account — in batches, so a large
+    // household does not fire every round trip at once.
+    const rows = await mapInBatches(
+      accounts.filter((account): account is Account => Boolean(account)),
+      async (account) => {
+        const snapshot =
+          year || month
+            ? ((
+                await getAccountSnapshotsUseCase.execute({
+                  householdId,
+                  accountId: account.id,
+                  auth,
+                  year,
+                  month,
+                  skipPermissionCheck: true,
+                  latestByCreatedAt: true,
+                })
+              )[0] ?? null)
+            : await getLatestSnapshotUseCase.execute({
+                householdId,
+                accountId: account.id,
+                auth,
+                skipPermissionCheck: true,
+              });
 
-      let snapshot: AccountSnapshot | null = null;
+        return { ...account, snapshot };
+      },
+    );
 
-      if (year || month) {
-        const snapshots = await getAccountSnapshotsUseCase.execute({
-          householdId,
-          accountId: account.id,
-          auth,
-          year,
-          month,
-        });
-        snapshot = snapshots.length > 0 ? snapshots[0] : null;
-      } else {
-        snapshot = await getLatestSnapshotUseCase.execute({
-          householdId,
-          accountId: account.id,
-          auth,
-        });
-      }
-
-      result.push({ ...account, snapshot });
-    }
-    return result;
+    return rows;
   }
 }
 

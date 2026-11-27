@@ -9,6 +9,17 @@ export const EVENT_LABELS = {
   EVENT_SECTION: 'EVENT',
   PHASE_SECTION: 'PHASE',
   NAME: 'Event name',
+  /** Collapsed summary rows: unnamed drafts still need something to click. */
+  UNNAMED_EVENT: 'Unnamed event',
+  UNNAMED_PHASE: 'Unnamed phase',
+  PHASE_COUNT: (count: number) => `${count} phase${count === 1 ? '' : 's'}`,
+  META_SEPARATOR: ' · ',
+  EXPAND: 'Show phases',
+  COLLAPSE: 'Hide phases',
+  EDIT_PHASE: 'Edit phase',
+  ERROR_COUNT: '{count} errors',
+  /** Shown in the inspector while a field error holds the sheet open. */
+  SHEET_BLOCKED: 'Fix the marked fields to close this phase.',
   TYPE: 'Type',
   ENABLED: 'Enabled',
   DISABLED: 'Disabled',
