@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type ReportLabelResolver } from '@/domains/report/reportCalculations';
 import {
@@ -39,13 +39,9 @@ export class PreviewFinancialReportsWorkflow {
     const { householdId, auth, year, month, labelResolver } = request;
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    const bundle = await withReadPermission(householdId, auth, () =>
+      fetchReportDataUseCase.execute({ householdId, yearMonth }),
     );
-
-    const bundle = await fetchReportDataUseCase.execute({ householdId, yearMonth });
 
     const incomeStatement = previewIncomeStatementUseCase.execute(bundle, labelResolver);
     const balanceSheet = previewBalanceSheetUseCase.execute(bundle, incomeStatement, labelResolver);

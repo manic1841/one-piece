@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
@@ -42,13 +42,12 @@ export class ListProjectionOpeningPeriods {
 
   async execute(request: ListProjectionOpeningPeriodsRequest): Promise<ProjectionOpeningPeriods> {
     const { householdId, auth, anchorYearMonth = null } = request;
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    const [periods, reports] = await withReadPermission(householdId, auth, () =>
+      Promise.all([
+        this.listPeriods.execute({ householdId }),
+        listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
+      ]),
     );
-
-    const periods = await this.listPeriods.execute({ householdId });
     const closed = periods
       .filter((period) => period.status === 'CLOSED')
       .map((period) => period.yearMonth)
@@ -56,7 +55,6 @@ export class ListProjectionOpeningPeriods {
 
     if (closed.length === 0) return { periods: [], pinned: null };
 
-    const reports = await listReportsUseCase.execute({ householdId, auth });
     const byMonth = balanceSheetsByMonth(reports);
     const toPeriod = (yearMonth: string): ProjectionOpeningPeriod[] => {
       const report = byMonth.get(yearMonth);

@@ -1,7 +1,8 @@
-import { type QueryConstraint, orderBy, where } from 'firebase/firestore';
+import { type QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
 
 import { type ProjectSnapshot } from '@/domains/project/schemas';
 import { projectSnapshotRepository } from '@/infra/repositories/projectSnapshotRepository';
+import { SNAPSHOT_HISTORY_LIMIT } from '@/shared/readLimits';
 
 export interface ListProjectSnapshotsRequest {
   householdId: string;
@@ -30,8 +31,7 @@ export class ListProjectSnapshotsUseCase {
       return snap ? [snap] : [];
     }
 
-    // Year-only range first: Firestore can serve it from an index, then the id
-    // trim below narrows to the actual months.
+    // Year-only range first, then the id trim below narrows to the actual months.
     const constraints: QueryConstraint[] = [];
     if (fromYearMonth) {
       constraints.push(where('year', '>=', Number(fromYearMonth.slice(0, 4))));
@@ -39,13 +39,18 @@ export class ListProjectSnapshotsUseCase {
     if (toYearMonth) {
       constraints.push(where('year', '<=', Number(toYearMonth.slice(0, 4))));
     }
-    constraints.push(orderBy('year', 'desc'), orderBy('month', 'desc'));
+    constraints.push(
+      orderBy('year', 'desc'),
+      orderBy('month', 'desc'),
+      // 由新到舊，截斷才會落在最舊的一端。
+      limit(SNAPSHOT_HISTORY_LIMIT),
+    );
 
     const snapshots = await projectSnapshotRepository.list([householdId, projectId], constraints);
 
     // The year-only constraint above over-selects the window's edge years; trim
-    // against the snapshot id, which is the `YYYY-MM` month key. Trimming happens
-    // before any limit so an edge year cannot hide older in-range snapshots.
+    // against the snapshot id, which is the `YYYY-MM` month key. The limit runs
+    // first, so the window has to fit inside it for the trim to be exhaustive.
     const inWindow = snapshots.filter(
       (snapshot) =>
         (!fromYearMonth || snapshot.id >= fromYearMonth) &&

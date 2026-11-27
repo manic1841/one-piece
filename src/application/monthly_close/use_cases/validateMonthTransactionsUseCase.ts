@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type Transaction } from '@/domains/ledger/schemas';
 import {
@@ -33,22 +33,21 @@ export class ValidateMonthTransactionsUseCase {
     request: ValidateMonthTransactionsRequest,
   ): Promise<ValidateMonthTransactionsUseCaseResult> {
     const { householdId, year, month, auth } = request;
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
-
     const yearMonth = `${year}-${String(month).padStart(2, '0')}`;
     const monthStart = new Date(year, month - 1, 1);
     const monthEnd = new Date(year, month, 1);
 
-    const [transactions, allocations, projects, customLedgerCodes] = await Promise.all([
-      transactionRepository.listByDateRange(householdId, monthStart, monthEnd),
-      allocationRepository.list([householdId]),
-      projectRepository.getProjects(householdId),
-      customLedgerCodeRepository.listActive(householdId),
-    ]);
+    const [transactions, allocations, projects, customLedgerCodes] = await withReadPermission(
+      householdId,
+      auth,
+      () =>
+        Promise.all([
+          transactionRepository.listByDateRange(householdId, monthStart, monthEnd),
+          allocationRepository.list([householdId]),
+          projectRepository.getProjects(householdId),
+          customLedgerCodeRepository.listActive(householdId),
+        ]),
+    );
 
     const allocationById = new Map(allocations.map((allocation) => [allocation.id, allocation]));
     const projectIds = new Set(projects.map((project) => project.id));

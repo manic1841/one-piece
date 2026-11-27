@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import {
   type ProjectBalanceResponse,
   loadProjectBalance,
@@ -27,28 +27,24 @@ export class ListProjectBalancesUseCase {
   }: ListProjectBalancesRequest): Promise<Map<string, ProjectBalanceResponse>> {
     if (projectIds.length === 0) return new Map();
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
-
     const entries: (readonly [string, ProjectBalanceResponse] | null)[] = [];
-    for (let start = 0; start < projectIds.length; start += BALANCE_BATCH_SIZE) {
-      const batch = projectIds.slice(start, start + BALANCE_BATCH_SIZE);
-      entries.push(
-        ...(await Promise.all(
-          batch.map(async (projectId) => {
-            try {
-              return [projectId, await loadProjectBalance(householdId, projectId)] as const;
-            } catch {
-              // A failed row keeps no entry and renders a dash; the rest stand.
-              return null;
-            }
-          }),
-        )),
-      );
-    }
+    await withReadPermission(householdId, auth, async () => {
+      for (let start = 0; start < projectIds.length; start += BALANCE_BATCH_SIZE) {
+        const batch = projectIds.slice(start, start + BALANCE_BATCH_SIZE);
+        entries.push(
+          ...(await Promise.all(
+            batch.map(async (projectId) => {
+              try {
+                return [projectId, await loadProjectBalance(householdId, projectId)] as const;
+              } catch {
+                // A failed row keeps no entry and renders a dash; the rest stand.
+                return null;
+              }
+            }),
+          )),
+        );
+      }
+    });
 
     return new Map(
       entries.filter((entry): entry is readonly [string, ProjectBalanceResponse] => entry !== null),

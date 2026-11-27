@@ -254,6 +254,8 @@ export class MonthlyCloseWorkflowUseCase {
   }
 
   private async assertMember(householdId: string, auth: AuthContext): Promise<void> {
+    // Commands need the verdict before they write, so this one stays sequential;
+    // read-only stages get their parallelism from `withReadPermission`.
     await householdPermissionService.assertReadPermission(
       householdId,
       auth.uid,

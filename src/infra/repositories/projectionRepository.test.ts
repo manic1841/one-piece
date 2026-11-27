@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { PROJECTION_LIST_LIMIT } from '@/shared/readLimits';
+
 import { projectionRepository } from './projectionRepository';
 
 const state = vi.hoisted(() => ({ sequence: 0, calls: [] as string[], batch: null as unknown }));
@@ -55,6 +57,7 @@ vi.mock('firebase/firestore', () => {
     updateDoc: vi.fn().mockResolvedValue(undefined),
     query: vi.fn((ref: unknown, ...constraints: unknown[]) => ({ ref, constraints })),
     orderBy: vi.fn((field: string, direction: string) => ({ field, direction })),
+    limit: vi.fn((value: number) => ({ limit: value })),
     writeBatch: vi.fn(() => {
       state.calls.push('writeBatch');
       const batch = {
@@ -281,7 +284,10 @@ describe('projectionRepository', () => {
     const queryArg = vi.mocked(getDocs).mock.calls[0][0] as unknown as {
       constraints: Array<{ field: string; direction: string }>;
     };
-    expect(queryArg.constraints).toEqual([{ field: 'createdAt', direction: 'desc' }]);
+    expect(queryArg.constraints).toEqual([
+      { field: 'createdAt', direction: 'desc' },
+      { limit: PROJECTION_LIST_LIMIT },
+    ]);
   });
 
   it('reads the main document and its children from the exact paths', async () => {

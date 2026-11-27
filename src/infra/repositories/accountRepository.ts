@@ -1,4 +1,4 @@
-import { collection, doc, orderBy, where } from 'firebase/firestore';
+import { collection, doc, limit, orderBy, where } from 'firebase/firestore';
 
 import {
   type Account,
@@ -9,6 +9,7 @@ import {
 } from '@/domains/account/types/account';
 import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
+import { MASTER_LIST_LIMIT } from '@/shared/readLimits';
 
 import { accountSnapshotRepository } from './accountSnapshotRepository';
 
@@ -37,10 +38,13 @@ class AccountRepository extends BaseRepository<Account, [string, string?]> {
 
   async getAccounts(householdId: string, includeInactive = false): Promise<Account[]> {
     if (includeInactive) {
-      return this.list([householdId], [orderBy('order', 'asc')]);
+      return this.list([householdId], [orderBy('order', 'asc'), limit(MASTER_LIST_LIMIT)]);
     }
 
-    return this.list([householdId], [where('isActive', '==', true), orderBy('order', 'asc')]);
+    return this.list(
+      [householdId],
+      [where('isActive', '==', true), orderBy('order', 'asc'), limit(MASTER_LIST_LIMIT)],
+    );
   }
 
   async createAccount(

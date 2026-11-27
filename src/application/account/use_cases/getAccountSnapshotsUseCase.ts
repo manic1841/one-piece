@@ -1,6 +1,6 @@
 import { type QueryConstraint, limit, orderBy, where } from 'firebase/firestore';
 
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type AccountSnapshot } from '@/domains/account/types/account';
 import { accountSnapshotRepository } from '@/infra/repositories/accountSnapshotRepository';
@@ -29,14 +29,6 @@ export class GetAccountSnapshotsUseCase {
       latestByCreatedAt = false,
     } = request;
 
-    if (!skipPermissionCheck) {
-      await householdPermissionService.assertReadPermission(
-        householdId,
-        auth.uid,
-        auth.isGlobalAdmin,
-      );
-    }
-
     const q: QueryConstraint[] = [orderBy('createdAt', 'desc')];
     if (year) {
       q.push(where('year', '==', year));
@@ -48,7 +40,12 @@ export class GetAccountSnapshotsUseCase {
       q.push(limit(1));
     }
 
-    return await accountSnapshotRepository.list([householdId, accountId], q);
+    return withReadPermission(
+      householdId,
+      auth,
+      () => accountSnapshotRepository.list([householdId, accountId], q),
+      { skipPermissionCheck },
+    );
   }
 }
 

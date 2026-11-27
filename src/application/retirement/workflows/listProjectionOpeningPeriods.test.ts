@@ -148,7 +148,7 @@ describe('listProjectionOpeningPeriods', () => {
     expect(pinned.pinned).toEqual({ yearMonth: '2024-05', netWorth: 800 });
   });
 
-  it('returns an empty window without reading reports when nothing is closed', async () => {
+  it('returns an empty window when nothing is closed', async () => {
     listPeriodsMock.mockResolvedValue([period('2026-08', 'IN_PROGRESS')]);
 
     const result = await listProjectionOpeningPeriods.execute({
@@ -157,6 +157,7 @@ describe('listProjectionOpeningPeriods', () => {
     });
 
     expect(result).toEqual({ periods: [], pinned: null });
-    expect(listReportsUseCase.execute).not.toHaveBeenCalled();
+    // The report read runs alongside the period read, so it has already been issued.
+    expect(listReportsUseCase.execute).toHaveBeenCalled();
   });
 });

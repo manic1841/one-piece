@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { customLedgerCodeRepository } from '@/infra/repositories/customLedgerCodeRepository';
 
@@ -12,13 +12,9 @@ export class CheckLedgerCodeInUseUseCase {
   async execute(request: CheckLedgerCodeInUseRequest): Promise<boolean> {
     const { householdId, ledgerCode, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    return withReadPermission(householdId, auth, () =>
+      customLedgerCodeRepository.isCodeInUse(householdId, ledgerCode),
     );
-
-    return customLedgerCodeRepository.isCodeInUse(householdId, ledgerCode);
   }
 }
 

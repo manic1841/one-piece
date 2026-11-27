@@ -146,7 +146,10 @@ describe('listAllLedgerCodesUseCase', () => {
       labelResolver: (code: string) => `resolved:${code}`,
     });
 
-    expect(customLedgerCodeRepository.list).toHaveBeenCalledWith(['household-1']);
+    expect(customLedgerCodeRepository.list).toHaveBeenCalledWith(
+      ['household-1'],
+      expect.arrayContaining([expect.anything()]),
+    );
     expect(customLedgerCodeRepository.listActive).not.toHaveBeenCalled();
     expect(result).toEqual(
       expect.arrayContaining([

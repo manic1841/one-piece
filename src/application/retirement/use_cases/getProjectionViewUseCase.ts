@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import {
   type ProjectionAnnual,
@@ -34,13 +34,9 @@ export class GetProjectionViewUseCase {
   async execute(request: GetProjectionViewRequest): Promise<ProjectionViewData | null> {
     const { householdId, projectionId, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    const projection = await withReadPermission(householdId, auth, () =>
+      projectionRepository.getProjection(householdId, projectionId),
     );
-
-    const projection = await projectionRepository.getProjection(householdId, projectionId);
     if (projection === null) return null;
 
     const [storedConfig, source, annual] = await Promise.all([

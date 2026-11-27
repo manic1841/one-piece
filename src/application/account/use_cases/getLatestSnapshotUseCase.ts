@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type AccountSnapshot } from '@/domains/account/types/account';
 import { accountSnapshotRepository } from '@/infra/repositories/accountSnapshotRepository';
@@ -19,15 +19,12 @@ export class GetLatestSnapshotUseCase {
   async execute(request: GetLatestSnapshotRequest): Promise<AccountSnapshot | null> {
     const { householdId, accountId, auth, skipPermissionCheck = false } = request;
 
-    if (!skipPermissionCheck) {
-      await householdPermissionService.assertReadPermission(
-        householdId,
-        auth.uid,
-        auth.isGlobalAdmin,
-      );
-    }
-
-    return await accountSnapshotRepository.getLatestSnapshot(householdId, accountId);
+    return withReadPermission(
+      householdId,
+      auth,
+      () => accountSnapshotRepository.getLatestSnapshot(householdId, accountId),
+      { skipPermissionCheck },
+    );
   }
 }
 

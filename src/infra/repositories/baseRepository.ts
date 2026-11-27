@@ -18,6 +18,7 @@ import {
 import { z } from 'zod';
 
 import { fromFirestore, sanitize, toFirestore } from '@/infra/repositories/firestorePayload';
+import { measure } from '@/shared/perf';
 import { type Base } from '@/shared/schemas/base';
 
 export type ExcludedColumn = 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy';
@@ -134,21 +135,26 @@ export abstract class BaseRepository<TDomain extends Base, RefArgs extends unkno
   // get
   async get(args: RefArgs, tx?: Transaction): Promise<TDomain | null> {
     const ref = this.getDocRef(...args);
-    const snap = tx ? await tx.get(ref) : await getDoc(ref);
+    // 量測含反序列化與 Zod parse：慢的可能是解析而不是網路，兩者都要看得到。
+    return measure(`firestore get ${ref.path}`, async () => {
+      const snap = tx ? await tx.get(ref) : await getDoc(ref);
 
-    if (!snap.exists()) return null;
+      if (!snap.exists()) return null;
 
-    const data = this.convertFromFirestore(snap.data());
-    return this.getDomainSchema().parse(data) as TDomain;
+      const data = this.convertFromFirestore(snap.data());
+      return this.getDomainSchema().parse(data) as TDomain;
+    });
   }
 
   // list
   async list(args: RefArgs, constraints: QueryConstraint[] = []): Promise<TDomain[]> {
-    const q = query(this.getCollectionRef(...args), ...constraints);
-    const snap = await getDocs(q);
-    return snap.docs.map((doc) => {
-      const data = this.convertFromFirestore(doc.data());
-      return this.getDomainSchema().parse(data) as TDomain;
+    const collectionRef = this.getCollectionRef(...args);
+    return measure(`firestore list ${collectionRef.path}`, async () => {
+      const snap = await getDocs(query(collectionRef, ...constraints));
+      return snap.docs.map((doc) => {
+        const data = this.convertFromFirestore(doc.data());
+        return this.getDomainSchema().parse(data) as TDomain;
+      });
     });
   }
 

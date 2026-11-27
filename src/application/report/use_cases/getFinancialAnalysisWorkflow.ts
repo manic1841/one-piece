@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listPortfolioSnapshotsUseCase } from '@/application/portfolio/use_cases/listPortfolioSnapshotsUseCase';
 import { listPortfoliosUseCase } from '@/application/portfolio/use_cases/listPortfoliosUseCase';
@@ -164,16 +164,12 @@ export class GetFinancialAnalysisWorkflow {
     auth,
     range,
   }: GetFinancialAnalysisRequest): Promise<FinancialAnalysis> {
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    const [reports, periods] = await withReadPermission(householdId, auth, () =>
+      Promise.all([
+        listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
+        this.listPeriods.execute({ householdId }),
+      ]),
     );
-
-    const [reports, periods] = await Promise.all([
-      listReportsUseCase.execute({ householdId, auth }),
-      this.listPeriods.execute({ householdId }),
-    ]);
     const closedMonths = new Set(
       periods.filter((period) => period.status === 'CLOSED').map((period) => period.yearMonth),
     );
@@ -203,10 +199,19 @@ export class GetFinancialAnalysisWorkflow {
       };
     }
 
-    const portfolios = await listPortfoliosUseCase.execute({ householdId, auth });
+    const portfolios = await listPortfoliosUseCase.execute({
+      householdId,
+      auth,
+      skipPermissionCheck: true,
+    });
     const snapshotsPerPortfolio = await Promise.all(
       portfolios.map((portfolio) =>
-        listPortfolioSnapshotsUseCase.execute({ householdId, portfolioId: portfolio.id, auth }),
+        listPortfolioSnapshotsUseCase.execute({
+          householdId,
+          portfolioId: portfolio.id,
+          auth,
+          skipPermissionCheck: true,
+        }),
       ),
     );
     const snapshotsByMonth = aggregateSnapshots(snapshotsPerPortfolio.flat());
