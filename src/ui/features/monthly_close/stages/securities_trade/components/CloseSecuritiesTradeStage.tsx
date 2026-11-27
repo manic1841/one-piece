@@ -98,6 +98,7 @@ export const CloseSecuritiesTradeStage: React.FC<CloseSecuritiesTradeStageProps>
         <TradeTable
           title={MONTHLY_CLOSE_LABELS.SECURITIES_TRANSACTIONS}
           sideLabels={TRADE_KIND_CONFIG.SECURITIES.sideLabels}
+          netLabel={TRADE_KIND_CONFIG.SECURITIES.netLabel}
           rows={[
             ...projectTradeRows('buys', securities.buys),
             ...projectTradeRows('sells', securities.sells),

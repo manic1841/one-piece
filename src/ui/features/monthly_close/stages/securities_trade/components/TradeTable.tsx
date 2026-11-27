@@ -34,8 +34,8 @@ interface TradeTableProps {
   rows: TradeTableRow[];
   /** Labels for the TYPE column; defaults to 買入/賣出. */
   sideLabels?: Record<TradeSide, string>;
-  /** Label for the summary net flow; defaults to NET INVESTMENT CASH FLOW. */
-  netLabel?: string;
+  /** Label for the summary net flow. Comes from the kind's config, never a default. */
+  netLabel: string;
   /**
    * The side that brings cash in. Buys are an outflow for securities but an
    * inflow for financing, so the summary's sign and tones derive from it
@@ -231,9 +231,7 @@ export const TradeTable: React.FC<TradeTableProps> = ({
               </p>
             </div>
             <div className="flex items-center justify-end gap-6 border-t border-border/60 pt-1">
-              <p className={dataTableLabelClass}>
-                {netLabel ?? MONTHLY_CLOSE_LABELS.NET_INVESTMENT_CASH_FLOW}
-              </p>
+              <p className={dataTableLabelClass}>{netLabel}</p>
               <p
                 data-testid={`${summaryTestId}-net`}
                 className={cn(
