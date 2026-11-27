@@ -2,15 +2,18 @@ import type {
   AmountItem,
   ProjectionInput,
   ProjectionResult,
+  ProjectionYearItem,
   ProjectionYearResult,
 } from '../projectionTypes';
 
 /**
  * Bumped whenever output semantics change. v2: the minimum net worth is taken
  * on the year-start balance, matching `retirementNetWorth` and the yearly rows,
- * so one year never shows two different net-worth figures.
+ * so one year never shows two different net-worth figures. v3: each year keeps
+ * its inflow/outflow lines, and the totals are the sum of the rounded lines so
+ * the breakdown always adds up.
  */
-export const ENGINE_VERSION = 2;
+export const ENGINE_VERSION = 3;
 
 function fail(message: string): never {
   throw new RangeError(message);
@@ -58,7 +61,22 @@ function round(value: number): number {
   return rounded === 0 ? 0 : rounded;
 }
 
-function sum(items: AmountItem[]): number {
+/**
+ * Rounds each line and drops the zeros, so the stored breakdown is exact and
+ * disabled sources never appear as `NT$0` rows.
+ */
+function roundItems(items: AmountItem[]): ProjectionYearItem[] {
+  const rounded: ProjectionYearItem[] = [];
+  for (const item of items) {
+    const amount = round(item.amount);
+    if (amount !== 0) {
+      rounded.push({ sourceRef: item.sourceRef, origin: item.origin, amount });
+    }
+  }
+  return rounded;
+}
+
+function sumItems(items: ProjectionYearItem[]): number {
   let total = 0;
   for (const item of items) total += item.amount;
   return total;
@@ -84,8 +102,10 @@ export function calculateProjection(input: ProjectionInput): ProjectionResult {
   const years: ProjectionYearResult[] = [];
 
   for (const year of input.years) {
-    const inflows = sum(year.inflows);
-    const outflows = sum(year.outflows);
+    const inflowItems = roundItems(year.inflows);
+    const outflowItems = roundItems(year.outflows);
+    const inflows = sumItems(inflowItems);
+    const outflows = sumItems(outflowItems);
     const investmentReturn = opening * annualReturnRate;
     const closing = opening + inflows - outflows + investmentReturn;
 
@@ -105,9 +125,11 @@ export function calculateProjection(input: ProjectionInput): ProjectionResult {
       isRetired: year.year >= retirementYear,
       opening: round(opening),
       return: round(investmentReturn),
-      inflows: round(inflows),
-      outflows: round(outflows),
+      inflows,
+      outflows,
       closing: round(closing),
+      inflowItems,
+      outflowItems,
     });
 
     opening = closing;

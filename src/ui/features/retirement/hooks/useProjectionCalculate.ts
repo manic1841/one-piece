@@ -34,7 +34,11 @@ function mapCalculated(
   outcome: Extract<CalculateProjectionOutcome, { ok: true }>,
 ): CalculatedProjection {
   return {
-    projection: mapProjectionResultToVM(outcome.calculation.input, outcome.calculation.result),
+    projection: mapProjectionResultToVM(
+      outcome.calculation.input,
+      outcome.calculation.result,
+      outcome.calculation.config,
+    ),
     summary: mapProjectionSummaryToVM(outcome.calculation.result.summary),
     calculation: outcome.calculation,
     comparisonInput: outcome.comparisonInput,

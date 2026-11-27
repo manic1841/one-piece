@@ -17,6 +17,17 @@ export interface RetirementProjectionPointVM {
   isRetired: boolean;
 }
 
+export interface RetirementProjectionItemVM {
+  /** Stable key: two rules may share a display name. */
+  sourceRef: string;
+  /** Rule / life-event name, resolved from the frozen config. */
+  label: string;
+  amount: number;
+  amountText: string;
+  /** `規則` or `生活事件`; events are called out so they stand apart. */
+  originText: string;
+}
+
 export interface RetirementProjectionYearDetailVM {
   year: number;
   age: number;
@@ -25,6 +36,9 @@ export interface RetirementProjectionYearDetailVM {
   incomeText: string;
   expenseText: string;
   investmentReturnText: string;
+  /** Breakdown lines, largest first; empty when the year has no such line. */
+  inflowItems: RetirementProjectionItemVM[];
+  outflowItems: RetirementProjectionItemVM[];
   /** Signed net worth change behind `netCashFlowText`, for the tone of the net column. */
   netCashFlow: number;
   netCashFlowText: string;

@@ -69,6 +69,12 @@ export interface CreateProjectionAtomicallyInput {
   results: ProjectionAnnual;
 }
 
+export const ProjectionYearItemSchema = z.object({
+  sourceRef: z.string(),
+  origin: z.enum(['rule', 'event']),
+  amount: z.number(),
+});
+
 export const ProjectionYearResultSchema = z.object({
   year: z.number(),
   age: z.number(),
@@ -78,6 +84,8 @@ export const ProjectionYearResultSchema = z.object({
   inflows: z.number(),
   outflows: z.number(),
   closing: z.number(),
+  inflowItems: z.array(ProjectionYearItemSchema),
+  outflowItems: z.array(ProjectionYearItemSchema),
 });
 
 export const ProjectionSummarySchema = z.object({

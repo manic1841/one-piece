@@ -14,6 +14,8 @@ import { type RetirementProjectionYearDetailVM } from '@/ui/features/retirement/
 import { formatCurrency } from '@/ui/utils';
 import { cn } from '@/ui/utils/cn';
 
+import { YearBreakdown } from './YearBreakdown';
+
 interface AnnualYearPanelProps {
   row: RetirementProjectionYearDetailVM;
   birthYear: number | null;
@@ -47,10 +49,9 @@ const SUMMARY_ITEMS = (row: RetirementProjectionYearDetailVM): DefinitionItem[] 
 ];
 
 const CASH_FLOW_ITEMS = (row: RetirementProjectionYearDetailVM): DefinitionItem[] => [
-  { label: COLUMNS.income, value: row.incomeText, valueClassName: 'text-muted-foreground' },
-  { label: COLUMNS.expense, value: row.expenseText, valueClassName: 'text-muted-foreground' },
   {
-    label: COLUMNS.investmentReturn,
+    // Investment return is a product of the opening balance, not a posted line.
+    label: `${COLUMNS.investmentReturn}（${PROJECTION_YEARLY_DETAIL_LABELS.investmentReturnDerivation}）`,
     value: row.investmentReturnText,
     valueClassName: 'text-muted-foreground',
   },
@@ -109,11 +110,16 @@ export function AnnualYearPanel({ row, birthYear }: AnnualYearPanelProps) {
       </div>
 
       <div className="mt-2">
-        <DefinitionRows
-          items={view === 'summary' ? SUMMARY_ITEMS(row) : CASH_FLOW_ITEMS(row)}
-          layout="row"
-          divided
-        />
+        {view === 'summary' ? (
+          <DefinitionRows items={SUMMARY_ITEMS(row)} layout="row" divided />
+        ) : (
+          <div className="space-y-3">
+            <YearBreakdown row={row} scope="panel" />
+            <div className="border-t border-border pt-1">
+              <DefinitionRows items={CASH_FLOW_ITEMS(row)} layout="row" divided />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

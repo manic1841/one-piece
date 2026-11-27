@@ -203,6 +203,8 @@ const projectionResult: ProjectionResult = {
       inflows: 0,
       outflows: 0,
       closing: 105_000,
+      inflowItems: [],
+      outflowItems: [],
     },
     {
       year: 2027,
@@ -213,6 +215,8 @@ const projectionResult: ProjectionResult = {
       inflows: 0,
       outflows: 0,
       closing: 110_250,
+      inflowItems: [],
+      outflowItems: [],
     },
   ],
   summary: {
