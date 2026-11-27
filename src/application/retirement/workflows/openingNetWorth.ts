@@ -12,7 +12,8 @@ const isBalanceSheet = (report: FinancialReport): report is BalanceSheetReport =
 
 /**
  * Balance sheets keyed by month. One report read serves both the default lookup
- * and the picker list, so "closed month ⇒ net worth" has a single home.
+ * and the picker list, so "month ⇒ net worth" has a single home. Closing is not
+ * a condition; any stored balance sheet counts.
  */
 export const balanceSheetsByMonth = (reports: FinancialReport[]): Map<string, BalanceSheetReport> =>
   new Map(reports.filter(isBalanceSheet).map((report) => [report.yearMonth, report]));

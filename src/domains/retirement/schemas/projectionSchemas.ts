@@ -69,6 +69,12 @@ export interface CreateProjectionAtomicallyInput {
   results: ProjectionAnnual;
 }
 
+export const ProjectionYearItemSchema = z.object({
+  sourceRef: z.string(),
+  origin: z.enum(['rule', 'event']),
+  amount: z.number(),
+});
+
 export const ProjectionYearResultSchema = z.object({
   year: z.number(),
   age: z.number(),
@@ -78,6 +84,10 @@ export const ProjectionYearResultSchema = z.object({
   inflows: z.number(),
   outflows: z.number(),
   closing: z.number(),
+  // Breakdowns arrived with engine v3; a stored v2 result has only the totals,
+  // and the view still marks it stale, so default rather than reject the read.
+  inflowItems: z.array(ProjectionYearItemSchema).default([]),
+  outflowItems: z.array(ProjectionYearItemSchema).default([]),
 });
 
 export const ProjectionSummarySchema = z.object({

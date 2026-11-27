@@ -164,7 +164,10 @@ const Layout: React.FC = () => {
       {/* The emulator banner is fixed at the viewport bottom; this reserves
           its height plus the safe area so the footer and sticky docks clear it. */}
       <main id="main" tabIndex={-1} className="flex-1 pb-[var(--bottom-overlay,0px)]">
-        <div key={routeKey} className="max-w-7xl mx-auto p-4 md:p-8 animate-page-enter">
+        <div
+          key={routeKey}
+          className="max-w-7xl mx-auto min-w-0 overflow-x-clip p-4 md:p-8 animate-page-enter"
+        >
           {/* Page chunks are lazy; the shell (header, footer, pet) stays mounted while one loads. */}
           <Suspense fallback={<PageSkeleton />}>
             <Outlet />

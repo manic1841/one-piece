@@ -19,9 +19,9 @@ interface OpenWorkspaceRequest {
  *
  * The one exception is a dangling anchor: when the anchor month's balance sheet
  * was deleted (or lost in a partial restore) the frozen amount has no provenance
- * left, so the opening falls back to the latest closed month. Without any closed
- * month the value stays but drops to `manual`, which keeps it saveable — a
- * derived opening without an anchor fails the schema.
+ * left, so the opening falls back to the latest balance sheet. Without any
+ * stored report the value stays but drops to `manual`, which keeps it saveable —
+ * a derived opening without an anchor fails the schema.
  */
 export const openWorkspaceFromProjection = {
   async execute(request: OpenWorkspaceRequest): Promise<ProjectionViewData | null> {

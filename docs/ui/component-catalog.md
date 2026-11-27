@@ -360,6 +360,7 @@
 - **`charts / BarChart`** — 分組長條圖。值以**大小**呈現（高度 ∝ 數值），收入／支出用 series 的 tone 表達，不是負高度；`highlightIndex` 指定的欄位改用 primary tone（呼叫端不需要 highlight 時可省略）。
   - Props：`labels`、`series`（`{ tone, values }[]`）、`highlightIndex?`、`height?`、`showLabels?`、`ariaLabel?`、`className?`、`children?`（`(layout) => ReactNode` 疊加層，`layout` 提供每個欄位的 index／label／values／ratio）。
   - `children` 疊加層會被放在長條區內、與欄位同樣的 flex 版面下；一旦提供 `children`，`ariaLabel` 不再掛 `role="img"`（交給疊加層自行標註語意）。
+  - 標籤列不做成等寬 flex row：等寬 label 不會縮到文字以下，手機上會把整頁擠出橫向捲動。標籤依繪圖寬度抽稀（首末必留、重複年份折掉），並絕對定位在欄位中心。
   - **不要用於**：長條圖的明細 tooltip——用 `InteractiveBarChart`。
   - 範例：`src/ui/components/charts/InteractiveBarChart.tsx`（作為互動版的基礎）。
 
@@ -374,6 +375,7 @@
 
 - **`charts / DonutChart`** — 圓環圖：圓環 ＋ 中心標題 ＋（可選）垂直圖例。切片顏色取自 `CHART_CATEGORICAL_COLORS` 類別色板（首片 `primary`，其餘 `chart-1..7`，依資料順序），佔比由數值推導並四捨五入為整數百分比。
   - Props：`segments`（`{ label, value }[]`）、`centerLabel`、`size?`、`showLegend?`、`ariaLabel?`、`className?`。
+  - **Mobile**：圖例折到圓環下方（`sm` 起才並排）；固定寬圓環與並排圖例會在手機上把圖例壓成細條，中心金額也會壓到圓環上。
   - **不要用於**：需要精確讀值——圓環只適合看比例；精確值用數字或表格。
   - 範例：`src/ui/features/dashboard/components/AssetCompositionBlock.tsx`（資產組成）。
 

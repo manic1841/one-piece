@@ -44,7 +44,9 @@ describe('OpeningPeriodDialog', () => {
     });
     renderDialog();
 
-    expect(await screen.findByText('No closed period yet. Type an amount instead.')).toBeVisible();
+    expect(
+      await screen.findByText('No balance sheet report yet. Type an amount instead.'),
+    ).toBeVisible();
     expect(screen.getAllByRole('button', { name: 'Close' }).length).toBeGreaterThan(0);
   });
 
@@ -52,7 +54,7 @@ describe('OpeningPeriodDialog', () => {
     vi.mocked(listProjectionOpeningPeriods.execute).mockRejectedValue(new Error('boom'));
     renderDialog();
 
-    expect(await screen.findByText('Could not load the closed periods.')).toBeVisible();
+    expect(await screen.findByText('Could not load the report months.')).toBeVisible();
     expect(screen.getByRole('button', { name: 'RETRY' })).toBeInTheDocument();
   });
 

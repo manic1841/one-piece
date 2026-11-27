@@ -25,6 +25,18 @@ export interface ProjectionInput {
   years: ProjectionYearInput[];
 }
 
+/**
+ * One inflow or outflow line in a year's result. `sourceRef` is all that is
+ * stored: the rule/event names live in the frozen config snapshot, so the
+ * persisted result never duplicates labels.
+ */
+export interface ProjectionYearItem {
+  sourceRef: string;
+  origin: AmountItem['origin'];
+  /** Always positive; the side is which array the item sits in. */
+  amount: number;
+}
+
 export interface ProjectionYearResult {
   year: number;
   age: number;
@@ -34,6 +46,9 @@ export interface ProjectionYearResult {
   inflows: number;
   outflows: number;
   closing: number;
+  /** Zero-amount lines are dropped so a disabled rule never shows up. */
+  inflowItems: ProjectionYearItem[];
+  outflowItems: ProjectionYearItem[];
 }
 
 /** Nullable fields mean "not applicable", never zero. */

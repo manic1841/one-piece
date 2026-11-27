@@ -24,6 +24,12 @@ describe('pickXLabels', () => {
     expect(pickXLabels(10, 4)).toEqual([0, 3, 6, 9]);
   });
 
+  it('keeps the last label off its neighbour when the span does not divide evenly', () => {
+    // 8 points over 4 labels: stepping by ceil plus a tail append would give
+    // [0, 3, 6, 7], parking the last two labels next to each other.
+    expect(pickXLabels(8, 4)).toEqual([0, 2, 5, 7]);
+  });
+
   it('keeps at least two labels even when the budget is one', () => {
     expect(pickXLabels(10, 1)).toHaveLength(2);
   });

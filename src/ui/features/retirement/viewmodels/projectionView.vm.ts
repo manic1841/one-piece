@@ -6,6 +6,7 @@ import { type RetirementProjectionVM } from '@/ui/features/retirement/viewmodels
 import {
   mapProjectionPoint,
   mapYearlyDetail,
+  sourceLabelResolver,
 } from '@/ui/features/retirement/viewmodels/projectionRows.vm';
 import {
   type ProjectionSnapshotVM,
@@ -108,7 +109,7 @@ export const mapProjectionViewToVM = (data: ProjectionViewData): ProjectionViewV
           chartData: years.map((entry) =>
             mapProjectionPoint(entry, entry.inflows, entry.outflows, projection.bankruptcyYear),
           ),
-          yearlyDetails: years.map(mapYearlyDetail),
+          yearlyDetails: years.map((year) => mapYearlyDetail(year, sourceLabelResolver(config))),
         };
 
   return {

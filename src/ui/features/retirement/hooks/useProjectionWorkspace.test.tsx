@@ -62,7 +62,7 @@ describe('useProjectionWorkspace', () => {
     vi.restoreAllMocks();
   });
 
-  it('seeds the derived opening balance from the latest CLOSED period without dirtying', async () => {
+  it('seeds the derived opening balance from the latest balance sheet without dirtying', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue(closedResult);
 
     renderWorkspace();
@@ -76,9 +76,9 @@ describe('useProjectionWorkspace', () => {
     expect(latestRef.current.dirty).toBe(false);
   });
 
-  it('starts empty and offers manual entry when no period is closed', async () => {
+  it('starts empty and offers manual entry when no balance sheet exists', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
-      reason: 'NO_CLOSED_PERIOD',
+      reason: 'NO_REPORT',
     });
 
     renderWorkspace();
@@ -110,7 +110,7 @@ describe('useProjectionWorkspace', () => {
 
   it('derives the retirement year once birth year and age are set', async () => {
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
-      reason: 'NO_CLOSED_PERIOD',
+      reason: 'NO_REPORT',
     });
 
     renderWorkspace();

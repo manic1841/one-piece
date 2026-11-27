@@ -48,6 +48,8 @@ const yearRow = (year: number, closing: number) => ({
   inflows: 50_000,
   outflows: 20_000,
   closing,
+  inflowItems: [{ sourceRef: 'rule-1', origin: 'rule' as const, amount: 50_000 }],
+  outflowItems: [{ sourceRef: 'rule-1', origin: 'rule' as const, amount: 20_000 }],
 });
 
 const YEARS = [
@@ -382,14 +384,36 @@ describe('ProjectionViewPage', () => {
     const panel = screen.getByTestId('annual-year-panel');
     expect(panel).toHaveTextContent('2032 · Age 42');
     expect(within(panel).getByText('淨資產變動')).toBeInTheDocument();
-    expect(within(panel).queryByText('收入')).not.toBeInTheDocument();
+    expect(within(panel).queryByText('收入明細')).not.toBeInTheDocument();
 
     fireEvent.click(within(panel).getByRole('button', { name: 'Cash flow' }));
-    expect(within(panel).getByText('收入')).toBeInTheDocument();
-    expect(within(panel).getByText('投資收益')).toBeInTheDocument();
+    expect(within(panel).getByText('收入明細')).toBeInTheDocument();
+    expect(within(panel).getByText('支出明細')).toBeInTheDocument();
+    expect(within(panel).getByText(/^投資收益/)).toBeInTheDocument();
+    expect(within(panel).getByText('期初淨資產 × 報酬率', { exact: false })).toBeInTheDocument();
 
     fireEvent.click(within(panel).getByRole('button', { name: 'Summary' }));
     expect(within(panel).getByText('退休狀態')).toBeInTheDocument();
+  });
+
+  it('breaks the year down into named lines in the panel cash flow view', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: '最低 · 2032' }));
+
+    fireEvent.click(
+      within(screen.getByTestId('annual-year-panel')).getByRole('button', { name: 'Cash flow' }),
+    );
+
+    const breakdown = screen.getByTestId('year-breakdown-panel-2032');
+    // Names come from the frozen config, and the origin tag tells rule from event.
+    expect(within(breakdown).getAllByText('Rent')).toHaveLength(2);
+    expect(within(breakdown).getAllByText('規則')).toHaveLength(2);
+    // Subtotal and its single line both carry the amount.
+    expect(within(breakdown).getAllByText('NT$50,000')).toHaveLength(2);
+    expect(within(breakdown).getAllByText('NT$20,000')).toHaveLength(2);
   });
 
   it('owns the view divider on a full-width wrapper, not on the shrink-wrapped strip', async () => {
@@ -419,6 +443,10 @@ describe('ProjectionViewPage', () => {
     expect(screen.getByTestId('annual-year-panel')).toHaveTextContent('2028');
     expect(screen.getByTestId('yearly-detail-2028')).toBeInTheDocument();
     expect(row).toHaveAttribute('aria-expanded', 'true');
+
+    const detail = screen.getByTestId('yearly-detail-2028');
+    expect(within(detail).getByTestId('year-breakdown-desktop-2028')).toBeInTheDocument();
+    expect(within(detail).getAllByText('Rent')).toHaveLength(2);
 
     const expand = within(row).getByRole('button', { name: '展開 2028 年明細' });
     fireEvent.click(expand);
@@ -469,6 +497,20 @@ describe('ProjectionViewPage', () => {
 
     expect(screen.getByTestId('yearly-row-mobile-2027')).toHaveAttribute('aria-current', 'true');
     expect(screen.getByTestId('yearly-row-mobile-2028')).not.toHaveAttribute('aria-current');
+  });
+
+  it('keeps one container per breakpoint and only the mobile list shows the row there', async () => {
+    renderView();
+
+    await screen.findByTestId('projection-overview-tab');
+    openTab('PROJECTION');
+    fireEvent.click(await screen.findByRole('button', { name: /全部年份/ }));
+
+    const desktop = screen.getByTestId('yearly-desktop-table');
+    const mobile = screen.getByTestId('yearly-mobile-list');
+    expect(within(desktop).getByTestId('yearly-row-2028')).toBeInTheDocument();
+    expect(within(mobile).getByTestId('yearly-row-mobile-2028')).toBeInTheDocument();
+    expect(within(desktop).queryByTestId('yearly-row-mobile-2028')).not.toBeInTheDocument();
   });
 
   it('marks the selected row with aria-current', async () => {

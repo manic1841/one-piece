@@ -3,12 +3,16 @@ import {
   type ProjectionYearResult,
   type RuleSourceSnapshot,
 } from '@/domains/retirement/projectionTypes';
-import { PROJECTION_COMMON_LABELS } from '@/ui/constants/retirement/displayLabels';
+import {
+  PROJECTION_COMMON_LABELS,
+  PROJECTION_YEARLY_DETAIL_LABELS,
+} from '@/ui/constants/retirement/displayLabels';
 import {
   BASELINE_POLICY_LABELS,
   END_CONDITION_LABELS,
 } from '@/ui/constants/retirement/setupLabels';
 import {
+  type RetirementProjectionItemVM,
   type RetirementProjectionPointVM,
   type RetirementProjectionYearDetailVM,
 } from '@/ui/features/retirement/viewmodels/projectionDisplay.vm';
@@ -81,7 +85,51 @@ export function mapProjectionPoint(
   };
 }
 
-export function mapYearlyDetail(entry: ProjectionYearResult): RetirementProjectionYearDetailVM {
+/** Falls back to the raw source ref when the frozen config lost the name. */
+export type ItemLabelResolver = (sourceRef: string) => string;
+
+/** The only two fields a name lookup needs; both snapshots and config satisfy it. */
+export interface SourceNames {
+  projectionRules: { id: string; name: string }[];
+  lifeEvents: { id: string; name: string }[];
+}
+
+/**
+ * One home for rule/event names. Both VMs read the same frozen config so the
+ * preview and the stored view can never word the same line differently.
+ */
+export function sourceLabelResolver(config: SourceNames): ItemLabelResolver {
+  const names = new Map([
+    ...config.projectionRules.map((rule) => [rule.id, rule.name] as const),
+    ...config.lifeEvents.map((event) => [event.id, event.name] as const),
+  ]);
+  return (sourceRef) => names.get(sourceRef) ?? sourceRef;
+}
+
+function mapItems(
+  items: ProjectionYearResult['inflowItems'] | undefined,
+  resolveLabel: ItemLabelResolver,
+): RetirementProjectionItemVM[] {
+  return [...(items ?? [])]
+    .sort((a, b) => b.amount - a.amount)
+    .map((item) => ({
+      sourceRef: item.sourceRef,
+      label: resolveLabel(item.sourceRef),
+      amount: item.amount,
+      amountText: formatCurrency(item.amount),
+      originText: ORIGIN_TEXT[item.origin],
+    }));
+}
+
+const ORIGIN_TEXT = {
+  rule: PROJECTION_YEARLY_DETAIL_LABELS.originRule,
+  event: PROJECTION_YEARLY_DETAIL_LABELS.originEvent,
+} as const;
+
+export function mapYearlyDetail(
+  entry: ProjectionYearResult,
+  resolveLabel: ItemLabelResolver = (sourceRef) => sourceRef,
+): RetirementProjectionYearDetailVM {
   return {
     year: entry.year,
     age: entry.age,
@@ -90,6 +138,8 @@ export function mapYearlyDetail(entry: ProjectionYearResult): RetirementProjecti
     incomeText: formatCurrency(entry.inflows),
     expenseText: formatCurrency(entry.outflows),
     investmentReturnText: formatCurrency(entry.return),
+    inflowItems: mapItems(entry.inflowItems, resolveLabel),
+    outflowItems: mapItems(entry.outflowItems, resolveLabel),
     netCashFlow: entry.inflows - entry.outflows + entry.return,
     netCashFlowText: formatCurrency(entry.inflows - entry.outflows + entry.return),
     opening: entry.opening,

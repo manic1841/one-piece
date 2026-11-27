@@ -40,7 +40,7 @@ interface OpeningNetWorthSectionProps {
   setAmount: (value: string) => void;
   /** Rewrites a typed decimal to whole NT dollars when the field loses focus. */
   commitAmount: () => void;
-  /** Applies a month picked in the closed-period dialog. */
+  /** Applies a month picked in the report dialog. */
   applyReport: (value: ReportValue) => void;
   retry: () => void;
   /** Band state and the reason it is blocked; the field's own error stays inline. */
@@ -49,10 +49,11 @@ interface OpeningNetWorthSectionProps {
 }
 
 /**
- * Opening net worth. The latest closed period seeds the field once as a default
- * value, so there is no mode to switch into: the input is always editable and
- * typing drops the anchor. USE CLOSED replaces the value with another closed
- * month's net worth; the month is kept as a "As of" note only.
+ * Opening net worth. The latest balance sheet report seeds the field once as a
+ * default value, so there is no mode to switch into: the input is always
+ * editable and typing drops the anchor. USE REPORT replaces the value with
+ * another month's net worth; the month is kept as an "As of" note only. A month
+ * does not have to be closed — an open month's report can still change.
  *
  * The amount is the decision this section exists for, so it is typeset as the
  * hero — bare digits at heading size, provenance hung directly beneath it. The
@@ -129,7 +130,7 @@ export function OpeningNetWorthSection({
               className="h-auto min-h-11 px-0 py-0 text-xs"
               onClick={() => setPicking(true)}
             >
-              {PROJECTION_WORKSPACE_LABELS.USE_CLOSED}
+              {PROJECTION_WORKSPACE_LABELS.USE_REPORT}
             </Button>
           )}
           <Button
@@ -166,7 +167,7 @@ export function OpeningNetWorthSection({
                   className="h-auto min-h-11 px-0 py-0 text-xs"
                   onClick={() => setPicking(true)}
                 >
-                  {PROJECTION_WORKSPACE_LABELS.USE_CLOSED}
+                  {PROJECTION_WORKSPACE_LABELS.USE_REPORT}
                 </Button>
               )}
               <Button
