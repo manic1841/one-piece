@@ -51,6 +51,10 @@ const seedDoc = async (householdId: string, collectionName: string, id: string, 
   await setDoc(doc(db, 'households', householdId, collectionName, id), {
     id,
     order,
+    // Accounts are parsed through their domain schema, which requires these.
+    ...(collectionName === 'accounts'
+      ? { name: id, category: 'bank', currency: 'TWD', isActive: true }
+      : {}),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     createdBy: userEmail,
@@ -169,7 +173,7 @@ describe('Reorder atomic contract with Firestore Emulator', () => {
     expect(new Set(byOrder.map((entry) => entry.order))).toEqual(new Set([0, 1]));
   });
 
-  it('rejects reorders referencing missing targets with TARGET_NOT_FOUND', async () => {
+  it('rejects reorders referencing missing targets', async () => {
     const householdId = 'household-missing';
     await seedDoc(householdId, 'accounts', 'account-1', 0);
 
@@ -183,7 +187,9 @@ describe('Reorder atomic contract with Firestore Emulator', () => {
         userEmail,
         auth,
       }),
-    ).rejects.toMatchObject({ code: 'TARGET_NOT_FOUND' });
+      // The completeness/membership guard rejects before the transaction, so the
+      // missing id surfaces as INVALID_ORDERS rather than TARGET_NOT_FOUND.
+    ).rejects.toMatchObject({ code: 'INVALID_ORDERS' });
 
     expect(await readOrders(householdId, 'accounts')).toEqual([{ id: 'account-1', order: 0 }]);
   });
