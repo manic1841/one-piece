@@ -34,7 +34,12 @@ export const openWorkspaceFromProjection = {
     const anchorYearMonth = openingNetWorth.anchorYearMonth;
     if (openingNetWorth.source !== 'derived' || anchorYearMonth === undefined) return data;
 
-    const reports = await listReportsUseCase.execute({ householdId, auth });
+    const reports = await listReportsUseCase.execute({
+      householdId,
+      auth,
+      // `getProjectionViewUseCase` already authorized this household.
+      skipPermissionCheck: true,
+    });
     const anchorReport = balanceSheetsByMonth(reports).get(anchorYearMonth);
     // Still intact: the frozen amount is copied untouched.
     if (anchorReport !== undefined) return data;

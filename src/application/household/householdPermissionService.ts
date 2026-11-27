@@ -2,6 +2,11 @@ import { RoleEnum } from '@/domains/household/role';
 
 import { getHouseholdUseCase } from './use_cases/getHouseholdUseCase';
 
+/**
+ * 讀取型 use case 不要直接 `await` 這裡的方法：改走
+ * `@/application/common/readGuard`，讓檢查與查詢並行（見
+ * docs/architecture.md §2「讀取的權限前門與量測」）。寫入型維持先驗後寫。
+ */
 export class HouseholdPermissionService {
   async isUserMember(householdId: string, uid: string): Promise<boolean> {
     const household = await getHouseholdUseCase.execute({ householdId });

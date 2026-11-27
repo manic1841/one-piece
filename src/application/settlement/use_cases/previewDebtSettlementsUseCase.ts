@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { debtAccountRepository } from '@/infra/repositories/debtAccountRepository';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -45,20 +45,15 @@ export interface PreviewDebtSettlementsResult {
 export class PreviewDebtSettlementsUseCase {
   async execute(request: PreviewDebtSettlementsRequest): Promise<PreviewDebtSettlementsResult> {
     const { householdId, year, month, auth } = request;
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
     const yearMonth = `${year}-${month.toString().padStart(2, '0')}`;
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    const debtAccounts = await debtAccountRepository.getDebtAccounts(householdId);
-    const debtPayments = await transactionRepository.listDebtPaymentsByDateRange(
-      householdId,
-      startDate,
-      endDate,
+    const [debtAccounts, debtPayments] = await withReadPermission(householdId, auth, () =>
+      Promise.all([
+        debtAccountRepository.getDebtAccounts(householdId),
+        transactionRepository.listDebtPaymentsByDateRange(householdId, startDate, endDate),
+      ]),
     );
 
     const repaymentStats = new Map<string, { count: number; amount: number }>();

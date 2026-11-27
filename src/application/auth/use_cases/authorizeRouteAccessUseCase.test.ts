@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { householdPermissionService } from '@/application/household/householdPermissionService';
 import { type AuthContext } from '@/application/types';
 
+import { invalidateRouteAccessCache } from '../routeAccessCache';
 import { authorizeRouteAccessUseCase } from './authorizeRouteAccessUseCase';
 import { isUserAuthorizedUseCase } from './isUserAuthorizedUseCase';
 
@@ -25,6 +26,7 @@ const request = {
 describe('authorizeRouteAccessUseCase', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    invalidateRouteAccessCache();
     vi.mocked(isUserAuthorizedUseCase.execute).mockResolvedValue(true);
     vi.mocked(householdPermissionService.isUserMember).mockResolvedValue(true);
   });
@@ -107,5 +109,93 @@ describe('authorizeRouteAccessUseCase', () => {
     await expect(
       authorizeRouteAccessUseCase.execute({ ...request, requireHousehold: true }),
     ).resolves.toBe('onboarding');
+  });
+
+  describe('decision reuse', () => {
+    it('reuses a decision for the same inputs instead of re-reading', async () => {
+      await expect(authorizeRouteAccessUseCase.execute(request)).resolves.toBe('allow');
+      await expect(authorizeRouteAccessUseCase.execute(request)).resolves.toBe('allow');
+
+      expect(isUserAuthorizedUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('decides once across six navigations without logging errors', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        for (let navigation = 0; navigation < 6; navigation += 1) {
+          await expect(authorizeRouteAccessUseCase.execute(request)).resolves.toBe('allow');
+        }
+
+        expect(isUserAuthorizedUseCase.execute).toHaveBeenCalledTimes(1);
+        expect(consoleError).not.toHaveBeenCalled();
+      } finally {
+        consoleError.mockRestore();
+      }
+    });
+
+    it('keeps separate slots per household, so switching households re-reads', async () => {
+      await authorizeRouteAccessUseCase.execute({ ...request, requireHousehold: true });
+      await authorizeRouteAccessUseCase.execute({
+        ...request,
+        householdId: 'household-2',
+        requireHousehold: true,
+      });
+
+      expect(householdPermissionService.isUserMember).toHaveBeenCalledTimes(2);
+      expect(householdPermissionService.isUserMember).toHaveBeenLastCalledWith(
+        'household-2',
+        'user-1',
+      );
+    });
+
+    it('keeps separate slots per user', async () => {
+      await authorizeRouteAccessUseCase.execute(request);
+      await authorizeRouteAccessUseCase.execute({
+        ...request,
+        auth: { uid: 'user-2', email: 'other@example.com', isGlobalAdmin: false },
+      });
+
+      expect(isUserAuthorizedUseCase.execute).toHaveBeenCalledTimes(2);
+    });
+
+    it('re-reads after the cache is invalidated', async () => {
+      await authorizeRouteAccessUseCase.execute(request);
+      invalidateRouteAccessCache();
+      await authorizeRouteAccessUseCase.execute(request);
+
+      expect(isUserAuthorizedUseCase.execute).toHaveBeenCalledTimes(2);
+    });
+
+    it('shares one read between concurrent calls for the same inputs', async () => {
+      const [first, second] = await Promise.all([
+        authorizeRouteAccessUseCase.execute(request),
+        authorizeRouteAccessUseCase.execute(request),
+      ]);
+
+      expect([first, second]).toEqual(['allow', 'allow']);
+      expect(isUserAuthorizedUseCase.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('re-reads once the decision outlives its TTL', async () => {
+      const now = vi.spyOn(Date, 'now');
+      try {
+        now.mockReturnValue(1_000);
+        await authorizeRouteAccessUseCase.execute(request);
+
+        now.mockReturnValue(1_000 + 30_000);
+        await authorizeRouteAccessUseCase.execute(request);
+
+        expect(isUserAuthorizedUseCase.execute).toHaveBeenCalledTimes(2);
+      } finally {
+        now.mockRestore();
+      }
+    });
+
+    it('does not reuse a failed decision', async () => {
+      vi.mocked(isUserAuthorizedUseCase.execute).mockRejectedValueOnce(new Error('offline'));
+
+      await expect(authorizeRouteAccessUseCase.execute(request)).rejects.toThrow('offline');
+      await expect(authorizeRouteAccessUseCase.execute(request)).resolves.toBe('allow');
+    });
   });
 });

@@ -20,10 +20,11 @@ export class CreateAccountUseCase {
       auth.isGlobalAdmin,
     );
 
-    // The full list owns the append rule. A controller's filtered rows cannot
-    // safely derive this value when inactive accounts have not been fetched.
+    // The full list owns the append rule and nothing else sets `order` at this
+    // seam: a controller's filtered rows cannot derive it while inactive
+    // accounts are unfetched, and restore writes accounts without this use case.
     const accounts = await accountRepository.getAccounts(householdId, true);
-    const order = data.order ?? accounts.reduce((max, a) => Math.max(max, a.order ?? 0), -1) + 1;
+    const order = accounts.reduce((max, a) => Math.max(max, a.order ?? 0), -1) + 1;
 
     const accountId = await accountRepository.createAccount(
       householdId,

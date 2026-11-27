@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type RetirementPlan } from '@/domains/retirement/types';
 import { retirementPlanRepository } from '@/infra/repositories/retirementPlanRepository';
@@ -13,13 +13,9 @@ export class GetRetirementPlanUseCase {
   async execute(request: GetRetirementPlanRequest): Promise<RetirementPlan | null> {
     const { householdId, planId, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    return withReadPermission(householdId, auth, () =>
+      retirementPlanRepository.getPlan(householdId, planId),
     );
-
-    return retirementPlanRepository.getPlan(householdId, planId);
   }
 }
 

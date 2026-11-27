@@ -29,17 +29,25 @@ export function usePortfolios(householdId: string) {
           if (!householdId) return { portfolios: [], snapshots: new Map() };
 
           const data = await listPortfoliosUseCase.execute({ householdId, auth });
+          // Independent per-portfolio reads run together; a serial loop costs one
+          // round trip per portfolio before the list can paint.
+          const lists = await Promise.all(
+            data.map((portfolio) =>
+              listPortfolioSnapshotsUseCase.execute({
+                householdId,
+                portfolioId: portfolio.id,
+                auth,
+                // 持有者清單已經驗過權限，而且只要最新一筆。
+                skipPermissionCheck: true,
+                latestOnly: true,
+              }),
+            ),
+          );
           const snapshots = new Map<string, PortfolioSnapshot>();
-          for (const portfolio of data) {
-            const list = await listPortfolioSnapshotsUseCase.execute({
-              householdId,
-              portfolioId: portfolio.id,
-              auth,
-            });
-            if (list.length > 0) {
-              snapshots.set(portfolio.id, list[0]);
-            }
-          }
+          data.forEach((portfolio, index) => {
+            const latest = lists[index]?.[0];
+            if (latest) snapshots.set(portfolio.id, latest);
+          });
           return { portfolios: data, snapshots };
         },
         {
@@ -93,6 +101,9 @@ export function usePortfolioQueries(householdId: string) {
             year: options?.year,
             month: options?.month,
             auth,
+            // 只跳過這一層：權限由同頁的清單 hook 發起；單獨使用這個 hook 就
+            // 沒有前門。
+            skipPermissionCheck: true,
           }),
         {
           writeBack: (result) => {

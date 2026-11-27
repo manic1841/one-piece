@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
@@ -22,16 +22,12 @@ export class GetReportSummaryWorkflow {
   private readonly resolveAnchor = resolveReportAnchorUseCase;
 
   async execute({ householdId, auth }: GetReportSummaryRequest): Promise<ReportSummary> {
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    const [reports, periods] = await withReadPermission(householdId, auth, () =>
+      Promise.all([
+        listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
+        this.listPeriods.execute({ householdId }),
+      ]),
     );
-
-    const [reports, periods] = await Promise.all([
-      listReportsUseCase.execute({ householdId, auth }),
-      this.listPeriods.execute({ householdId }),
-    ]);
 
     const closedMonths = new Set(
       periods.filter((period) => period.status === 'CLOSED').map((period) => period.yearMonth),

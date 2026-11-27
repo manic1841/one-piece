@@ -292,11 +292,11 @@ describe('AccountList drag reorder', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('disables reordering until the full account list is loaded', async () => {
+  it('keeps reordering available before the inactive rows are loaded', async () => {
     setup([bankA, bankB]);
 
     await screen.findByTestId('account-row-b1');
-    expect(screen.getAllByTestId('account-grip-b1')[0]).toBeDisabled();
+    expect(screen.getAllByTestId('account-grip-b1')[0]).toBeEnabled();
 
     fireEvent.click(screen.getByRole('button', { name: '含停用' }));
     await waitFor(() => expect(screen.getAllByTestId('account-grip-b1')[0]).toBeEnabled());

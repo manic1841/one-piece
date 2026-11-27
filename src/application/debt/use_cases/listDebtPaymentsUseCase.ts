@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
@@ -13,13 +13,9 @@ export class ListDebtPaymentsUseCase {
   async execute(request: ListDebtPaymentsRequest): Promise<Transaction[]> {
     const { householdId, debtAccountId, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    return withReadPermission(householdId, auth, () =>
+      transactionRepository.listByDebtAccount(householdId, debtAccountId),
     );
-
-    return await transactionRepository.listByDebtAccount(householdId, debtAccountId);
   }
 }
 

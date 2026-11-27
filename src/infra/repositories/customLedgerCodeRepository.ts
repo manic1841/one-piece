@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 
 import {
   type CustomLedgerCode,
@@ -7,6 +7,7 @@ import {
 } from '@/domains/ledger/schemas';
 import { db } from '@/infra/firestore';
 import { BaseRepository } from '@/infra/repositories/baseRepository';
+import { LEDGER_CODE_LIST_LIMIT } from '@/shared/readLimits';
 
 export { type CustomLedgerCode, type CustomLedgerCodeCreate };
 
@@ -50,7 +51,11 @@ class CustomLedgerCodeRepository extends BaseRepository<CustomLedgerCode, [strin
 
   /** Returns all active custom ledger codes for a household. */
   async listActive(householdId: string): Promise<CustomLedgerCode[]> {
-    return this.list([householdId], [where('isActive', '==', true)]);
+    return this.list(
+      [householdId],
+      // 文件 ID 就是科目碼，固定順序讓截斷落在碼序尾端。
+      [where('isActive', '==', true), orderBy('__name__'), limit(LEDGER_CODE_LIST_LIMIT)],
+    );
   }
 
   /**

@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type DebtSnapshot } from '@/domains/debt/schemas';
 import { debtSnapshotRepository } from '@/infra/repositories/debtSnapshotRepository';
@@ -15,17 +15,13 @@ export class ListDebtSnapshotsUseCase {
   async execute(request: ListDebtSnapshotsRequest): Promise<DebtSnapshot[]> {
     const { householdId, debtAccountId, startYearMonth, endYearMonth, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
-
-    return await debtSnapshotRepository.listByYearMonthRange(
-      householdId,
-      debtAccountId,
-      startYearMonth,
-      endYearMonth,
+    return withReadPermission(householdId, auth, () =>
+      debtSnapshotRepository.listByYearMonthRange(
+        householdId,
+        debtAccountId,
+        startYearMonth,
+        endYearMonth,
+      ),
     );
   }
 }

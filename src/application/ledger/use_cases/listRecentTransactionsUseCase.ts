@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type Transaction } from '@/domains/ledger/schemas';
 import { transactionRepository } from '@/infra/repositories/transactionRepository';
@@ -15,25 +15,23 @@ export class ListRecentTransactionsUseCase {
   async execute(request: ListRecentTransactionsRequest): Promise<Transaction[]> {
     const { householdId, limit = 100, startDate, endDate, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
-    );
+    const read = () => {
+      if (startDate || endDate) {
+        const normalizedStartDate = startDate ?? new Date('1970-01-01T00:00:00.000Z');
+        const normalizedEndDate = endDate ?? new Date('9999-12-31T23:59:59.999Z');
 
-    if (startDate || endDate) {
-      const normalizedStartDate = startDate ?? new Date('1970-01-01T00:00:00.000Z');
-      const normalizedEndDate = endDate ?? new Date('9999-12-31T23:59:59.999Z');
+        return transactionRepository.listByDateRange(
+          householdId,
+          normalizedStartDate,
+          normalizedEndDate,
+          limit,
+        );
+      }
 
-      return transactionRepository.listByDateRange(
-        householdId,
-        normalizedStartDate,
-        normalizedEndDate,
-        limit,
-      );
-    }
+      return transactionRepository.getRecentTransactions(householdId, limit);
+    };
 
-    return transactionRepository.getRecentTransactions(householdId, limit);
+    return withReadPermission(householdId, auth, read);
   }
 }
 

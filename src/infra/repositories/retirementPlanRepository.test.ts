@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type RetirementPlanCreate } from '@/domains/retirement/types';
+import { MASTER_LIST_LIMIT } from '@/shared/readLimits';
 
 import { retirementPlanRepository } from './retirementPlanRepository';
 
@@ -54,6 +55,7 @@ vi.mock('firebase/firestore', () => {
     deleteDoc: vi.fn(),
     query: vi.fn((ref: unknown, ...constraints: unknown[]) => ({ ref, constraints })),
     orderBy: vi.fn((field: string, direction: string) => ({ field, direction })),
+    limit: vi.fn((value: number) => ({ limit: value })),
   };
 });
 
@@ -231,7 +233,10 @@ describe('retirementPlanRepository', () => {
     const queryArg = vi.mocked(getDocs).mock.calls[0][0] as unknown as {
       constraints: Array<{ field: string; direction: string }>;
     };
-    expect(queryArg.constraints).toEqual([{ field: 'updatedAt', direction: 'desc' }]);
+    expect(queryArg.constraints).toEqual([
+      { field: 'updatedAt', direction: 'desc' },
+      { limit: MASTER_LIST_LIMIT },
+    ]);
   });
 
   it('reads a plan by id with the document id attached', async () => {

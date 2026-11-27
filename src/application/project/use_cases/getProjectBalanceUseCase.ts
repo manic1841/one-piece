@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import {
   type ProjectBalanceResponse,
   loadProjectBalance,
@@ -16,16 +16,17 @@ export class GetProjectBalanceUseCase {
   async execute(request: GetProjectBalanceRequest): Promise<ProjectBalanceResponse | null> {
     const { householdId, projectId, auth } = request;
 
-    await householdPermissionService.assertReadPermission(
-      householdId,
-      auth.uid,
-      auth.isGlobalAdmin,
+    // The balance bundle does not need the project document, so both reads start
+    // together; a missing project just discards the balance result.
+    const [project, balance] = await withReadPermission(householdId, auth, () =>
+      Promise.all([
+        projectRepository.get([householdId, projectId]),
+        loadProjectBalance(householdId, projectId),
+      ]),
     );
-
-    const project = await projectRepository.get([householdId, projectId]);
     if (!project) return null;
 
-    return loadProjectBalance(householdId, projectId);
+    return balance;
   }
 }
 

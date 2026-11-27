@@ -1,3 +1,4 @@
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import {
   type BalanceSheetData,
@@ -27,11 +28,35 @@ export interface GetStoredReportsBundleRequest {
 export class GetStoredReportsBundleUseCase {
   async execute(request: GetStoredReportsBundleRequest): Promise<StoredReportsBundle> {
     const { householdId, yearMonth, auth } = request;
-    const [incomeStatement, balanceSheet, cashFlow] = await Promise.all([
-      getStoredReportUseCase.execute({ householdId, yearMonth, kind: 'incomeStatement', auth }),
-      getStoredReportUseCase.execute({ householdId, yearMonth, kind: 'balanceSheet', auth }),
-      getStoredReportUseCase.execute({ householdId, yearMonth, kind: 'cashFlow', auth }),
-    ]);
+    // One check for the bundle: the three reads below share the same household.
+    const [incomeStatement, balanceSheet, cashFlow] = await withReadPermission(
+      householdId,
+      auth,
+      () =>
+        Promise.all([
+          getStoredReportUseCase.execute({
+            householdId,
+            yearMonth,
+            kind: 'incomeStatement',
+            auth,
+            skipPermissionCheck: true,
+          }),
+          getStoredReportUseCase.execute({
+            householdId,
+            yearMonth,
+            kind: 'balanceSheet',
+            auth,
+            skipPermissionCheck: true,
+          }),
+          getStoredReportUseCase.execute({
+            householdId,
+            yearMonth,
+            kind: 'cashFlow',
+            auth,
+            skipPermissionCheck: true,
+          }),
+        ]),
+    );
 
     return { incomeStatement, balanceSheet, cashFlow };
   }

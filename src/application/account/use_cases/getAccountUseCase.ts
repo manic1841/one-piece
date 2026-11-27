@@ -1,4 +1,4 @@
-import { householdPermissionService } from '@/application/household/householdPermissionService';
+import { withReadPermission } from '@/application/common/readGuard';
 import { type AuthContext } from '@/application/types';
 import { type Account } from '@/domains/account/types/account';
 import { accountRepository } from '@/infra/repositories/accountRepository';
@@ -14,15 +14,12 @@ export class GetAccountUseCase {
   async execute(request: GetAccountRequest): Promise<Account | null> {
     const { householdId, accountId, auth, skipPermissionCheck = false } = request;
 
-    if (!skipPermissionCheck) {
-      await householdPermissionService.assertReadPermission(
-        householdId,
-        auth.uid,
-        auth.isGlobalAdmin,
-      );
-    }
-
-    return await accountRepository.get([householdId, accountId]);
+    return withReadPermission(
+      householdId,
+      auth,
+      () => accountRepository.get([householdId, accountId]),
+      { skipPermissionCheck },
+    );
   }
 }
 

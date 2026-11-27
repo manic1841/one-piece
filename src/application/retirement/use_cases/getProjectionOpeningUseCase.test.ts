@@ -22,7 +22,7 @@ vi.mock('@/application/report/use_cases/listReportsUseCase', () => ({
 
 vi.mock('@/infra/repositories/financialPeriodRepository', () => ({
   financialPeriodRepository: {
-    getPeriod: vi.fn(),
+    listAll: vi.fn(),
   },
 }));
 
@@ -55,14 +55,10 @@ describe('getProjectionOpeningUseCase', () => {
       buildReport('2026-07', 400_000, 100_000),
       buildReport('2026-08', 500_000, 120_000),
     ]);
-    vi.mocked(financialPeriodRepository.getPeriod).mockImplementation(
-      async (_householdId, yearMonth) => {
-        if (yearMonth === '2026-07' || yearMonth === '2026-08') {
-          return { status: 'CLOSED' } as never;
-        }
-        return null;
-      },
-    );
+    vi.mocked(financialPeriodRepository.listAll).mockResolvedValue([
+      { status: 'CLOSED', yearMonth: '2026-07' },
+      { status: 'CLOSED', yearMonth: '2026-08' },
+    ] as never);
 
     const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
@@ -83,14 +79,10 @@ describe('getProjectionOpeningUseCase', () => {
       buildReport('2026-08', 500_000, 120_000),
       buildReport('2026-07', 400_000, 100_000),
     ]);
-    vi.mocked(financialPeriodRepository.getPeriod).mockImplementation(
-      async (_householdId, yearMonth) => {
-        if (yearMonth === '2026-07') {
-          return { status: 'CLOSED' } as never;
-        }
-        return { status: 'IN_PROGRESS' } as never;
-      },
-    );
+    vi.mocked(financialPeriodRepository.listAll).mockResolvedValue([
+      { status: 'IN_PROGRESS', yearMonth: '2026-08' },
+      { status: 'CLOSED', yearMonth: '2026-07' },
+    ] as never);
 
     const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
@@ -119,7 +111,7 @@ describe('getProjectionOpeningUseCase', () => {
       auth,
     });
 
-    expect(financialPeriodRepository.getPeriod).not.toHaveBeenCalled();
+    expect(financialPeriodRepository.listAll).toHaveBeenCalledWith('household-1');
     expect(result).toEqual({ reason: 'NO_CLOSED_PERIOD' });
   });
 
@@ -127,7 +119,7 @@ describe('getProjectionOpeningUseCase', () => {
     vi.mocked(listReportsUseCase.execute).mockResolvedValue([
       buildReport('2026-08', 500_000, 120_000),
     ]);
-    vi.mocked(financialPeriodRepository.getPeriod).mockResolvedValue({ status: 'OPEN' } as never);
+    vi.mocked(financialPeriodRepository.listAll).mockResolvedValue([] as never);
 
     const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
