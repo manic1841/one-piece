@@ -1,5 +1,4 @@
 import { withReadPermission } from '@/application/common/readGuard';
-import { ListFinancialPeriodsUseCase } from '@/application/monthly_close/use_cases/financialPeriodAccessUseCases';
 import { listReportsUseCase } from '@/application/report/use_cases/listReportsUseCase';
 import { type AuthContext } from '@/application/types';
 
@@ -29,39 +28,28 @@ export interface ProjectionOpeningPeriods {
 }
 
 /**
- * The months the opening picker offers: CLOSED periods with a stored balance
- * sheet, newest first, at most `OPENING_PERIOD_LIMIT`. Only closed months are
- * listed because a persisted report is frozen at close (ADR-0069) — an open
- * month's report can be regenerated under the picker.
- *
- * The balance sheet condition is applied *before* the cap, otherwise a couple of
- * report-less recent months would eat slots and the window would under-fill.
+ * The months the opening picker offers: every month with a stored balance
+ * sheet, newest first, at most `OPENING_PERIOD_LIMIT`. A month does not have to
+ * be closed — the report is the source and closing is just a later gate — so an
+ * open month is offerable too; the dialog says its report can still change.
  */
 export class ListProjectionOpeningPeriods {
-  private readonly listPeriods = new ListFinancialPeriodsUseCase();
-
   async execute(request: ListProjectionOpeningPeriodsRequest): Promise<ProjectionOpeningPeriods> {
     const { householdId, auth, anchorYearMonth = null } = request;
-    const [periods, reports] = await withReadPermission(householdId, auth, () =>
-      Promise.all([
-        this.listPeriods.execute({ householdId }),
-        listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
-      ]),
+    const reports = await withReadPermission(householdId, auth, () =>
+      listReportsUseCase.execute({ householdId, auth, skipPermissionCheck: true }),
     );
-    const closed = periods
-      .filter((period) => period.status === 'CLOSED')
-      .map((period) => period.yearMonth)
-      .sort(newestMonthFirst);
-
-    if (closed.length === 0) return { periods: [], pinned: null };
-
     const byMonth = balanceSheetsByMonth(reports);
+    const months = [...byMonth.keys()].sort(newestMonthFirst);
+
+    if (months.length === 0) return { periods: [], pinned: null };
+
     const toPeriod = (yearMonth: string): ProjectionOpeningPeriod[] => {
       const report = byMonth.get(yearMonth);
       return report === undefined ? [] : [{ yearMonth, netWorth: netWorthOf(report) }];
     };
 
-    const rows = closed.flatMap(toPeriod).slice(0, OPENING_PERIOD_LIMIT);
+    const rows = months.flatMap(toPeriod).slice(0, OPENING_PERIOD_LIMIT);
     const pinned =
       anchorYearMonth !== null && !rows.some((row) => row.yearMonth === anchorYearMonth)
         ? (toPeriod(anchorYearMonth)[0] ?? null)

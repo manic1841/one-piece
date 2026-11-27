@@ -4,7 +4,6 @@ import { listReportsUseCase } from '@/application/report/use_cases/listReportsUs
 import { type AuthContext } from '@/application/types';
 import { ReportType } from '@/domains/report/schemas';
 import { type FinancialReport } from '@/domains/report/types';
-import { financialPeriodRepository } from '@/infra/repositories/financialPeriodRepository';
 
 import { getProjectionOpeningUseCase } from './getProjectionOpeningUseCase';
 
@@ -17,12 +16,6 @@ vi.mock('@/application/household/householdPermissionService', () => ({
 vi.mock('@/application/report/use_cases/listReportsUseCase', () => ({
   listReportsUseCase: {
     execute: vi.fn(),
-  },
-}));
-
-vi.mock('@/infra/repositories/financialPeriodRepository', () => ({
-  financialPeriodRepository: {
-    listAll: vi.fn(),
   },
 }));
 
@@ -50,15 +43,11 @@ describe('getProjectionOpeningUseCase', () => {
     vi.clearAllMocks();
   });
 
-  it('returns the latest CLOSED balance sheet with assets, liabilities and net worth', async () => {
+  it('returns the latest balance sheet with assets, liabilities and net worth', async () => {
     vi.mocked(listReportsUseCase.execute).mockResolvedValue([
       buildReport('2026-07', 400_000, 100_000),
       buildReport('2026-08', 500_000, 120_000),
     ]);
-    vi.mocked(financialPeriodRepository.listAll).mockResolvedValue([
-      { status: 'CLOSED', yearMonth: '2026-07' },
-      { status: 'CLOSED', yearMonth: '2026-08' },
-    ] as never);
 
     const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
@@ -74,15 +63,12 @@ describe('getProjectionOpeningUseCase', () => {
     });
   });
 
-  it('skips non-closed periods and falls back to an older CLOSED one', async () => {
+  it('uses the latest report without asking for a closed period', async () => {
+    // Nothing here knows about periods: the newest balance sheet wins outright.
     vi.mocked(listReportsUseCase.execute).mockResolvedValue([
+      buildReport('2026-09', 600_000, 150_000),
       buildReport('2026-08', 500_000, 120_000),
-      buildReport('2026-07', 400_000, 100_000),
     ]);
-    vi.mocked(financialPeriodRepository.listAll).mockResolvedValue([
-      { status: 'IN_PROGRESS', yearMonth: '2026-08' },
-      { status: 'CLOSED', yearMonth: '2026-07' },
-    ] as never);
 
     const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
@@ -90,10 +76,10 @@ describe('getProjectionOpeningUseCase', () => {
     });
 
     expect(result).toEqual({
-      openingNetWorth: 300_000,
-      anchorYearMonth: '2026-07',
-      assets: 400_000,
-      liabilities: 100_000,
+      openingNetWorth: 450_000,
+      anchorYearMonth: '2026-09',
+      assets: 600_000,
+      liabilities: 150_000,
     });
   });
 
@@ -111,21 +97,17 @@ describe('getProjectionOpeningUseCase', () => {
       auth,
     });
 
-    expect(financialPeriodRepository.listAll).toHaveBeenCalledWith('household-1');
-    expect(result).toEqual({ reason: 'NO_CLOSED_PERIOD' });
+    expect(result).toEqual({ reason: 'NO_REPORT' });
   });
 
-  it('returns NO_CLOSED_PERIOD when no period is closed', async () => {
-    vi.mocked(listReportsUseCase.execute).mockResolvedValue([
-      buildReport('2026-08', 500_000, 120_000),
-    ]);
-    vi.mocked(financialPeriodRepository.listAll).mockResolvedValue([] as never);
+  it('returns NO_REPORT when no balance sheet is stored', async () => {
+    vi.mocked(listReportsUseCase.execute).mockResolvedValue([]);
 
     const result = await getProjectionOpeningUseCase.execute({
       householdId: 'household-1',
       auth,
     });
 
-    expect(result).toEqual({ reason: 'NO_CLOSED_PERIOD' });
+    expect(result).toEqual({ reason: 'NO_REPORT' });
   });
 });

@@ -90,7 +90,7 @@ describe('calculateProjectionWorkflow', () => {
     vi.mocked(transactionRepository.listByDateRange).mockResolvedValue([]);
     vi.mocked(debtAccountRepository.getDebtAccounts).mockResolvedValue([]);
     vi.mocked(getProjectionOpeningUseCase.execute).mockResolvedValue({
-      reason: 'NO_CLOSED_PERIOD',
+      reason: 'NO_REPORT',
     });
   });
 
